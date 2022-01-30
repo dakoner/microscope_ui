@@ -10,7 +10,7 @@ import imagezmq
 
 XY_STEP_SIZE=0.1
 Z_STEP_SIZE=0.1
-TARGET="inspectionscope"
+TARGET="microscope"
 MQTT_SERVER="gork.local"
 
 class ImageZMQCameraReader(QtCore.QThread):
@@ -22,57 +22,10 @@ class ImageZMQCameraReader(QtCore.QThread):
     def run(self):         
         while True:
             name, jpg_buffer = self.image_hub.recv_jpg()
-            image= simplejpeg.decode_jpeg( jpg_buffer, colorspace='RGB')
-            image = QtGui.QImage(image, image.shape[1], image.shape[0], QtGui.QImage.Format_RGB888)
+            image= simplejpeg.decode_jpeg( jpg_buffer, colorspace='GRAY')
+            image = QtGui.QImage(image, image.shape[1], image.shape[0], QtGui.QImage.Format_Indexed8)
             self.signal.emit(image)
             self.image_hub.send_reply(b'OK')
-
-class PySpinCameraReader(QtCore.QThread):
-    signal = QtCore.pyqtSignal(QtGui.QImage)
-    def __init__(self):
-        super(PySpinCameraReader, self).__init__()
-        self.cam = Camera()
-        self.cam.init()
-
-    def run(self):         
-        self.cam.start()
-        while True:
-            img = self.cam.get_array()
-            image = QtGui.QImage(img, self.cam.Width, self.cam.Height, QtGui.QImage.Format_Grayscale8)
-            self.signal.emit(image)
-
-
-class Cv2CameraReader(QtCore.QThread):
-    signal = QtCore.pyqtSignal(QtGui.QImage)
-    def __init__(self):
-        super(Cv2CameraReader, self).__init__()
-        self.cam = cv2.VideoCapture(0)
-        self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1600)
-        self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 1200)
-        self.width = self.cam.get(cv2.CAP_PROP_FRAME_WIDTH)
-        self.height = self.cam.get(cv2.CAP_PROP_FRAME_HEIGHT)
-    def run(self):
-        while True:
-            ret, img = self.cam.read()
-            if ret:
-                image = QtGui.QImage(img.data, self.width, self.height, QtGui.QImage.Format_RGB888)
-                self.signal.emit(image)
-
-
-
-class PiCameraReader(QtCore.QThread):
-    signal = QtCore.pyqtSignal(QtGui.QImage)
-    def __init__(self):
-        super(PiCameraReader, self).__init__()
-        self.picam = imutils.VideoStream(usePiCamera=True).start()
-        self.width = self.picam.camera.resolution[0]
-        import pdb; pdb.set_trace()
-
-    def run(self):
-        while True:
-            image = self.picam.read()
-            image = QtGui.QImage(image, self.width, self.height, QtGui.QImage.Format_RGB888)
-            self.signal.emit(image)
 
 class Window(QtWidgets.QWidget):
 
@@ -87,8 +40,6 @@ class Window(QtWidgets.QWidget):
 
         self.setFocus()
 
-        #self.camera = Cv2CameraReader()
-        #self.camera = PySpinCameraReader()
         self.camera = ImageZMQCameraReader()
         self.camera.start()
         self.camera.signal.connect(self.imageTo)
