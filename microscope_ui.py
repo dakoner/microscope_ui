@@ -1,10 +1,7 @@
 import sys
 import signal
 from PyQt5 import QtGui, QtCore, QtWidgets
-from simple_pyspin import Camera
 import paho.mqtt.client as mqtt
-import cv2
-import imutils
 import simplejpeg
 import imagezmq
 
@@ -12,12 +9,14 @@ XY_STEP_SIZE=0.1
 Z_STEP_SIZE=0.1
 TARGET="microscope"
 MQTT_SERVER="gork.local"
+IMAGEZMQ='DESKTOP-H3TSLD0.local'
 
 class ImageZMQCameraReader(QtCore.QThread):
     signal = QtCore.pyqtSignal(QtGui.QImage)
     def __init__(self):
         super(ImageZMQCameraReader, self).__init__()
-        self.image_hub = imagezmq.ImageHub()
+        url = "tcp://{}:{}".format(IMAGEZMQ, 5555)
+        self.image_hub = imagezmq.ImageHub(url, REQ_REP=False)
 
     def run(self):         
         while True:
@@ -25,7 +24,6 @@ class ImageZMQCameraReader(QtCore.QThread):
             image= simplejpeg.decode_jpeg( jpg_buffer, colorspace='GRAY')
             image = QtGui.QImage(image, image.shape[1], image.shape[0], QtGui.QImage.Format_Indexed8)
             self.signal.emit(image)
-            self.image_hub.send_reply(b'OK')
 
 class Window(QtWidgets.QWidget):
 
@@ -76,11 +74,11 @@ class Window(QtWidgets.QWidget):
 
 
     def imageTo(self, image): 
-        image = QtGui.QPixmap.fromImage(image).scaled(QtWidgets.QApplication.instance().primaryScreen().size(), QtCore.Qt.KeepAspectRatio)
-        self.image_widget.setPixmap(image)
+        pixmap = QtGui.QPixmap.fromImage(image)#.scaled(QtWidgets.QApplication.instance().primaryScreen().size(), QtCore.Qt.KeepAspectRatio)
+        self.image_widget.setPixmap(pixmap)
 
 if __name__ == '__main__':
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    #signal.signal(signal.SIGINT, signal.SIG_DFL)
     app = QtWidgets.QApplication(sys.argv)
     window = Window()
     window.show()#FullScreen()
