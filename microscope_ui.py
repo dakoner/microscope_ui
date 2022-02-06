@@ -5,24 +5,26 @@ import paho.mqtt.client as mqtt
 import simplejpeg
 import imagezmq
 
-XY_STEP_SIZE=0.1
-Z_STEP_SIZE=0.1
+XY_STEP_SIZE=.025
+Z_STEP_SIZE=0.01
 TARGET="microscope"
 MQTT_SERVER="gork.local"
-IMAGEZMQ='DESKTOP-H3TSLD0.local'
+#IMAGEZMQ='inspectionscope.local'
+IMAGEZMQ='inspectionscope.local'
 
 class ImageZMQCameraReader(QtCore.QThread):
     signal = QtCore.pyqtSignal(QtGui.QImage)
     def __init__(self):
         super(ImageZMQCameraReader, self).__init__()
-        url = "tcp://{}:{}".format(IMAGEZMQ, 5555)
+        url = f"tcp://{IMAGEZMQ}:5555"
+        print("Connect to url", url)
         self.image_hub = imagezmq.ImageHub(url, REQ_REP=False)
 
     def run(self):         
         while True:
             name, jpg_buffer = self.image_hub.recv_jpg()
-            image= simplejpeg.decode_jpeg( jpg_buffer, colorspace='GRAY')
-            image = QtGui.QImage(image, image.shape[1], image.shape[0], QtGui.QImage.Format_Indexed8)
+            image= simplejpeg.decode_jpeg( jpg_buffer, colorspace='RGB')
+            image = QtGui.QImage(image, image.shape[1], image.shape[0], QtGui.QImage.Format_RGB888)
             self.signal.emit(image)
 
 class Window(QtWidgets.QWidget):
@@ -63,18 +65,22 @@ class Window(QtWidgets.QWidget):
             cmd = "$J=G91 F100 Y-%f" % XY_STEP_SIZE
         elif event.key() == QtCore.Qt.Key_D:
             cmd = "$J=G91 F100 Y%f" % XY_STEP_SIZE
-        elif event.key() == QtCore.Qt.Key_W:
-            cmd = "$J=G91 F100 X%f" % XY_STEP_SIZE
         elif event.key() == QtCore.Qt.Key_S:
+            cmd = "$J=G91 F100 X%f" % XY_STEP_SIZE
+        elif event.key() == QtCore.Qt.Key_W:
             cmd = "$J=G91 F100 X-%f" % XY_STEP_SIZE
-        # elif event.key() == QtCore.Qt.Key_X:
-        #     QtWidgets.qApp.quit()
+        elif event.key() == QtCore.Qt.Key_X:
+            QtWidgets.qApp.quit()
         if cmd:
             self.client.publish(f"{TARGET}/command", cmd)
 
 
+    def keyReleaseEvent(self, event):
+        if not event.isAutoRepeat():
+            self.client.publish(f"{TARGET}/cancel")
+
     def imageTo(self, image): 
-        pixmap = QtGui.QPixmap.fromImage(image)#.scaled(QtWidgets.QApplication.instance().primaryScreen().size(), QtCore.Qt.KeepAspectRatio)
+        pixmap = QtGui.QPixmap.fromImage(image).scaled(QtWidgets.QApplication.instance().primaryScreen().size(), QtCore.Qt.KeepAspectRatio)
         self.image_widget.setPixmap(pixmap)
 
 if __name__ == '__main__':
