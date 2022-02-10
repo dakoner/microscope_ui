@@ -5,11 +5,11 @@ import paho.mqtt.client as mqtt
 import simplejpeg
 import imagezmq
 
-XY_STEP_SIZE=.025
+XY_STEP_SIZE=1
 Z_STEP_SIZE=0.01
 TARGET="microscope"
-MQTT_SERVER="gork.local"
-#IMAGEZMQ='inspectionscope.local'
+MQTT_SERVER="inspectionscope.local"
+#IMAGEZMQ='microscope.local'
 IMAGEZMQ='inspectionscope.local'
 
 class ImageZMQCameraReader(QtCore.QThread):
@@ -47,40 +47,79 @@ class Window(QtWidgets.QWidget):
         self.client =  mqtt.Client()
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
-        self.client.connect_async(MQTT_SERVER)
+        self.client.on_message = self.on_message
+        self.client.connect(MQTT_SERVER)
         self.client.loop_start()
+        self.outstanding = 0
 
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.timer_tick)
+        self.timer.start(1000)
+
+        self.connected = False
     def on_connect(self, client, userdata, flags, rc):
         print("connected")
-    def on_disconnect(self, client, userdata, flags, rc):
+        self.connected = True
+        self.client.subscribe(f"{TARGET}/output")
+        self.client.subscribe(f"{TARGET}/command")
+
+
+    def timer_tick(self):
+        if self.connected:
+            self.client.publish(f"{TARGET}/command", '?')
+
+    def on_disconnect(self, client, userdata, flags):
         print("disconnected")
+        self.connected = False
+        self.timer.stop()
+
+    def on_message(self, client, userdata, message):
+        print("Outstanding:", self.outstanding)
+        if message.topic == f"{TARGET}/output":
+            if message.payload == b"ok":
+                self.outstanding -= 1
+            elif message.payload.startswith(b'<'):
+                print("Position:", message.payload )
+            else:
+                print("Message:", message.payload)
+        elif message.topic == f"{TARGET}/command":
+            print("Command:", message.payload)
+
 
     def keyPressEvent(self, event):
-        cmd = None
-        if event.key() == QtCore.Qt.Key_Q:
-            cmd = "$J=G91 F100 Z-%f" % Z_STEP_SIZE
-        elif event.key() == QtCore.Qt.Key_Z:
-            cmd = "$J=G91 F100 Z%f" % Z_STEP_SIZE
-        elif event.key() == QtCore.Qt.Key_A:
-            cmd = "$J=G91 F100 Y-%f" % XY_STEP_SIZE
-        elif event.key() == QtCore.Qt.Key_D:
-            cmd = "$J=G91 F100 Y%f" % XY_STEP_SIZE
-        elif event.key() == QtCore.Qt.Key_S:
-            cmd = "$J=G91 F100 X%f" % XY_STEP_SIZE
-        elif event.key() == QtCore.Qt.Key_W:
-            cmd = "$J=G91 F100 X-%f" % XY_STEP_SIZE
-        elif event.key() == QtCore.Qt.Key_X:
-            QtWidgets.qApp.quit()
-        if cmd:
-            self.client.publish(f"{TARGET}/command", cmd)
+        if not event.isAutoRepeat():
+            cmd = None
+            if event.key() == QtCore.Qt.Key_Q:
+                cmd = "$J=G91 F100 Z-%f" % Z_STEP_SIZE
+                self.outstanding += 1
+            elif event.key() == QtCore.Qt.Key_Z:
+                cmd = "$J=G91 F100 Z%f" % Z_STEP_SIZE
+                self.outstanding += 1
+            elif event.key() == QtCore.Qt.Key_A:
+                cmd = "$J=G91 F100 Y-%f" % XY_STEP_SIZE
+                self.outstanding += 1
+            elif event.key() == QtCore.Qt.Key_D:
+                cmd = "$J=G91 F100 Y%f" % XY_STEP_SIZE
+                self.outstanding += 1
+            elif event.key() == QtCore.Qt.Key_S:
+                cmd = "$J=G91 F100 X%f" % XY_STEP_SIZE
+                self.outstanding += 1
+            elif event.key() == QtCore.Qt.Key_W:
+                cmd = "$J=G91 F100 X-%f" % XY_STEP_SIZE
+                self.outstanding += 1
+            elif event.key() == QtCore.Qt.Key_X:
+                QtWidgets.qApp.quit()
+            if cmd:
+                self.client.publish(f"{TARGET}/command", cmd)
 
 
     def keyReleaseEvent(self, event):
         if not event.isAutoRepeat():
+            print("Cancel")
             self.client.publish(f"{TARGET}/cancel")
 
     def imageTo(self, image): 
-        pixmap = QtGui.QPixmap.fromImage(image).scaled(QtWidgets.QApplication.instance().primaryScreen().size(), QtCore.Qt.KeepAspectRatio)
+        pixmap = QtGui.QPixmap.fromImage(image)#.scaled(QtWidgets.QApplication.instance().primaryScreen().size(), QtCore.Qt.KeepAspectRatio)
         self.image_widget.setPixmap(pixmap)
 
 if __name__ == '__main__':
