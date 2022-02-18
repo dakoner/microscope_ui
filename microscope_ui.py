@@ -104,6 +104,13 @@ class Window(QtWidgets.QLabel):
             if message.payload != b"?":
                 print("Command:", message.payload)
 
+    def mousePressEvent(self, event):
+        if self.status is not None:
+            # Compute delta from c_pos to middle of window, then scale by pixel size
+            s_pos = QtCore.QPoint(self.size().width()/2, self.size().height()/2)
+            cursor_offset = QtCore.QPointF(event.pos()-s_pos)*.0003
+            cmd = "$J=G91 F%.3f X%.3f Y%.3f"% (XY_FEED, cursor_offset.y(), cursor_offset.x())
+            self.client.publish(f"{TARGET}/command", cmd)
 
     def keyPressEvent(self, event):
         if not event.isAutoRepeat():
@@ -172,7 +179,6 @@ class Window(QtWidgets.QLabel):
     def imageTo(self, image):#, this_pose): 
         image = QtGui.QImage(image, image.shape[1], image.shape[0], QtGui.QImage.Format_RGB888)
         if self.status is not None:
-
             p = QtGui.QPainter()
         
             p.begin(image)
@@ -191,13 +197,16 @@ class Window(QtWidgets.QLabel):
             font.setPointSize(24)
             p.setFont(font)
 
-            print(self.mapFromGlobal(QtGui.QCursor().pos()))
+            c_pos = self.mapFromGlobal(QtGui.QCursor().pos())
+            # Compute delta from c_pos to middle of window, then scale by pixel size
+            s_pos = QtCore.QPoint(self.size().width()/2, self.size().height()/2)
+            self.cursor_offset = QtCore.QPointF(c_pos-s_pos)*.0003
+            p.drawText(950, 100, "dX %6.3fmm dY %6.3fmm" % (self.cursor_offset.x(), self.cursor_offset.y()))
             m_pos = self.status['m_pos']
-            p.drawText(1100, 50, "X%6.3f Y%6.3f" % (m_pos[0], m_pos[1]))
-
+            p.drawText(975, 150, "X%6.3fmm Y%6.3fmm" % (m_pos[0], m_pos[1]))
             p.end()
 
-        pixmap = QtGui.QPixmap.fromImage(image).scaled(QtWidgets.QApplication.instance().primaryScreen().size(), QtCore.Qt.KeepAspectRatio)
+        pixmap = QtGui.QPixmap.fromImage(image)#.scaled(QtWidgets.QApplication.instance().primaryScreen().size(), QtCore.Qt.KeepAspectRatio)
         self.setPixmap(pixmap)
 
 if __name__ == '__main__':
