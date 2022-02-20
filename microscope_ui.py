@@ -8,12 +8,12 @@ import imagezmq
 import numpy as np
 from dlclive import DLCLive
 
-pcutoff=0.25
-pixel_to_mm = 0.001
-XY_STEP_SIZE=50
-Z_STEP_SIZE=.005
-Z_FEED=.005
-XY_FEED=50
+pcutoff=0.5
+pixel_to_mm = 0.0003
+XY_STEP_SIZE=500
+Z_STEP_SIZE=.01
+Z_FEED=500
+XY_FEED=1000
 TARGET="microscope"
 MQTT_SERVER="inspectionscope.local"
 #IMAGEZMQ='microscope.local'
@@ -32,28 +32,29 @@ class ImageZMQCameraReader(QtCore.QThread):
         self.image_hub = imagezmq.ImageHub(url, REQ_REP=False)
 
 
-        self.live = DLCLive(
-            model_path = r"C:\Users\dek\Desktop\tarditrack2-dek-2022-02-18\exported-models\DLC_tarditrack2_resnet_50_iteration-0_shuffle-1",
-            tf_config=None,
-            resize=0.5,
-            cropping=None,
-            dynamic=(False, 0.5, 10),
-            display=False,
-            pcutoff=0.5,
-            display_radius=3,
-            display_cmap='bmy',
-        )
+        # self.live = DLCLive(
+        #     model_path = r"C:\Users\dek\Desktop\tarditrack2-dek-2022-02-18\exported-models\DLC_tarditrack2_resnet_50_iteration-0_shuffle-1",
+        #     tf_config=None,
+        #     resize=0.5,
+        #     cropping=None,
+        #     dynamic=(False, 0.5, 10),
+        #     display=False,
+        #     pcutoff=0.5,
+        #     display_radius=3,
+        #     display_cmap='bmy',
+        # )
 
     def run(self):         
         name, jpg_buffer = self.image_hub.recv_jpg()
         image= simplejpeg.decode_jpeg( jpg_buffer, colorspace='RGB')
-        poses = self.live.init_inference(image)
+        #poses = self.live.init_inference(image)
 
         while True:
             name, jpg_buffer = self.image_hub.recv_jpg()
             image= simplejpeg.decode_jpeg( jpg_buffer, colorspace='RGB')
-            poses = self.live.get_pose(image)
-            self.signal.emit(image, poses)
+            #poses = self.live.get_pose(image)
+            #self.signal.emit(image, poses)
+            self.signal.emit(image, np.zeros((5,3)))
 
 class Window(QtWidgets.QLabel):
 
@@ -85,6 +86,8 @@ class Window(QtWidgets.QLabel):
 
         self.time = None
         self.tracking = False
+        self.state = "Unknown"
+
     def on_connect(self, client, userdata, flags, rc):
         print("connected")
         self.connected = True
@@ -109,11 +112,11 @@ class Window(QtWidgets.QLabel):
                 status = message.payload.decode('utf8')
                 if status.startswith("<") and status.endswith(">"):
                     rest = status[1:-3].split('|')
-                    state = rest[0]
-                    results = { 'state': state }
+                    self.state = rest[0]
                     for item in rest:
                         if item.startswith("MPos"):
                             self.m_pos = [float(field) for field in item[5:].split(',')]
+                            print(self.m_pos)
                         elif item.startswith("WCO"):
                             self.w_pos = [float(field) for field in item[4:].split(',')]
 
@@ -128,7 +131,7 @@ class Window(QtWidgets.QLabel):
         # Compute delta from c_pos to middle of window, then scale by pixel size
         s_pos = QtCore.QPoint(self.size().width()/2, self.size().height()/2)
         cursor_offset = QtCore.QPointF(event.pos()-s_pos)*pixel_to_mm
-        cmd = "$J=G91 F%.3f X%.3f Y%.3f"% (XY_FEED, cursor_offset.y(), cursor_offset.x())
+        cmd = "$J=G91  X%.3f Y%.3f F%.3f"% (cursor_offset.y(), cursor_offset.x(), XY_FEED)
         self.client.publish(f"{TARGET}/command", cmd)
 
     def keyPressEvent(self, event):
@@ -191,10 +194,14 @@ class Window(QtWidgets.QLabel):
                 if event.modifiers() & QtCore.Qt.ControlModifier:
                     if event.key() in self.positions:
                         pos = self.positions[event.key()]
-                        cmd = f"G90 F50 X{pos[0]} Y{pos[1]} Z{pos[2]}"
+                        dx = pos[0] - self.m_pos[0]
+                        dy = pos[1] - self.m_pos[1]
+                        cmd = f"$J=G91 X{dx} Y{dy} F{XY_FEED}"
+                        print("goto", pos)
                         self.outstanding += 1
                 else:
                     if self.m_pos is not None:
+                        print("save", self.m_pos)
                         self.positions[event.key()] = self.m_pos
             if cmd:
                 self.client.publish(f"{TARGET}/command", cmd)
@@ -215,20 +222,18 @@ class Window(QtWidgets.QLabel):
             xs = np.arange(pos0[0], pos1[0], half_fov)
             ys = np.arange(pos0[1], pos1[1], half_fov)
             xx, yy = np.meshgrid(xs, ys)
-            print(np.array([xx.ravel(), yy.ravel()]))
             self.s_grid = np.vstack([xx.ravel(), yy.ravel()]).T
-            print(self.s_grid)
-            #self.s_grid[1::2, :] = self.s_grid[1::2, ::-1]
-            print(self.s_grid)
+            
             self.s_index = 0
             cmd = "$J=G90 F%.3f X%.3f Y%.3f" % (XY_FEED, self.s_grid[self.s_index][0], self.s_grid[self.s_index][1])
             self.client.publish(f"{TARGET}/command", cmd)
             self.s_timer = QtCore.QTimer()
             self.s_timer.timeout.connect(self.serpentine_tick)
-            self.s_timer.start(3000)
+            self.s_timer.start(100)
 
     def serpentine_tick(self):
-        print(self.s_index, self.s_grid[self.s_index])
+        if self.state != 'Idle':
+            return
         cmd = "$J=G90 F%.3f X%.3f Y%.3f" % (XY_FEED, self.s_grid[self.s_index][0], self.s_grid[self.s_index][1])
         print(cmd)
         self.client.publish(f"{TARGET}/command", cmd)
@@ -241,7 +246,6 @@ class Window(QtWidgets.QLabel):
             self.client.publish(f"{TARGET}/cancel")
 
     def imageTo(self, image, this_pose): 
-        self.resize(image.shape[1], image.shape[0])
         image = QtGui.QImage(image, image.shape[1], image.shape[0], QtGui.QImage.Format_RGB888)
         
         if self.m_pos is not None:
@@ -270,9 +274,9 @@ class Window(QtWidgets.QLabel):
             # p.drawText(950, 100, "dX %6.3fmm dY %6.3fmm" % (self.cursor_offset.x(), self.cursor_offset.y()))
             # p.drawText(975, 150, "X%6.3fmm Y%6.3fmm" % (self.m_pos[0], self.m_pos[1]))
 
-            if self.tracking and this_pose[0,2] > pcutoff:
-                x = int(this_pose[0, 0])
-                y = int(this_pose[0, 1])
+            if self.tracking and this_pose[1,2] > pcutoff:
+                x = int(this_pose[1, 0])
+                y = int(this_pose[1, 1])
                 pos = QtCore.QPoint(x, y)
                 s_pos = QtCore.QPoint(self.size().width()/2, self.size().height()/2)
                 offset = QtCore.QPointF(pos-s_pos)*pixel_to_mm
@@ -293,6 +297,7 @@ class Window(QtWidgets.QLabel):
             p.end()
 
         pixmap = QtGui.QPixmap.fromImage(image)#.scaled(QtWidgets.QApplication.instance().primaryScreen().size(), QtCore.Qt.KeepAspectRatio)
+        self.resize(pixmap.size().width(), pixmap.size().height())
         self.setPixmap(pixmap)
 
 if __name__ == '__main__':
