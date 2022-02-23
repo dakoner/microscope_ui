@@ -50,27 +50,40 @@ class Driver:
             try:
                 events = self.queue.get(timeout=0.1)
                 for event in events:
-                    type_, code, state = event.ev_type, event.code, event.state 
-                    import pdb; pdb
-                    if type_ == 'Key':
-                        if code == 'KEY_KPMINUS':
-                            cmd = f"$J=G91 F{Z_FEED:.3f} Z-{Z_STEP_SIZE:.3f}"
-                            self.client.publish(f"{TARGET}/command", cmd)
-                        elif code == 'KEY_KPPLUS':
-                            cmd = f"$J=G91 F{Z_FEED:.3f} Z{Z_STEP_SIZE:.3f}"
-                            self.client.publish(f"{TARGET}/command", cmd)
-                        elif code == 'KEY_KP2':
-                            cmd = f"$J=G91 F{Z_FEED:.3f} Y{XY_STEP_SIZE:.3f}"
-                            self.client.publish(f"{TARGET}/command", cmd)
-                        elif code == 'KEY_KP9':
-                            cmd = f"$J=G91 F{Z_FEED:.3f} Y-{XY_STEP_SIZE:.3f}"
-                            self.client.publish(f"{TARGET}/command", cmd)
-                        elif code == 'KEY_KP4':
-                            cmd = f"$J=G91 F{Z_FEED:.3f} X{XY_STEP_SIZE:.3f}"
-                            self.client.publish(f"{TARGET}/command", cmd)
-                        elif code == 'KEY_KP6':
-                            cmd = f"$J=G91 F{Z_FEED:.3f} X-{XY_STEP_SIZE:.3f}"
-                            self.client.publish(f"{TARGET}/command", cmd)
+                    if event.ev_type == 'Key':
+                        if event.code == 'KEY_KPENTER' and event.state == 1:
+                            self.client.publish(f"{TARGET}/pos", "push")
+                            continue
+                        elif event.code == 'KEY_BACKSPACE' and event.state == 1:
+                            self.client.publish(f"{TARGET}/pos", "pop")
+                            continue
+                        if event.code in ('KEY_KPMINUS', 'KEY_KPPLUS', 'KEY_KP2', 'KEY_KP4', 'KEY_KP6', 'KEY_KP8'):
+                            if event.state == 0:
+                                self.client.publish(f"{TARGET}/cancel")
+                                continue          
+                            if event.state == 2:
+                                continue       
+                            else:
+                                if event.code == 'KEY_KPMINUS':
+                                    cmd = f"$J=G91 F{Z_FEED:.3f} Z-{Z_STEP_SIZE:.3f}"
+                                    self.client.publish(f"{TARGET}/command", cmd)
+                                elif event.code == 'KEY_KPPLUS' and event.state == 1:
+                                    cmd = f"$J=G91 F{Z_FEED:.3f} Z{Z_STEP_SIZE:.3f}"
+                                    self.client.publish(f"{TARGET}/command", cmd)
+                                elif event.code == 'KEY_KP2' and event.state == 1:
+                                    cmd = f"$J=G91 F{XY_FEED:.3f} X{XY_STEP_SIZE:.3f}"
+                                    self.client.publish(f"{TARGET}/command", cmd)
+                                elif event.code == 'KEY_KP8' and event.state == 1:
+                                    cmd = f"$J=G91 F{XY_FEED:.3f} X-{XY_STEP_SIZE:.3f}"
+                                    self.client.publish(f"{TARGET}/command", cmd)
+                                elif event.code == 'KEY_KP4' and event.state == 1:
+                                    cmd = f"$J=G91 F{XY_FEED:.3f} Y{XY_STEP_SIZE:.3f}"
+                                    self.client.publish(f"{TARGET}/command", cmd)
+                                elif event.code == 'KEY_KP6' and event.state == 1:
+                                    cmd = f"$J=G91 F{XY_FEED:.3f} Y-{XY_STEP_SIZE:.3f}"
+                                    self.client.publish(f"{TARGET}/command", cmd)
+                                else:
+                                    self.client.publish(f"{TARGET}/cancel")
             except Empty:
                 pass
 if __name__ == '__main__':
