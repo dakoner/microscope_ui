@@ -60,10 +60,14 @@ class Driver:
                         elif event.code == 'KEY_KP0' and event.state == 1:
                             self.client.publish(f"{TARGET}/grid", "foo")
                             continue
+                        elif event.code == 'KEY_KP5' and event.state == 1:
+                            print("Cancel")
+                            self.client.publish(f"{TARGET}/cancel")
+                            continue          
                         elif event.code == 'KEY_KPDOT' and event.state == 1:
                             self.client.publish(f"{TARGET}/photo", "%s.jpg" % time.strftime("%Y%m%d-%H%M%S"))
                             continue
-                        if event.code in ('KEY_KPMINUS', 'KEY_KPPLUS', 'KEY_KP2', 'KEY_KP4', 'KEY_KP6', 'KEY_KP8'):
+                        elif event.code in ('KEY_KPMINUS', 'KEY_KPPLUS', 'KEY_KP2', 'KEY_KP4', 'KEY_KP6', 'KEY_KP8'):
                             if event.state == 0:
                                 self.client.publish(f"{TARGET}/cancel")
                                 continue          
