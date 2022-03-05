@@ -21,6 +21,7 @@ class SerialInterface(threading.Thread):
         self.serialport.dsrdtr= True
         self.serialport.dtr = True
        
+        self.position_stack = []
 
         self.client =  mqtt.Client()
         self.client.on_connect = self.on_connect
@@ -37,7 +38,6 @@ class SerialInterface(threading.Thread):
         self.client.subscribe(f"{WEBSOCKET_SERVER}/grid")
 
     def on_message(self, client, userdata, message):
-        print(message.topic, message.payload)
         if message.topic == f"{WEBSOCKET_SERVER}/command":
             command = message.payload.decode("utf-8")
             if command == '?':
@@ -74,10 +74,7 @@ class SerialInterface(threading.Thread):
         elif message.topic == f"{WEBSOCKET_SERVER}/cancel":
             print("cancel")
             self.serialport.write(bytes([0x85]))
-
-            self.serialport.write(bytes([0x85]))
-            self.serialport.write(bytes([0x85]))
-
+            
     def grid(self):
         pos0 = self.m_pos
         print(pos0)
