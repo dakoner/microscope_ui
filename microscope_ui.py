@@ -1,3 +1,4 @@
+import cv2.aruco
 import time
 import sys
 import signal
@@ -6,14 +7,14 @@ import paho.mqtt.client as mqtt
 import simplejpeg
 import imagezmq
 import numpy as np
-from dlclive import DLCLive
+#from dlclive import DLCLive
 
 pcutoff=0.5
 pixel_to_mm = 0.0003
 XY_STEP_SIZE=500
-Z_STEP_SIZE=.01
+Z_STEP_SIZE=.003
 Z_FEED=500
-XY_FEED=1000
+XY_FEED=10000
 TARGET="inspection-6pack.local"
 MQTT_SERVER="inspectionscope.local"
 IMAGEZMQ='inspectionscope.local'
@@ -49,9 +50,37 @@ class ImageZMQCameraReader(QtCore.QThread):
         image= simplejpeg.decode_jpeg( jpg_buffer, colorspace='RGB')
         #poses = self.live.init_inference(image)
 
+        #aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_ARUCO_ORIGINAL)
+        #parameters =  cv2.aruco.DetectorParameters_create()
         while True:
             name, jpg_buffer = self.image_hub.recv_jpg()
             image= simplejpeg.decode_jpeg( jpg_buffer, colorspace='RGB')
+            #corners, ids, rejectedImgPoints = cv2.aruco.detectMarkers(image, aruco_dict, parameters=parameters)
+            #cv2.aruco.drawDetectedMarkers(image, corners, ids)
+            gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+
+            # kernel_size = 25
+            # blur_gray = cv2.GaussianBlur(gray,(kernel_size, kernel_size),0)
+            # low_threshold = 50
+            # high_threshold = 150
+            # edges = cv2.Canny(blur_gray, low_threshold, high_threshold)
+            # rho = 1  # distance resolution in pixels of the Hough grid
+            # theta = np.pi / 180  # angular resolution in radians of the Hough grid
+            # threshold = 15  # minimum number of votes (intersections in Hough grid cell)
+            # min_line_length = 50  # minimum number of pixels making up a line
+            # max_line_gap = 20  # maximum gap in pixels between connectable line segments
+            # line_image = np.copy(image) * 0  # creating a blank to draw lines on
+
+            # # Run Hough on edge detected image
+            # # Output "lines" is an array containing endpoints of detected line segments
+            # lines = cv2.HoughLinesP(edges, rho, theta, threshold, np.array([]),
+            #                     min_line_length, max_line_gap)
+            # if lines is not None:
+            #     for line in lines:
+            #         for x1,y1,x2,y2 in line:
+            #             cv2.line(line_image,(x1,y1),(x2,y2),(255,0,0),5)
+            # lines_edges = cv2.addWeighted(image, 0.8, line_image, 1, 0)
+
             #poses = self.live.get_pose(image)
             #self.signal.emit(image, poses)
             self.signal.emit(image, np.zeros((5,3)))
@@ -101,39 +130,11 @@ class Window(QtWidgets.QLabel):
         # Compute delta from c_pos to middle of window, then scale by pixel size
         s_pos = QtCore.QPoint(self.size().width()/2, self.size().height()/2)
         cursor_offset = QtCore.QPointF(event.pos()-s_pos)*pixel_to_mm
-        cmd = "$J=G91  X%.3f Y%.3f F%.3f"% (cursor_offset.y(), cursor_offset.x(), XY_FEED)
+        cmd = "$J=G91 G0  X%.3f Y%.3f F%.3f"% (cursor_offset.y(), cursor_offset.x(), XY_FEED)
         self.client.publish(f"{TARGET}/command", cmd)
 
-    # def serpentine(self):
-    #     if QtCore.Qt.Key_0 in self.positions and QtCore.Qt.Key_1 in self.positions:
-    #         # create a serpentine path, moving 1/2 FOV at a time, from 0 to 1
-    #         pos0 = np.array(self.positions[QtCore.Qt.Key_0])
-    #         pos1 = np.array(self.positions[QtCore.Qt.Key_1])
-    #         half_fov = 0.1
-    #         xs = np.arange(pos0[0], pos1[0], half_fov)
-    #         ys = np.arange(pos0[1], pos1[1], half_fov)
-    #         xx, yy = np.meshgrid(xs, ys)
-    #         self.s_grid = np.vstack([xx.ravel(), yy.ravel()]).T
-            
-    #         self.s_index = 0
-    #         cmd = "$J=G90 F%.3f X%.3f Y%.3f" % (XY_FEED, self.s_grid[self.s_index][0], self.s_grid[self.s_index][1])
-    #         self.client.publish(f"{TARGET}/command", cmd)
-    #         self.s_timer = QtCore.QTimer()
-    #         self.s_timer.timeout.connect(self.serpentine_tick)
-    #         self.s_timer.start(250)
-
-    # def serpentine_tick(self):
-    #     if self.state != 'Idle':
-    #         return
-    #     cmd = "$J=G90 F%.3f X%.3f Y%.3f" % (XY_FEED, self.s_grid[self.s_index][0], self.s_grid[self.s_index][1])
-    #     print(cmd)
-    #     self.client.publish(f"{TARGET}/command", cmd)
-    #     self.s_index += 1
-    #     if self.s_index == len(self.s_grid):
-    #         self.s_timer.stop()
-
     def imageTo(self, image, this_pose): 
-        image = QtGui.QImage(image, image.shape[1], image.shape[0], QtGui.QImage.Format_RGB888).rgbSwapped()
+        image = QtGui.QImage(image, image.shape[1], image.shape[0], QtGui.QImage.Format_RGB888)
         
         if self.m_pos is not None:
             p = QtGui.QPainter()
@@ -167,7 +168,7 @@ class Window(QtWidgets.QLabel):
                 pos = QtCore.QPoint(x, y)
                 s_pos = QtCore.QPoint(self.size().width()/2, self.size().height()/2)
                 offset = QtCore.QPointF(pos-s_pos)*pixel_to_mm
-                cmd = "$J=G91 F%.3f X%.3f Y%.3f"% (XY_FEED, offset.y(), offset.x())
+                cmd = "$J=G91 G0 F%.3f X%.3f Y%.3f"% (XY_FEED, offset.y(), offset.x())
                 t = time.time()
                 if self.time is None or t - self.time > 1.5:
                     self.client.publish(f"{TARGET}/command", cmd)
