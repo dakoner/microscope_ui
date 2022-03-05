@@ -1,12 +1,16 @@
+import traceback
 import sys
 import serial
 import time
 import threading
 import queue
 import paho.mqtt.client as mqtt
+import numpy as np
 
 MQTT_SERVER="inspectionscope.local"
 WEBSOCKET_SERVER=sys.argv[1]
+
+XY_FEED=100
 
 class SerialInterface(threading.Thread):
     
@@ -26,8 +30,47 @@ class SerialInterface(threading.Thread):
         self.client =  mqtt.Client()
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
-        self.client.loop_start()
         self.client.connect(MQTT_SERVER)
+
+
+    def run(self):
+        self.client.loop_start()
+
+        try:
+            self.serialport.open()
+        except serial.SerialException as e:
+            sys.stderr.write("Could not open serial port {}: {}\n".format(ser.name, e))
+            return
+        #self.reset()
+        
+        self.status_thread = threading.Thread(target=self.get_status)
+        self.status_thread.start()
+
+        while True:
+            message = self.serialport.readline()
+            message = str(message, 'ascii').strip()
+            if message == '':
+                continue
+            if message.startswith("<") and message.endswith(">"):
+                rest = message[1:-3].split('|')
+                self.state = rest[0]
+                self.client.publish(f"{WEBSOCKET_SERVER}/state", self.state)
+                for item in rest:
+                    if item.startswith("MPos"):
+                        self.m_pos = [float(field) for field in item[5:].split(',')]
+                        self.client.publish(f"{WEBSOCKET_SERVER}/m_pos", str(self.m_pos))
+                    elif item.startswith("WCO"):
+                        self.w_pos = [float(field) for field in item[4:].split(',')]
+                        self.client.publish(f"{WEBSOCKET_SERVER}/w_pos", str(self.w_pos))
+            else:
+                sys.stdout.write(message)
+                self.client.publish(f"{WEBSOCKET_SERVER}/output", message)
+            time.sleep(0.01)
+
+    def get_status(self):
+        while True:
+            self.serialport.write(b"?")
+            time.sleep(0.1) 
 
     def on_connect(self, client, userdata, flags, rc):
         print("on_connect")
@@ -74,23 +117,27 @@ class SerialInterface(threading.Thread):
         elif message.topic == f"{WEBSOCKET_SERVER}/cancel":
             print("cancel")
             self.serialport.write(bytes([0x85]))
-            
+    
     def grid(self):
-        pos0 = self.m_pos
-        print(pos0)
-        print(self.position_stack)
         try:
-            pos1 = self.position_stack.pop()
-        except IndexError:
-            print("Stack empty")
-            return
-        half_fov = 1.6
-        xs = np.arange(min(pos0[0], pos1[0]), max(pos0[0], pos1[0]), half_fov)
-        ys = np.arange(min(pos0[1], pos1[1]), max(pos0[1], pos1[1]), half_fov)
-        xx, yy = np.meshgrid(xs, ys)
-        s_grid = np.vstack([xx.ravel(), yy.ravel()]).T
-        self.grid_thread = threading.Thread(target=self.grid_run, kwargs={"s_grid":  s_grid})
-        self.grid_thread.start()
+            pos0 = self.m_pos
+            print(pos0)
+            print(self.position_stack)
+            try:
+                pos1 = self.position_stack.pop()
+            except IndexError:
+                print("Stack empty")
+                return
+            half_fov = 1.6
+            xs = np.arange(min(pos0[0], pos1[0]), max(pos0[0], pos1[0]), half_fov)
+            ys = np.arange(min(pos0[1], pos1[1]), max(pos0[1], pos1[1]), half_fov)
+            xx, yy = np.meshgrid(xs, ys)
+            s_grid = np.vstack([xx.ravel(), yy.ravel()]).T
+            print(s_grid)
+            self.grid_thread = threading.Thread(target=self.grid_run, kwargs={"s_grid":  s_grid})
+            self.grid_thread.start()
+        except:
+            traceback.print_exc()
 
     def grid_run(self, s_grid):
         print("grid run")
@@ -117,21 +164,6 @@ class SerialInterface(threading.Thread):
         time.sleep(.5)
         self.serialport.dtr = True
 
-    def run(self):
-        try:
-            self.serialport.open()
-        except serial.SerialException as e:
-            sys.stderr.write("Could not open serial port {}: {}\n".format(ser.name, e))
-            return
-        self.serialport.write(b"?")
-        #self.reset()
-        
-        while True:
-            if self.serialport.in_waiting > 0:
-                data = self.serialport.read(self.serialport.in_waiting)
-                sys.stdout.write(data.decode("utf-8"))
-                self.client.publish(f"{WEBSOCKET_SERVER}/output", data)
-            time.sleep(0.01)
 
     def write(self, data):
         self.serialport.write(bytes(data,"utf-8"))
