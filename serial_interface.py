@@ -7,14 +7,15 @@ import queue
 import paho.mqtt.client as mqtt
 import numpy as np
 
-MQTT_SERVER="inspectionscope.local"
-WEBSOCKET_SERVER=sys.argv[1]
+MQTT_SERVER="gork"
+DEVICE=sys.argv[1]
+TARGET=sys.argv[2]
 
 XY_FEED=100
 
 class SerialInterface(threading.Thread):
     
-    def __init__(self, port="/dev/ttyUSB0", baud=115200):
+    def __init__(self, port=DEVICE, baud=115200):
         super().__init__()
 
         self.serialport = serial.serial_for_url(port, do_not_open=True)
@@ -54,17 +55,17 @@ class SerialInterface(threading.Thread):
             if message.startswith("<") and message.endswith(">"):
                 rest = message[1:-3].split('|')
                 self.state = rest[0]
-                self.client.publish(f"{WEBSOCKET_SERVER}/state", self.state)
+                self.client.publish(f"{TARGET}/state", self.state)
                 for item in rest:
                     if item.startswith("MPos"):
                         self.m_pos = [float(field) for field in item[5:].split(',')]
-                        self.client.publish(f"{WEBSOCKET_SERVER}/m_pos", str(self.m_pos))
+                        self.client.publish(f"{TARGET}/m_pos", str(self.m_pos))
                     elif item.startswith("WCO"):
                         self.w_pos = [float(field) for field in item[4:].split(',')]
-                        self.client.publish(f"{WEBSOCKET_SERVER}/w_pos", str(self.w_pos))
+                        self.client.publish(f"{TARGET}/w_pos", str(self.w_pos))
             else:
                 sys.stdout.write(message)
-                self.client.publish(f"{WEBSOCKET_SERVER}/output", message)
+                self.client.publish(f"{TARGET}/output", message)
             time.sleep(0.01)
 
     def get_status(self):
@@ -74,21 +75,21 @@ class SerialInterface(threading.Thread):
 
     def on_connect(self, client, userdata, flags, rc):
         print("on_connect")
-        self.client.subscribe(f"{WEBSOCKET_SERVER}/command")
-        self.client.subscribe(f"{WEBSOCKET_SERVER}/reset")
-        self.client.subscribe(f"{WEBSOCKET_SERVER}/cancel")
-        self.client.subscribe(f"{WEBSOCKET_SERVER}/pos")
-        self.client.subscribe(f"{WEBSOCKET_SERVER}/grid")
+        self.client.subscribe(f"{TARGET}/command")
+        self.client.subscribe(f"{TARGET}/reset")
+        self.client.subscribe(f"{TARGET}/cancel")
+        self.client.subscribe(f"{TARGET}/pos")
+        self.client.subscribe(f"{TARGET}/grid")
 
     def on_message(self, client, userdata, message):
-        if message.topic == f"{WEBSOCKET_SERVER}/command":
+        if message.topic == f"{TARGET}/command":
             command = message.payload.decode("utf-8")
             if command == '?':
                 self.write(command)
             else:
                 print("Got command: ", command)
                 self.write(command + "\n")
-        elif message.topic == f"{WEBSOCKET_SERVER}/pos":
+        elif message.topic == f"{TARGET}/pos":
             if message.payload.decode('utf-8') == 'push':
                 if self.m_pos is not None:
                     print("push", self.m_pos)
@@ -106,15 +107,15 @@ class SerialInterface(threading.Thread):
                     y = new_pos[1] - self.m_pos[1]
                     cmd = f"$J=G91 X{x:.3f} Y{y:.3f} F{XY_FEED:.3f}\n"
                     self.write(cmd)
-        elif message.topic == f"{WEBSOCKET_SERVER}/reset":
+        elif message.topic == f"{TARGET}/reset":
             if message.payload.decode("utf-8") == "hard":
                 self.reset()
             else:
                 self.soft_reset()
-        elif message.topic == f"{WEBSOCKET_SERVER}/grid":
+        elif message.topic == f"{TARGET}/grid":
             print("grid")
             self.grid()
-        elif message.topic == f"{WEBSOCKET_SERVER}/cancel":
+        elif message.topic == f"{TARGET}/cancel":
             print("cancel")
             self.serialport.write(bytes([0x85]))
     
@@ -128,7 +129,7 @@ class SerialInterface(threading.Thread):
             except IndexError:
                 print("Stack empty")
                 return
-            half_fov = 1.6
+            half_fov = .25
             xs = np.arange(min(pos0[0], pos1[0]), max(pos0[0], pos1[0]), half_fov)
             ys = np.arange(min(pos0[1], pos1[1]), max(pos0[1], pos1[1]), half_fov)
             xx, yy = np.meshgrid(xs, ys)
@@ -145,12 +146,12 @@ class SerialInterface(threading.Thread):
             print("grid thread visiting", pos)
             cmd = f"G0 X{pos[0]:.3f} Y{pos[1]:.3f} F{XY_FEED:.3f}\n"
             print(cmd)
-            self.client.publish(f"{WEBSOCKET_SERVER}/command", cmd)
+            self.client.publish(f"{TARGET}/command", cmd)
             time.sleep(2)
             print("wait for idle")
             while self.state != 'Idle':
                 time.sleep(1)
-            self.client.publish(f"{WEBSOCKET_SERVER}/photo", f"{pos[1]:08.3f}_{pos[0]:08.3f}.jpg")
+            self.client.publish(f"{TARGET}/photo", f"{pos[1]:08.3f}_{pos[0]:08.3f}.jpg")
             print("ending command loop", len(s_grid)-i, "remaining")
         print("grid done")
             
