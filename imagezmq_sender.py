@@ -3,7 +3,7 @@ import imagezmq
 import simplejpeg
 import numpy as np
 
-HOST='inspectionscope.local'
+HOST='gork.local'
 #port = 5555
 
 # if __name__ == '__main__':
@@ -27,10 +27,12 @@ if __name__ == '__main__':
     import cv2
     cap = cv2.VideoCapture(int(sys.argv[1]))
     port = int(sys.argv[2])
-    #width = 3264
-    #height = 2448
+    #width = 3264;height = 2448
+    #width = 640
+    #height = 480
     #width=640; height=480
-    width=1600;height=1200
+    #width=1600;height=1200
+    width=1280;height=720
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
     sender = imagezmq.ImageSender("tcp://*:{}".format(port), REQ_REP=False)
@@ -41,5 +43,5 @@ if __name__ == '__main__':
         if ret:
 #            out.write(img)
             #img = cv2.resize(img, (640, 480))
-            jpg_buffer = simplejpeg.encode_jpeg(img, quality=95, colorspace='BGR')
+            jpg_buffer = simplejpeg.encode_jpeg(img, quality=99, colorspace='BGR')
             sender.send_jpg(HOST, jpg_buffer)
