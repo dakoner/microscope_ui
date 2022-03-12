@@ -4,10 +4,10 @@ import sys
 import simplejpeg
 import paho.mqtt.client as mqtt
 import traceback
-IMAGEZMQ='inspectionscope.local'
+IMAGEZMQ='gork.local'
 PORT=5556
 WEBSOCKET_SERVER=sys.argv[1]
-MQTT_SERVER="inspectionscope.local"
+MQTT_SERVER="gork.local"
 
 class ImageReader:
     def __init__(self):
