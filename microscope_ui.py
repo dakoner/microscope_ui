@@ -1,4 +1,5 @@
-import cv2.aruco
+import cv2
+#import cv2.aruco
 import time
 import sys
 import signal
@@ -15,9 +16,9 @@ XY_STEP_SIZE=500
 Z_STEP_SIZE=.003
 Z_FEED=500
 XY_FEED=10000
-TARGET="inspection-6pack.local"
-MQTT_SERVER="inspectionscope.local"
-IMAGEZMQ='inspectionscope.local'
+TARGET="inspectionscope"
+MQTT_SERVER="gork.local"
+IMAGEZMQ='gork.local'
 PORT=5556
 
 keys = (QtCore.Qt.Key_0, QtCore.Qt.Key_1, QtCore.Qt.Key_2, QtCore.Qt.Key_3, QtCore.Qt.Key_4, QtCore.Qt.Key_5, QtCore.Qt.Key_6, QtCore.Qt.Key_7, QtCore.Qt.Key_8, QtCore.Qt.Key_9)
@@ -57,8 +58,8 @@ class ImageZMQCameraReader(QtCore.QThread):
             image= simplejpeg.decode_jpeg( jpg_buffer, colorspace='RGB')
             #corners, ids, rejectedImgPoints = cv2.aruco.detectMarkers(image, aruco_dict, parameters=parameters)
             #cv2.aruco.drawDetectedMarkers(image, corners, ids)
-            gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
-
+            
+            # gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
             # kernel_size = 25
             # blur_gray = cv2.GaussianBlur(gray,(kernel_size, kernel_size),0)
             # low_threshold = 50
@@ -98,6 +99,7 @@ class Window(QtWidgets.QLabel):
         self.client =  mqtt.Client()
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
+        self.client.on_message = self.on_message
         self.client.connect(MQTT_SERVER)
         self.client.loop_start()
         self.outstanding = 0
@@ -112,12 +114,18 @@ class Window(QtWidgets.QLabel):
         self.tracking = False
         self.state = "Unknown"
 
+
+    def on_message(self, client, userdata, message):
+        if message.topic == f"{TARGET}/m_pos":
+            self.m_pos = eval(message.payload)
+
     def on_connect(self, client, userdata, flags, rc):
         print("connected")
         self.connected = True
         self.client.subscribe(f"{TARGET}/output")
         self.client.subscribe(f"{TARGET}/command")
         self.client.subscribe(f"{TARGET}/status")
+        self.client.subscribe(f"{TARGET}/m_pos")
 
 
     def on_disconnect(self, client, userdata, flags):
@@ -135,7 +143,7 @@ class Window(QtWidgets.QLabel):
 
     def imageTo(self, image, this_pose): 
         image = QtGui.QImage(image, image.shape[1], image.shape[0], QtGui.QImage.Format_RGB888)
-        
+        #(self.m_pos)
         if self.m_pos is not None:
             p = QtGui.QPainter()
         
@@ -143,47 +151,45 @@ class Window(QtWidgets.QLabel):
             p.setCompositionMode( QtGui.QPainter.CompositionMode_SourceOver )
             p.setRenderHints( QtGui.QPainter.HighQualityAntialiasing )
 
-            #p.drawImage(QtCore.QPoint(), image)
+            p.drawImage(QtCore.QPoint(), image)
 
-            # pen = QtGui.QPen(QtCore.Qt.red)
-            # pen.setWidth(2)
-            # p.setPen(pen)        
+            pen = QtGui.QPen(QtCore.Qt.red)
+            pen.setWidth(2)
+            p.setPen(pen)        
 
-            # font = QtGui.QFont()
-            # font.setFamily('Times')
-            # font.setBold(True)
-            # font.setPointSize(24)
-            # p.setFont(font)
+            font = QtGui.QFont()
+            font.setFamily('Times')
+            font.setBold(True)
+            font.setPointSize(24)
+            p.setFont(font)
 
             # c_pos = self.mapFromGlobal(QtGui.QCursor().pos())
             # # Compute delta from c_pos to middle of window, then scale by pixel size
             # s_pos = QtCore.QPoint(self.size().width()/2, self.size().height()/2)
-            # self.cursor_offset = QtCore.QPointF(c_pos-s_pos)*pixel_per_mm
-            # p.drawText(950, 100, "dX %6.3fmm dY %6.3fmm" % (self.cursor_offset.x(), self.cursor_offset.y()))
-            # p.drawText(975, 150, "X%6.3fmm Y%6.3fmm" % (self.m_pos[0], self.m_pos[1]))
+            p.drawText(750, 50, "X%8.3fmm" % self.m_pos[0])
+            p.drawText(750, 100, "Y%8.3fmm" % self.m_pos[1])
+            p.drawText(750, 150, "Z%8.3fmm" % self.m_pos[2])
+            # if self.tracking and this_pose[1,2] > pcutoff:
+            #     x = int(this_pose[1, 0])
+            #     y = int(this_pose[1, 1])
+            #     pos = QtCore.QPoint(x, y)
+            #     s_pos = QtCore.QPoint(self.size().width()/2, self.size().height()/2)
+            #     offset = QtCore.QPointF(pos-s_pos)*pixel_to_mm
+            #     cmd = "$J=G91 G0 F%.3f X%.3f Y%.3f"% (XY_FEED, offset.y(), offset.x())
+            #     t = time.time()
+            #     if self.time is None or t - self.time > 1.5:
+            #         self.client.publish(f"{TARGET}/command", cmd)
+            #         self.time = t
 
-            if self.tracking and this_pose[1,2] > pcutoff:
-                x = int(this_pose[1, 0])
-                y = int(this_pose[1, 1])
-                pos = QtCore.QPoint(x, y)
-                s_pos = QtCore.QPoint(self.size().width()/2, self.size().height()/2)
-                offset = QtCore.QPointF(pos-s_pos)*pixel_to_mm
-                cmd = "$J=G91 G0 F%.3f X%.3f Y%.3f"% (XY_FEED, offset.y(), offset.x())
-                t = time.time()
-                if self.time is None or t - self.time > 1.5:
-                    self.client.publish(f"{TARGET}/command", cmd)
-                    self.time = t
-
-            for j in range(this_pose.shape[0]):
-                if this_pose[j, 2] > pcutoff:
-                    x = int(this_pose[j, 0])
-                    y = int(this_pose[j, 1])
+            # for j in range(this_pose.shape[0]):
+            #     if this_pose[j, 2] > pcutoff:
+            #         x = int(this_pose[j, 0])
+            #         y = int(this_pose[j, 1])
                     
-                    p.setBrush(colormap[j])
-                    p.setPen(QtGui.QPen(colormap[j]))   
-                    p.drawEllipse(x, y, 5, 5 )
+            #         p.setBrush(colormap[j])
+            #         p.setPen(QtGui.QPen(colormap[j]))   
+            #         p.drawEllipse(x, y, 5, 5 )
             p.end()
-
         pixmap = QtGui.QPixmap.fromImage(image)#.scaled(QtWidgets.QApplication.instance().primaryScreen().size(), QtCore.Qt.KeepAspectRatio)
         self.resize(pixmap.size().width(), pixmap.size().height())
         self.setPixmap(pixmap)
