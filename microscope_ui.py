@@ -131,7 +131,7 @@ class Window(QtWidgets.QLabel):
     def on_disconnect(self, client, userdata, flags):
         print("disconnected")
         self.connected = False
-        self.timer.stop()
+        #self.timer.stop()
 
 
     def mousePressEvent(self, event):
