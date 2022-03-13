@@ -1,8 +1,10 @@
+import os
+from glob import glob
 import traceback
 import sys
 import signal
 from PyQt5 import QtGui, QtCore, QtWidgets, QtSvg
-
+import glob
 
 
 
@@ -23,22 +25,19 @@ class MainWindow(QtWidgets.QGraphicsView):
         #self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         #self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
-        
-        image = QtGui.QImage("movie/-000.138_-000.221.jpg")
-        pixmap = QtGui.QPixmap.fromImage(image)
-        pixmap = self.scene.addPixmap(pixmap)
-        pixmap.setOpacity(0.5)
-        pixmap.setPos(QtCore.QPointF(0, 0))
-
-        
-        image = QtGui.QImage("movie/-000.138_-000.471.jpg")
-        pixmap = QtGui.QPixmap.fromImage(image)
-        pixmap = self.scene.addPixmap(pixmap)
-        pixmap.setOpacity(0.5)
-        pixmap.setPos(QtCore.QPointF(500, 0))
+        x_const = -2175
+        y_const = +1900
+        fnames = sorted(glob.glob("movie_grayscale/*.jpg"))
+        for fname in fnames:
+            f = os.path.basename(fname)[:-4].split("_")
+            image = QtGui.QImage(fname)
+            pixmap = QtGui.QPixmap.fromImage(image)
+            pixmap = self.scene.addPixmap(pixmap)
+            pixmap.setOpacity(0.5)
+            pixmap.setPos(QtCore.QPointF(float(f[1])*x_const, float(f[0])*y_const))
 
         self.scene.installEventFilter(self)
-        #self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
+
     def eventFilter(self, obj, event):
         if obj == self.scene and isinstance(event, QtWidgets.QGraphicsSceneMouseEvent):
             if (event.buttons() & QtCore.Qt.LeftButton):
