@@ -12,10 +12,6 @@ import numpy as np
 
 pcutoff=0.5
 pixel_to_mm = 0.0003
-XY_STEP_SIZE=500
-Z_STEP_SIZE=.003
-Z_FEED=500
-XY_FEED=10000
 TARGET="inspectionscope"
 MQTT_SERVER="gork.local"
 IMAGEZMQ='gork.local'
@@ -84,6 +80,30 @@ class ImageZMQCameraReader(QtCore.QThread):
 
             #poses = self.live.get_pose(image)
             #self.signal.emit(image, poses)
+
+            # img = cv2.medianBlur(image, 5)
+            # img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+            # circles = cv2.HoughCircles(img,
+            #                            cv2.HOUGH_GRADIENT,
+            #                            dp=1,
+            #                            minDist=20,
+            #                            param1=50,
+            #                            param2=50,
+            #                            minRadius=20,
+            #                            maxRadius=800)
+
+            # if circles is not None:
+            #     circles = np.round(circles[0, :]).astype("int")
+            #     for (x, y, r) in circles[:1]:
+            #         DIAMETER=0.6 # mm
+            #         d = r*2
+            #         print("Diameter:", d, d/DIAMETER, x, y)
+            #         # At 4X mag, 0.6mm circle is ~512 pixels
+            #         # So ~850 pixels/mm or 0.00117 mm/pixel
+            #         # first positon:  580 356
+            #         # second position:  160 348 (after 0.5mm X move)
+            #         cv2.circle(image, (x, y), r, (0, 255, 0), 4)
+            #         cv2.rectangle(image, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
             self.signal.emit(image, np.zeros((5,3)))
 
 class Window(QtWidgets.QLabel):
@@ -144,6 +164,7 @@ class Window(QtWidgets.QLabel):
     def imageTo(self, image, this_pose): 
         image = QtGui.QImage(image, image.shape[1], image.shape[0], QtGui.QImage.Format_RGB888)
         #(self.m_pos)
+        
         if self.m_pos is not None:
             p = QtGui.QPainter()
         
