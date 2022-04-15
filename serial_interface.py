@@ -7,11 +7,11 @@ import queue
 import paho.mqtt.client as mqtt
 import numpy as np
 
-MQTT_SERVER="gork"
+MQTT_SERVER="gork.local"
 DEVICE=sys.argv[1]
 TARGET=sys.argv[2]
 
-XY_FEED=100
+XY_FEED=5
 
 class SerialInterface(threading.Thread):
     
@@ -144,13 +144,14 @@ class SerialInterface(threading.Thread):
         print("grid run")
         for i, pos in enumerate(s_grid):
             print("grid thread visiting", pos)
-            cmd = f"G0 X{pos[0]:.3f} Y{pos[1]:.3f} F{XY_FEED:.3f}\n"
+            cmd = f"$J=G90 G21 F{XY_FEED:.3f} X{pos[0]:.3f} Y{pos[1]:.3f}\n"
             print(cmd)
             self.client.publish(f"{TARGET}/command", cmd)
-            time.sleep(2)
             print("wait for idle")
+            time.sleep(3)
             while self.state != 'Idle':
                 time.sleep(1)
+            time.sleep(3)
             self.client.publish(f"{TARGET}/photo", f"{pos[1]:08.3f}_{pos[0]:08.3f}.jpg")
             print("ending command loop", len(s_grid)-i, "remaining")
         print("grid done")
