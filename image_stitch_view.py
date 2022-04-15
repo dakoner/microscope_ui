@@ -6,7 +6,8 @@ import signal
 from PyQt5 import QtGui, QtCore, QtWidgets, QtSvg
 import glob
 
-
+x_const = -2750
+y_const = -4500
 
 class MainWindow(QtWidgets.QGraphicsView):
     def __init__(self):
@@ -25,8 +26,8 @@ class MainWindow(QtWidgets.QGraphicsView):
         #self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         #self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
-        x_const = -2175
-        y_const = +1900
+        self.images = {}
+
         fnames = sorted(glob.glob("movie_grayscale/*.jpg"))
         for fname in fnames:
             f = os.path.basename(fname)[:-4].split("_")
@@ -35,32 +36,24 @@ class MainWindow(QtWidgets.QGraphicsView):
             pixmap = self.scene.addPixmap(pixmap)
             pixmap.setOpacity(0.5)
             pixmap.setPos(QtCore.QPointF(float(f[1])*x_const, float(f[0])*y_const))
-
+            self.images[pixmap] = fname
+        self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
         self.scene.installEventFilter(self)
 
     def eventFilter(self, obj, event):
         if obj == self.scene and isinstance(event, QtWidgets.QGraphicsSceneMouseEvent):
             if (event.buttons() & QtCore.Qt.LeftButton):
                 item = self.scene.itemAt(event.scenePos(), QtGui.QTransform())
-                item.setPos(item.pos() + (event.scenePos() - event.lastScenePos()))
+                if item:
+                    item.setPos(item.pos() + (event.scenePos() - event.lastScenePos()))
+                    print("Moving", self.images[item], "to", item.pos())
+                else:
+                    print("clicked non-item")
                 return True
             else:
                 return super().eventFilter(obj, event)
         else:
             return super().eventFilter(obj, event)
-            
-
-#             QPointF delta = m->lastScreenPos() - m->screenPos();
-#             int newX = view->horizontalScrollBar()->value() + delta.x();
-#             int newY = view->verticalScrollBar()->value() + delta.y();
-#             view->horizontalScrollBar()->setValue(newX);
-#             view->verticalScrollBar()->setValue(newY);
-#             return true;
-#         }
-#     }
-
-#     return QMainWindow::eventFilter(obj, event);
-# }
                 
 
 class QApplication(QtWidgets.QApplication):
@@ -77,6 +70,6 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     app = QApplication(sys.argv)
     widget = MainWindow()
-    widget.show()
-    #widget.showFullScreen()
+    #widget.show()
+    widget.showFullScreen()
     app.exec_()
