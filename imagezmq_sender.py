@@ -1,3 +1,4 @@
+import time
 import sys
 import imagezmq
 import simplejpeg
@@ -28,20 +29,28 @@ if __name__ == '__main__':
     cap = cv2.VideoCapture(int(sys.argv[1]))
     port = int(sys.argv[2])
     #width = 3264;height = 2448
-    #width = 640
-    #height = 480
+    #width = 640; height = 480
     #width=640; height=480
-    #width=1600;height=1200
-    width=1280;height=720
+    width=1600;height=1200
+    #width=1280;height=720
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
     sender = imagezmq.ImageSender("tcp://*:{}".format(port), REQ_REP=False)
-#    out = cv2.VideoWriter('/home/dek/outpy.%d.mkv' % int(sys.argv[1]),cv2.VideoWriter_fourcc(*'XVID'), 24, (width, height))
 
+    counter = 0
+    t0 = time.time()
     while True:
         ret, img = cap.read()
         if ret:
-#            out.write(img)
-            #img = cv2.resize(img, (640, 480))
-            jpg_buffer = simplejpeg.encode_jpeg(img, quality=99, colorspace='BGR')
-            sender.send_jpg(HOST, jpg_buffer)
+            t1 = time.time()
+            if t1 - t0 >= 0.05:
+            #if counter % 5 == 0:
+                #b, g, r = cv2.split(img)
+                #result = g
+                #result = (r+b)/(r-b+0.0001)*256
+                #print(result)
+                #img = cv2.merge([result, result, result]).astype(np.uint8)
+                jpg_buffer = simplejpeg.encode_jpeg(img, quality=100, colorspace='BGR')
+                sender.send_jpg(HOST, jpg_buffer)
+                t0 = t1
+        counter += 1
