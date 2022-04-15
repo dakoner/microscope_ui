@@ -5,8 +5,8 @@ import simplejpeg
 import paho.mqtt.client as mqtt
 import traceback
 IMAGEZMQ='gork.local'
-PORT=5556
 WEBSOCKET_SERVER=sys.argv[1]
+PORT=int(sys.argv[2])
 MQTT_SERVER="gork.local"
 
 class ImageReader:
