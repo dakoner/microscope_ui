@@ -1,3 +1,4 @@
+import json
 import traceback
 import sys
 import serial
@@ -122,39 +123,28 @@ class SerialInterface(threading.Thread):
     def grid(self):
         try:
             pos0 = self.m_pos
-            print(pos0)
-            print(self.position_stack)
+            
             try:
                 pos1 = self.position_stack.pop()
             except IndexError:
                 print("Stack empty")
                 return
-            half_fov = .25
-            xs = np.arange(min(pos0[0], pos1[0]), max(pos0[0], pos1[0]), half_fov)
-            ys = np.arange(min(pos0[1], pos1[1]), max(pos0[1], pos1[1]), half_fov)
-            xx, yy = np.meshgrid(xs, ys)
-            s_grid = np.vstack([xx.ravel(), yy.ravel()]).T
-            print(s_grid)
-            self.grid_thread = threading.Thread(target=self.grid_run, kwargs={"s_grid":  s_grid})
-            self.grid_thread.start()
+
+            print(pos0, pos1)
+            x_min = min(pos0[0], pos1[0])
+            x_max = max(pos0[0], pos1[0])
+            y_min = min(pos0[1], pos1[1])
+            y_max = max(pos0[1], pos1[1])
+            
+            print("lower_left: ", x_min, y_min)
+            print("upper_right: ", x_max, y_max)
+            
+            self.client.publish(f"{TARGET}/makegrid", json.dumps([x_min, x_max, y_min, y_max]))
+
+
         except:
             traceback.print_exc()
 
-    def grid_run(self, s_grid):
-        print("grid run")
-        for i, pos in enumerate(s_grid):
-            print("grid thread visiting", pos)
-            cmd = f"$J=G90 G21 F{XY_FEED:.3f} X{pos[0]:.3f} Y{pos[1]:.3f}\n"
-            print(cmd)
-            self.client.publish(f"{TARGET}/command", cmd)
-            print("wait for idle")
-            time.sleep(3)
-            while self.state != 'Idle':
-                time.sleep(1)
-            time.sleep(3)
-            self.client.publish(f"{TARGET}/photo", f"{pos[1]:08.3f}_{pos[0]:08.3f}.jpg")
-            print("ending command loop", len(s_grid)-i, "remaining")
-        print("grid done")
             
     def soft_reset(self):
         print("soft reset")
