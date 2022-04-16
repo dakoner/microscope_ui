@@ -9,7 +9,7 @@ import numpy as np
 import websocket
 import threading
 
-MQTT_SERVER="inspectionscope.local"
+MQTT_SERVER="gork.local"
 WEBSOCKET_SERVER=sys.argv[1]
 XY_STEP_SIZE=500
 Z_STEP_SIZE=.01
