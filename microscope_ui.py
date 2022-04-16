@@ -114,7 +114,6 @@ class Window(QtWidgets.QLabel):
         if message.topic == f"{TARGET}/m_pos":
             self.m_pos = eval(message.payload)
         elif message.topic == f"{TARGET}/inference":
-            print("got results", message.payload)
             self.results = json.loads(message.payload)
 
     def on_connect(self, client, userdata, flags, rc):

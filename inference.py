@@ -60,8 +60,6 @@ def inference(client, image_data=None):
                 pt2 = int(db[3]*s[1]), int(db[2]*s[0])
                 results.append([score, label, (pt1, pt2)])
         if len(results):
-            print(f"publish to",f'{TARGET}/inference')
-            print(results)
             client.publish(f'{TARGET}/inference', json.dumps({'size': s, 'results': results}))
 
     except Exception as e:

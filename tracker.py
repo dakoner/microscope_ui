@@ -14,7 +14,6 @@ pixel_to_mm = 0.0001
 
 class Tracker():       
     def __init__(self):
-        print("a")
         self.client =  mqtt.Client()
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
@@ -29,20 +28,15 @@ class Tracker():
             first = True
             for score, label, box in results['results']:
                 if label == 'tardigrade' and score > 0.98 and first:
+                    print(score)
                     box = np.array([[box[0][1], box[0][0]], [box[1][1], box[1][0]]])
-                    print("box", box)
                     box_center = box[0] + (box[1] - box[0])/2
-                    print("box_center", box_center)
                     image_center = size/2
-                    print("image_center", image_center)
                     dt = box_center - image_center
                     cmd = "$J=G91  G21  F%.3f X%.3f Y%.3f"% (XY_FEED, -dt[1]*pixel_to_mm, -dt[0]*pixel_to_mm)
                     if self.tracking:
-                        print("tracking with cmd", cmd)
                         # self.client.publish(f"{TARGET}/cancel")
                         self.client.publish(f"{TARGET}/command", cmd)
-                    else:
-                        print("not tracking")
                     first = False
 
         elif message.topic == f"{TARGET}/track":
