@@ -120,9 +120,6 @@ class Window(QtWidgets.QLabel):
     def on_connect(self, client, userdata, flags, rc):
         print("connected")
         self.connected = True
-        #self.client.subscribe(f"{TARGET}/output")
-        #self.client.subscribe(f"{TARGET}/command")
-        #self.client.subscribe(f"{TARGET}/status")
         self.client.subscribe(f"{TARGET}/m_pos")
         self.client.subscribe(f"{TARGET}/inference")
 
