@@ -2,7 +2,7 @@ import cv2
 import imagezmq
 import simplejpeg
 IMAGEZMQ='gork'
-PORT=5556
+PORT=5555
 url = f"tcp://{IMAGEZMQ}:{PORT}"
 image_hub = imagezmq.ImageHub(url, REQ_REP=False)
 
