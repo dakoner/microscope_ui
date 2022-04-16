@@ -24,35 +24,68 @@ class Grid():
 
         self.m_pos = None
         self.state = None
+        self.grid = []
+        self.position_stack = []
+
     def on_connect(self, client, userdata, flags, rc):
-        self.client.subscribe(f"{TARGET}/makegrid")
+        self.client.subscribe(f"{TARGET}/grid")
         self.client.subscribe(f"{TARGET}/state")
         self.client.subscribe(f"{TARGET}/m_pos")
+        self.client.subscribe(f"{TARGET}/pos")
 
 
     def on_message(self, client, userdata, message):
         if message.topic == f'{TARGET}/state':
             self.state = str(message.payload, 'ascii').strip()
-        if message.topic == f'{TARGET}/m_pos':
+        elif message.topic == f"{TARGET}/pos":
+            if message.payload.decode('utf-8') == 'push':
+                if self.m_pos is not None:
+                    print("push", self.m_pos)
+                    self.position_stack.append(self.m_pos)
+                    print("Stack now:", self.position_stack)
+                else:
+                    print("Unable to push, no status")
+            elif message.payload.decode('utf-8') == 'pop':
+                if len(self.position_stack) == 0:
+                    print("Stack empty.")
+                else:
+                    new_pos = self.position_stack.pop()
+                    print("pop", new_pos)
+                    x = new_pos[0] - self.m_pos[0]
+                    y = new_pos[1] - self.m_pos[1]
+                    cmd = f"$J=G91 X{x:.3f} Y{y:.3f} F{XY_FEED:.3f}\n"
+                    self.client.publish(f"{TARGET}/command", cmd)
+        elif message.topic == f'{TARGET}/m_pos':
             self.m_pos = json.loads(message.payload)
         
-        elif message.topic == f'{TARGET}/makegrid':
-            [x_min, x_max, y_min, y_max] = json.loads(message.payload)
-            
-            print("upper_right: ", x_min, y_max)
-            print("lower_left: ", x_max, y_min)
-            travel_x = x_max - x_min
-            travel_y = y_max - y_min
-            print("travel:", travel_x, travel_y)
-            cmd = f"G92 X{self.m_pos[0]:.3f} Y{self.m_pos[1]:.3f}"
-            self.client.publish(f'{TARGET}/command', cmd)
+        elif message.topic == f'{TARGET}/grid':
+            if not self.grid or not self.grid.is_alive():
+                pos0 = self.m_pos
+                try:
+                    pos1 = self.position_stack.pop()
+                except IndexError:
+                    print("Stack empty")
+                    return
+                x_min = min(pos0[0], pos1[0])
+                x_max = max(pos0[0], pos1[0])
+                y_min = min(pos0[1], pos1[1])
+                y_max = max(pos0[1], pos1[1])
+                
+                print("upper_right: ", x_max, y_max)
+                print("lower_left: ", x_max, y_min)
+                travel_x = x_max - x_min
+                travel_y = y_max - y_min
+                print("travel:", travel_x, travel_y)
+                cmd = f"G92 X{self.m_pos[0]:.3f} Y{self.m_pos[1]:.3f}"
+                self.client.publish(f'{TARGET}/command', cmd)
 
-            xs = np.arange(x_min, x_max, half_fov)
-            ys = np.arange(y_min, y_max, half_fov)
-            xx, yy = np.meshgrid(xs, ys)
-            s_grid = np.vstack([xx.ravel(), yy.ravel()]).T
-            self.grid_thread = threading.Thread(target=self.grid_run, kwargs={"s_grid":  s_grid})
-            self.grid_thread.start()
+                xs = np.arange(x_min, x_max, half_fov)
+                ys = np.arange(y_min, y_max, half_fov)
+                xx, yy = np.meshgrid(xs, ys)
+                s_grid = np.vstack([xx.ravel(), yy.ravel()]).T
+                
+                self.grid = threading.Thread(target=self.grid_run, args=[s_grid])
+                self.grid.start()
 
     def grid_run(self, s_grid):
         print("grid run")

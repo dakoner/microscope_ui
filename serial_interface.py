@@ -27,8 +27,6 @@ class SerialInterface(threading.Thread):
         self.serialport.dsrdtr= True
         self.serialport.dtr = True
        
-        self.position_stack = []
-
         self.client =  mqtt.Client()
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
@@ -59,11 +57,11 @@ class SerialInterface(threading.Thread):
                 self.client.publish(f"{TARGET}/state", self.state)
                 for item in rest:
                     if item.startswith("MPos"):
-                        self.m_pos = [float(field) for field in item[5:].split(',')]
-                        self.client.publish(f"{TARGET}/m_pos", str(self.m_pos))
+                        m_pos = [float(field) for field in item[5:].split(',')]
+                        self.client.publish(f"{TARGET}/m_pos", str(m_pos))
                     elif item.startswith("WCO"):
-                        self.w_pos = [float(field) for field in item[4:].split(',')]
-                        self.client.publish(f"{TARGET}/w_pos", str(self.w_pos))
+                        w_pos = [float(field) for field in item[4:].split(',')]
+                        self.client.publish(f"{TARGET}/w_pos", str(w_pos))
             else:
                 sys.stdout.write(message)
                 self.client.publish(f"{TARGET}/output", message)
@@ -80,8 +78,6 @@ class SerialInterface(threading.Thread):
         self.client.subscribe(f"{TARGET}/reset")
         self.client.subscribe(f"{TARGET}/cancel")
         self.client.subscribe(f"{TARGET}/pos")
-        self.client.subscribe(f"{TARGET}/grid")
-
     def on_message(self, client, userdata, message):
         if message.topic == f"{TARGET}/command":
             command = message.payload.decode("utf-8")
@@ -90,61 +86,14 @@ class SerialInterface(threading.Thread):
             else:
                 print("Got command: ", command)
                 self.write(command + "\n")
-        elif message.topic == f"{TARGET}/pos":
-            if message.payload.decode('utf-8') == 'push':
-                if self.m_pos is not None:
-                    print("push", self.m_pos)
-                    self.position_stack.append(self.m_pos)
-                    print("Stack now:", self.position_stack)
-                else:
-                    print("Unable to push, no status")
-            elif message.payload.decode('utf-8') == 'pop':
-                if len(self.position_stack) == 0:
-                    print("Stack empty.")
-                else:
-                    new_pos = self.position_stack.pop()
-                    print("pop", new_pos)
-                    x = new_pos[0] - self.m_pos[0]
-                    y = new_pos[1] - self.m_pos[1]
-                    cmd = f"$J=G91 X{x:.3f} Y{y:.3f} F{XY_FEED:.3f}\n"
-                    self.write(cmd)
         elif message.topic == f"{TARGET}/reset":
             if message.payload.decode("utf-8") == "hard":
                 self.reset()
             else:
                 self.soft_reset()
-        elif message.topic == f"{TARGET}/grid":
-            print("grid")
-            self.grid()
         elif message.topic == f"{TARGET}/cancel":
             print("cancel")
             self.serialport.write(bytes([0x85]))
-    
-    def grid(self):
-        try:
-            pos0 = self.m_pos
-            
-            try:
-                pos1 = self.position_stack.pop()
-            except IndexError:
-                print("Stack empty")
-                return
-
-            print(pos0, pos1)
-            x_min = min(pos0[0], pos1[0])
-            x_max = max(pos0[0], pos1[0])
-            y_min = min(pos0[1], pos1[1])
-            y_max = max(pos0[1], pos1[1])
-            
-            print("lower_left: ", x_min, y_min)
-            print("upper_right: ", x_max, y_max)
-            
-            self.client.publish(f"{TARGET}/makegrid", json.dumps([x_min, x_max, y_min, y_max]))
-
-
-        except:
-            traceback.print_exc()
-
             
     def soft_reset(self):
         print("soft reset")
