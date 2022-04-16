@@ -1,3 +1,4 @@
+import json
 import os
 from glob import glob
 import traceback
@@ -27,16 +28,21 @@ class MainWindow(QtWidgets.QGraphicsView):
         #self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
         self.images = {}
-
-        fnames = sorted(glob.glob("movie_grayscale/*.jpg"))
-        for fname in fnames:
-            f = os.path.basename(fname)[:-4].split("_")
-            image = QtGui.QImage(fname)
-            pixmap = QtGui.QPixmap.fromImage(image)
-            pixmap = self.scene.addPixmap(pixmap)
-            pixmap.setOpacity(0.5)
-            pixmap.setPos(QtCore.QPointF(float(f[1])*x_const, float(f[0])*y_const))
-            self.images[pixmap] = fname
+        for line in open("movie_grayscale/TileConfiguration.registered.txt").readlines():
+            l = line.strip()
+            if ';' in l:
+                fname, _, coords = l.split(';')
+                image = QtGui.QImage(os.path.join("movie_grayscale", fname))
+                pixmap = QtGui.QPixmap.fromImage(image)
+                pixmap = self.scene.addPixmap(pixmap)
+                pixmap.setOpacity(0.5)
+                #f = os.path.basename(fname)[:-4].split("_")
+                #pixmap.setPos(QtCore.QPointF(float(f[1])*x_const, float(f[0])*y_const))
+                t = coords.strip()[1:-1]
+                s = t.split(',')
+                x, y= float(s[0]), float(s[1])
+                pixmap.setPos(QtCore.QPointF(x, y))
+                self.images[pixmap] = fname
         self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
         self.scene.installEventFilter(self)
 
