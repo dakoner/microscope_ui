@@ -27,7 +27,7 @@ class Tracker():
             size = np.array(results['size'][:2])
             first = True
             for score, label, box in results['results']:
-                if label == 'tardigrade' and score > 0.98 and first:
+                if label == 'tardigrade' and score >= .98 and first:
                     print(score)
                     box = np.array([[box[0][1], box[0][0]], [box[1][1], box[1][0]]])
                     box_center = box[0] + (box[1] - box[0])/2
@@ -36,6 +36,7 @@ class Tracker():
                     cmd = "$J=G91  G21  F%.3f X%.3f Y%.3f"% (XY_FEED, -dt[1]*pixel_to_mm, -dt[0]*pixel_to_mm)
                     if self.tracking:
                         # self.client.publish(f"{TARGET}/cancel")
+                        print(cmd)
                         self.client.publish(f"{TARGET}/command", cmd)
                     first = False
 
