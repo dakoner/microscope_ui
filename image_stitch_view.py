@@ -17,10 +17,6 @@ class MainWindow(QtWidgets.QGraphicsView):
         #self.scene.setBackgroundBrush(QtGui.QBrush(QtGui.QColor(131, 213, 247)))
         #self.scene.setSceneRect(0, 0, WIDTH, HEIGHT)
 
-        #self.machine = QtSvg.QGraphicsSvgItem('../static/assets/burger_chute.svg')
-        #self.scene.addItem(self.machine)
-        #self.machine.setScale(2)
-        #self.machine.setPos(1000,0)
  
         #self.setFixedSize(WIDTH,HEIGHT)
         self.setScene(self.scene)
@@ -42,6 +38,7 @@ class MainWindow(QtWidgets.QGraphicsView):
                 s = t.split(',')
                 x, y= float(s[0]), float(s[1])
                 pixmap.setPos(QtCore.QPointF(x, y))
+                print(fname)
                 self.images[pixmap] = fname
         self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
         self.scene.installEventFilter(self)
