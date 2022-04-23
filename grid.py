@@ -8,7 +8,7 @@ import sys
 MQTT_SERVER="gork.local"
 TARGET=sys.argv[1]
 XY_FEED=25
-half_fov = .3
+half_fov = .15
 
 class Grid():
     
@@ -103,7 +103,7 @@ class Grid():
                 time.sleep(0.25)
             print("idle, wait for settle")
             time.sleep(1)
-            #self.client.publish(f"{TARGET}/photo", f"{pos[1]:08.3f}_{pos[0]:08.3f}.jpg")
+            self.client.publish(f"{TARGET}/photo", f"{pos[1]:08.3f}_{pos[0]:08.3f}.jpg")
             print("ending command loop", len(s_grid)-i, "remaining")
         print("grid done")
 
