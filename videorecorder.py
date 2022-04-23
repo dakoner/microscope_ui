@@ -14,6 +14,6 @@ while True:
     image= simplejpeg.decode_jpeg( jpg_buffer, colorspace='BGR')
     if out is None:
         out = cv2.VideoWriter('outpy.mkv',cv2.VideoWriter_fourcc(*'XVID'), 24, (image.shape[1], image.shape[0]))
-    if i % 20 == 0:
-        out.write(image)
+    #if i % 5 == 0:
+    out.write(image)
     i += 1
