@@ -11,7 +11,7 @@ import sys
 
 STEP_SIZE=0.5
 TARGET=sys.argv[1]
-MQTT_SERVER="gork.local"
+MQTT_SERVER="dekscope.local"
 XY_STEP_SIZE=32
 XY_FEED=50
 
