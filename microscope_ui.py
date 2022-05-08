@@ -18,9 +18,9 @@ import classes
 import json
 pcutoff=0.5
 pixel_to_mm = 0.00005
+MQTT_SERVER="dekscope.local"
+IMAGEZMQ='dekscope.local'
 TARGET=sys.argv[1]
-MQTT_SERVER="gork.local"
-IMAGEZMQ='gork.local'
 PORT=sys.argv[2]
 XY_FEED=25
 
@@ -122,8 +122,8 @@ class Window(QtWidgets.QLabel):
     def on_message(self, client, userdata, message):
         if message.topic == f"{TARGET}/m_pos":
             self.m_pos = eval(message.payload)
-        elif message.topic == f"{TARGET}/inference":
-            self.results = json.loads(message.payload)
+        # elif message.topic == f"{TARGET}/inference":
+        #     self.results = json.loads(message.payload)
 
     def on_connect(self, client, userdata, flags, rc):
         print("connected")
@@ -144,48 +144,77 @@ class Window(QtWidgets.QLabel):
         cmd = "$J=G91  G21 X%.3f Y%.3f F%.3f"% (-cursor_offset.x(), -cursor_offset.y(), XY_FEED)
         self.client.publish(f"{TARGET}/command", cmd)
 
-    def imageTo(self, image_data): 
-        # image_data = cv2.cvtColor(image_data, cv2.COLOR_RGB2HSV)
-        # mask = cv2.inRange(image_data,
-        #                 np.array((0, 0, 0), dtype=np.uint8),
-        #                 np.array((255, 255, 5), dtype=np.uint8))
-        # mask = cv2.erode(mask, None, iterations=4)
-        # mask = cv2.dilate(mask, None, iterations=1)
+    def get_mask(self, image_data):
+        image_data = cv2.cvtColor(image_data, cv2.COLOR_RGB2HSV)
+        mask = cv2.inRange(image_data,
+                        np.array((0, 0, 0), dtype=np.uint8),
+                        np.array((255, 255, 5), dtype=np.uint8))
+        mask = cv2.erode(mask, None, iterations=4)
+        mask = cv2.dilate(mask, None, iterations=1)
         
+        return mask
+        
+
+    def find_contours(self, image_data, mask):
+        # Find contours and find total area
+        cnts = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+        area = 0
+        gray = cv2.cvtColor(image_data,cv2.COLOR_BGR2GRAY)
+
+        for c in cnts:
+            cv2.drawContours(image_data,[c], 0, (0,255,0), 2)
+
+    def find_lines(self, image_data):
+        gray = cv2.cvtColor(image_data,cv2.COLOR_BGR2GRAY)
+        edges = cv2.Canny(gray,50,150,apertureSize = 3)
+        lines = cv2.HoughLines(edges,1,np.pi/720,200)
+        
+        if lines is not None:
+            angles = []
+            for line in lines:
+                for rho,theta in line:
+                    if (abs(theta) < 0.3):
+                        angles.append(theta)
+                        a = np.cos(theta)
+                        b = np.sin(theta)
+                        x0 = a*rho
+                        y0 = b*rho
+                        x1 = int(x0 + 1000*(-b))
+                        y1 = int(y0 + 1000*(a))
+                        x2 = int(x0 - 1000*(-b))
+                        y2 = int(y0 - 1000*(a))
+
+                        cv2.line(image_data,(x1,y1),(x2,y2),(0,0,255),2)
+            print(degrees(mean(angles)))
+
+    def sobel(self, image_data):
+        scale = 1
+        delta = 0
+        ddepth = cv2.CV_16S
+
+        src = cv2.GaussianBlur(image_data, (3, 3), 0)
+        gray = cv2.cvtColor(src, cv2.COLOR_RGB2GRAY)       
+        grad_x = cv2.Sobel(gray, ddepth, 1, 0, ksize=3, scale=scale, delta=delta, borderType=cv2.BORDER_DEFAULT)
+        grad_y = cv2.Sobel(gray, ddepth, 0, 1, ksize=3, scale=scale, delta=delta, borderType=cv2.BORDER_DEFAULT)
+        abs_grad_x = cv2.convertScaleAbs(grad_x)
+        abs_grad_y = cv2.convertScaleAbs(grad_y)
+        print(np.sqrt(np.sum(abs_grad_x**2 + abs_grad_y**2)))
+        grad = cv2.addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0)
+
+    
+
+    def imageTo(self, image_data): 
+        self.sobel(image_data)
+        # mask = self.get_mask(image_data)
         # image_data = cv2.cvtColor(image_data, cv2.COLOR_HSV2RGB)
-        # #blue = np.full_like(image_data, (255, 255, 0))
-        # #image_data = cv2.bitwise_and(blue, image_data, mask=mask)
-            
+        # blue = np.full_like(image_data, (255, 0, 0))
+        # image_data = cv2.bitwise_and(blue, image_data, mask=mask)
 
-        # # Find contours and find total area
-        # cnts = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        # cnts = cnts[0] if len(cnts) == 2 else cnts[1]
-        # area = 0
-        # for c in cnts:
-        #     cv2.drawContours(image_data,[c], 0, (0,255,0), 2)
-            # lines = cv2.HoughLines(edges,1,np.pi/720,200)\
-            
-            # if lines is not None:
-            #     angles = []
-            #     for line in lines:
-            #         for rho,theta in line:
-            #             if (abs(theta) < 0.3):
-            #                 angles.append(theta)
-            #                 a = np.cos(theta)
-            #                 b = np.sin(theta)
-            #                 x0 = a*rho
-            #                 y0 = b*rho
-            #                 x1 = int(x0 + 1000*(-b))
-            #                 y1 = int(y0 + 1000*(a))
-            #                 x2 = int(x0 - 1000*(-b))
-            #                 y2 = int(y0 - 1000*(a))
-
-            #                 cv2.line(image_data,(x1,y1),(x2,y2),(0,0,255),2)
-            #     print(degrees(mean(angles)))
-
+        #self.find_contours(image_data, mask)
+        #self.find_lines(image_data)
 
         image = QtGui.QImage(image_data, image_data.shape[1], image_data.shape[0], QtGui.QImage.Format_RGB888)
-        
         if self.m_pos is not None:
             p = QtGui.QPainter()
         
@@ -210,36 +239,36 @@ class Window(QtWidgets.QLabel):
             p.drawText(0, 150, "Z%8.3fmm" % self.m_pos[2])
             p.end()
 
-        if self.results:
-            p = QtGui.QPainter()
+        # if self.results:
+        #     p = QtGui.QPainter()
         
-            p.begin(image)
-            p.setCompositionMode( QtGui.QPainter.CompositionMode_SourceOver )
-            p.setRenderHints( QtGui.QPainter.HighQualityAntialiasing )
+        #     p.begin(image)
+        #     p.setCompositionMode( QtGui.QPainter.CompositionMode_SourceOver )
+        #     p.setRenderHints( QtGui.QPainter.HighQualityAntialiasing )
 
-            pen1 = QtGui.QPen(QtCore.Qt.black)
-            pen1.setWidth(2)
+        #     pen1 = QtGui.QPen(QtCore.Qt.black)
+        #     pen1.setWidth(2)
                 
             
-            pen2 = QtGui.QPen(QtCore.Qt.blue)
-            pen.setWidth(2)
-            first = True
-            for result in self.results['results']:
-                prediction_score = result[0]
-                label = result[1]
-                box = result[2]
-                p.setPen(pen1)
-                box = QtCore.QRectF(QtCore.QPointF(*box[0]), QtCore.QPointF(*box[1]))
-                p.drawRect(box)
-                p.setPen(pen2)
-                p.drawText(box.bottomRight(), "%5.2f %s" % (prediction_score, label))
-                image_center = QtCore.QPointF(image.width()/2, image.height()/2)
-                if label == 'tardigrade' and prediction_score == 1.0 and first:
-                    p.drawLine(image_center, box.center())
-                    first = False
+        #     pen2 = QtGui.QPen(QtCore.Qt.blue)
+        #     pen2.setWidth(2)
+        #     first = True
+        #     for result in self.results['results']:
+        #         prediction_score = result[0]
+        #         label = result[1]
+        #         box = result[2]
+        #         p.setPen(pen1)
+        #         box = QtCore.QRectF(QtCore.QPointF(*box[0]), QtCore.QPointF(*box[1]))
+        #         p.drawRect(box)
+        #         p.setPen(pen2)
+        #         p.drawText(box.bottomRight(), "%5.2f %s" % (prediction_score, label))
+        #         image_center = QtCore.QPointF(image.width()/2, image.height()/2)
+        #         if label == 'tardigrade' and prediction_score == 1.0 and first:
+        #             p.drawLine(image_center, box.center())
+        #             first = False
 
-            self.results = None
-            p.end()
+        #     self.results = None
+        #     p.end()
 
         pixmap = QtGui.QPixmap.fromImage(image)#.scaled(QtWidgets.QApplication.instance().primaryScreen().size(), QtCore.Qt.KeepAspectRatio)
         self.resize(pixmap.size().width(), pixmap.size().height())
