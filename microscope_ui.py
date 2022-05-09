@@ -68,15 +68,54 @@ class ControlWindow(QtWidgets.QWidget):
         self.slider_one.setMinimum(0)
         self.slider_one.setMaximum(200)
         self.slider_one.valueChanged[int].connect(self.slider_one_changed)
+        self.slider_one.setValue(self.window.one)
 
         self.slider_two = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
         self.slider_two.setMinimum(0)
         self.slider_two.setMaximum(200)
         self.slider_two.valueChanged[int].connect(self.slider_two_changed)
+        self.slider_two.setValue(self.window.two)
 
+
+        # self.rho = 1 # double
+        # self.theta = np.pi/2 # double
+        # self.threshold = 1 # int
+        # self.minLineLength = 25 # double
+        # self.maxLineGap = 25 # double
+
+        self.slider_rho = QtWidgets.QDoubleSpinBox(self)
+        self.slider_rho.setMinimum(0)
+        self.slider_rho.setMaximum(10)
+        self.slider_rho.setSingleStep(0.1)
+        self.slider_rho.valueChanged[float].connect(self.slider_rho_changed)
+        self.slider_rho.setValue(self.window.rho)
         
+        self.slider_threshold = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
+        self.slider_threshold.setMinimum(0)
+        self.slider_threshold.setMaximum(200)
+        self.slider_threshold.valueChanged[int].connect(self.slider_threshold_changed)
+        self.slider_threshold.setValue(self.window.threshold)
+    
+        self.slider_minLineLength = QtWidgets.QDoubleSpinBox(self)
+        self.slider_minLineLength.setMinimum(0)
+        self.slider_minLineLength.setMaximum(100)
+        self.slider_minLineLength.setSingleStep(1)
+        self.slider_minLineLength.valueChanged[float].connect(self.slider_minLineLength_changed)
+        self.slider_minLineLength.setValue(self.window.minLineLength)
+        
+        self.slider_maxLineGap = QtWidgets.QDoubleSpinBox(self)
+        self.slider_maxLineGap.setMinimum(0)
+        self.slider_maxLineGap.setMaximum(100)
+        self.slider_maxLineGap.setSingleStep(1)
+        self.slider_maxLineGap.valueChanged[float].connect(self.slider_maxLineGap_changed)
+        self.slider_maxLineGap.setValue(self.window.maxLineGap)
+
         layout.addWidget(self.slider_one)
         layout.addWidget(self.slider_two)
+        layout.addWidget(self.slider_rho)
+        layout.addWidget(self.slider_threshold)
+        layout.addWidget(self.slider_minLineLength)
+        layout.addWidget(self.slider_maxLineGap)
 
     def slider_one_changed(self, value):
         print("one changed", value)
@@ -85,6 +124,22 @@ class ControlWindow(QtWidgets.QWidget):
     def slider_two_changed(self, value):
         print("two changed", value)
         self.window.two = value
+
+    def slider_rho_changed(self, value):
+        print("rho changed", value)
+        self.window.rho = value
+
+    def slider_threshold_changed(self, value):
+        print("threshold changed", value)
+        self.window.threshold = value
+
+    def slider_minLineLength_changed(self, value):
+        print("minLineLength changed", value)
+        self.window.minLineLength = value
+
+    def slider_maxLineGap_changed(self, value):
+        print("maxLineGap changed", value)
+        self.window.maxLineGap = value
 
 class Window(QtWidgets.QLabel):
 
@@ -115,10 +170,17 @@ class Window(QtWidgets.QLabel):
         self.state = "Unknown"
 
         self.results = None
-        self.one = 0
-        self.two = 0
+        self.one = 50
+        self.two = 100
 
-            
+        self.rho = 1 # double
+        self.theta = np.pi/2 # double
+        self.threshold = 1 # int
+        self.minLineLength = 25 # double
+        self.maxLineGap = 25 # double
+
+        self.old_image = None 
+
     def on_message(self, client, userdata, message):
         if message.topic == f"{TARGET}/m_pos":
             self.m_pos = eval(message.payload)
@@ -163,58 +225,74 @@ class Window(QtWidgets.QLabel):
         gray = cv2.cvtColor(image_data,cv2.COLOR_BGR2GRAY)
 
         for c in cnts:
-            cv2.drawContours(image_data,[c], 0, (0,255,0), 2)
+            cv2.drawContours(gray,[c], 0, (0,255,0), 2)
+        return cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
 
     def find_lines(self, image_data):
-        gray = cv2.cvtColor(image_data,cv2.COLOR_BGR2GRAY)
-        edges = cv2.Canny(gray,50,150,apertureSize = 3)
-        lines = cv2.HoughLines(edges,1,np.pi/720,200)
-        
+        src = cv2.GaussianBlur(image_data, (3, 3), 0)
+        gray = cv2.cvtColor(src,cv2.COLOR_BGR2GRAY)
+        edges = cv2.Canny(gray,self.one, self.two, apertureSize = 3)
+        #kernel = np.ones((3,3), np.uint8)
+        #img_dilation = cv2.dilate(edges, kernel, iterations=1)
+        #img_erosion = cv2.erode(img_dilation, kernel, iterations=1)
+
+        print(self.rho, self.theta,self.threshold, self.minLineLength, self.maxLineGap)
+        lines = cv2.HoughLinesP(edges,self.rho, self.theta,self.threshold, self.minLineLength, self.maxLineGap)
+        draw_data = image_data.copy()
         if lines is not None:
-            angles = []
+            print(len(lines))
             for line in lines:
-                for rho,theta in line:
-                    if (abs(theta) < 0.3):
-                        angles.append(theta)
-                        a = np.cos(theta)
-                        b = np.sin(theta)
-                        x0 = a*rho
-                        y0 = b*rho
-                        x1 = int(x0 + 1000*(-b))
-                        y1 = int(y0 + 1000*(a))
-                        x2 = int(x0 - 1000*(-b))
-                        y2 = int(y0 - 1000*(a))
-
-                        cv2.line(image_data,(x1,y1),(x2,y2),(0,0,255),2)
-            print(degrees(mean(angles)))
-
+                for x1, y1, x2, y2 in line:
+                    cv2.line(draw_data,(x1,y1),(x2,y2),(0,255,255),2)
+        return draw_data #cv2.cvtColor(draw_data, cv2.COLOR_GRAY2BGR)
+    
     def sobel(self, image_data):
         scale = 1
         delta = 0
         ddepth = cv2.CV_16S
 
-        src = cv2.GaussianBlur(image_data, (3, 3), 0)
-        gray = cv2.cvtColor(src, cv2.COLOR_RGB2GRAY)       
+        src = cv2.GaussianBlur(image_data, (3,3), 0)
+        gray = cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)
         grad_x = cv2.Sobel(gray, ddepth, 1, 0, ksize=3, scale=scale, delta=delta, borderType=cv2.BORDER_DEFAULT)
         grad_y = cv2.Sobel(gray, ddepth, 0, 1, ksize=3, scale=scale, delta=delta, borderType=cv2.BORDER_DEFAULT)
         abs_grad_x = cv2.convertScaleAbs(grad_x)
         abs_grad_y = cv2.convertScaleAbs(grad_y)
         print(np.sqrt(np.sum(abs_grad_x**2 + abs_grad_y**2)))
         grad = cv2.addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0)
+        
+        return cv2.cvtColor(grad, cv2.COLOR_GRAY2BGR)
 
     
 
     def imageTo(self, image_data): 
-        self.sobel(image_data)
+
+        if self.old_image is None:
+            self.old_image = image_data
+            return
+
+
+
+        #image_data = cv2.addWeighted(self.old_image, 0.9, image_data,  0.1, 0)
+
+
+        #image_data = self.sobel(image_data)
+        draw_data = self.find_lines(image_data)
+        #draw_data = self.find_contours(image_data, mask)
+
+
+
+
         # mask = self.get_mask(image_data)
         # image_data = cv2.cvtColor(image_data, cv2.COLOR_HSV2RGB)
         # blue = np.full_like(image_data, (255, 0, 0))
-        # image_data = cv2.bitwise_and(blue, image_data, mask=mask)
+        # draw_data = cv2.bitwise_and(blue, image_data, mask=mask)
 
         #self.find_contours(image_data, mask)
-        #self.find_lines(image_data)
+        #draw_data = self.find_lines(image_data)
+        #draw_data = image_data
+        self.old_image = image_data
+        image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
 
-        image = QtGui.QImage(image_data, image_data.shape[1], image_data.shape[0], QtGui.QImage.Format_RGB888)
         if self.m_pos is not None:
             p = QtGui.QPainter()
         
@@ -273,6 +351,8 @@ class Window(QtWidgets.QLabel):
         pixmap = QtGui.QPixmap.fromImage(image)#.scaled(QtWidgets.QApplication.instance().primaryScreen().size(), QtCore.Qt.KeepAspectRatio)
         self.resize(pixmap.size().width(), pixmap.size().height())
         self.setPixmap(pixmap)
+
+
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL)
