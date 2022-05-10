@@ -236,11 +236,9 @@ class Window(QtWidgets.QLabel):
         #img_dilation = cv2.dilate(edges, kernel, iterations=1)
         #img_erosion = cv2.erode(img_dilation, kernel, iterations=1)
 
-        print(self.rho, self.theta,self.threshold, self.minLineLength, self.maxLineGap)
         lines = cv2.HoughLinesP(edges,self.rho, self.theta,self.threshold, self.minLineLength, self.maxLineGap)
         draw_data = image_data.copy()
         if lines is not None:
-            print(len(lines))
             for line in lines:
                 for x1, y1, x2, y2 in line:
                     cv2.line(draw_data,(x1,y1),(x2,y2),(0,255,255),2)
