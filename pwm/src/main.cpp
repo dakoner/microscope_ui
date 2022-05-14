@@ -3,7 +3,7 @@
 #include <PubSubClient.h>
 #include <WiFi.h>
 
-const int LEDPin = 26;  /* GPIO16 */
+const int LEDPin = 16;  /* GPIO16 */
 
 int ledVal = 32;
 
@@ -13,10 +13,10 @@ const int PWMChannel = 0;
 const int PWMResolution = 10;
 const int MAX_DUTY_CYCLE = (int)(pow(2, PWMResolution) - 1);
 
-
-
+const char *mqtt_server = "dekscope";
+const char *client_name = "testclient";
 const char *ssid = "artdeco"; // Enter your WiFi name
-const char *password = "Recurser";  // Enter WiFi password
+const char *password = "";  // Enter WiFi password
 
 // MQTT Broker
 
@@ -28,6 +28,8 @@ PubSubClient client(espClient); //lib required for mqtt
 void callback(char* topic, byte* payload, unsigned int length) {
   String _topic(topic);
   String message = String(std::string((const char*)payload, length).c_str());
+  Serial.println(topic);
+  Serial.println(message);
   if (_topic == "led") {
     ledVal = message.toInt();
     Serial.print("Led value set to: ");
@@ -40,13 +42,9 @@ bool reconnect() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
-    if (client.connect("arduinoClient")) {
+    if (client.connect(client_name)) {
       Serial.println("connected");
-      // Once connected, publish an announcement...
-      Serial.println("publishing");
-      // ... and resubscribe
-      Serial.println("subscribing");
-
+      delay(1000);
       client.subscribe("led");
     } else {
       Serial.print("failed, rc=");
@@ -69,6 +67,7 @@ void setup()
   ledcSetup(PWMChannel, PWMFreq, PWMResolution);
   /* Attach the LED PWM Channel to the GPIO Pin */
   ledcAttachPin(LEDPin, PWMChannel);
+  ledcWrite(PWMChannel, ledVal);
 
 
   WiFi.begin(ssid, password);
@@ -77,16 +76,17 @@ void setup()
       Serial.println("Connecting to WiFi..");
   }
 
-  client.setServer("gork", 1883);
+
+
+  client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
 }
 
-void loop()
-{
+void loop() {
   if (!client.connected()) {
     reconnect();
   }
-
+  
   client.loop();
   ledcWrite(PWMChannel, ledVal);
 }
