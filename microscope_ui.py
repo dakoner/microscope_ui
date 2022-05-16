@@ -17,6 +17,15 @@ import time
 import classes
 import json
 from collections import deque
+import matplotlib
+matplotlib.use('Qt5Agg')
+from PyQt5 import QtCore, QtWidgets
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt 
+
+
+
 
 pcutoff=0.5
 pixel_to_mm = 0.00005
@@ -178,10 +187,26 @@ class ControlWindow(QtWidgets.QWidget):
         print("dilate_iterations changed", value)
         self.window.dilate_iterations = value
 
+
+
+class MplWindow(QtWidgets.QWidget):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.figure = Figure(figsize=(1, 1), dpi=100)
+        self.canvas = FigureCanvasQTAgg(self.figure)
+        self.axes = self.figure.add_subplot(111)
+
+        self.layout = QtWidgets.QVBoxLayout()
+        self.layout.addWidget(self.canvas)
+        self.setLayout(self.layout)
+
 class Window(QtWidgets.QLabel):
 
-    def __init__(self):
+    def __init__(self, mpl_window):
         super(Window, self).__init__()
+
+        self.mpl_window = mpl_window
 
         #self.resize(640,480)
         self.camera = ImageZMQCameraReader()
@@ -312,10 +337,15 @@ class Window(QtWidgets.QLabel):
     
 
     def imageTo(self, image_data): 
+        hsv = cv2.cvtColor(image_data, cv2.COLOR_RGB2HSV)[:, :, 2].flatten()
+        self.mpl_window.axes.cla()
+        _, _, _ = self.mpl_window.axes.hist(hsv, 360, histtype='step')
+        self.mpl_window.canvas.draw()
+
         # implement queue (via list) 
-        if len(self.queue) == 10:
-           self.queue.popleft()
-        self.queue.append(image_data)
+        #if len(self.queue) == 10:
+        #   self.queue.popleft()
+        #self.queue.append(image_data)
 
         #avg_image = np.mean(self.queue, axis=(0,)).astype(np.uint8)
 
@@ -323,17 +353,15 @@ class Window(QtWidgets.QLabel):
 
 
         #draw_data = self.sobel(image_data)
-        mask = self.get_mask(image_data)
-        image_data = cv2.bitwise_and(image_data, image_data, mask = mask)
-        print(image_data.shape)
-        draw_data = self.find_lines(image_data)
+        #mask = self.get_mask(image_data)
+        #image_data = cv2.bitwise_and(image_data, image_data, mask = mask)
+        #print(image_data.shape)
+        #draw_data = self.find_lines(image_data)
         #draw_data = self.find_contours(image_data, mask)
 
-        #draw_data = avg_image
-        #mask = self.get_mask(image_data)
-        #draw_data = cv2.bitwise_and(image_data, image_data, mask = mask)
-        #draw_data = res
-        #draw_data = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+        mask = self.get_mask(image_data)
+        draw_data = cv2.bitwise_and(image_data, image_data, mask = mask)
+        draw_data = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
 
         #mask = self.get_mask(image_data)
         #image_data = cv2.cvtColor(image_data, cv2.COLOR_HSV2RGB)
@@ -344,7 +372,7 @@ class Window(QtWidgets.QLabel):
         #draw_data = avg_image
         #draw_data = self.find_lines(mask)
         #draw_data = image_data
-
+       
         image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
 
         if self.m_pos is not None:
@@ -411,7 +439,12 @@ class Window(QtWidgets.QLabel):
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     app = QtWidgets.QApplication(sys.argv)
-    window = Window()
+
+    sc = MplWindow()
+    sc.show()
+    window = Window(sc)
+    
+
     cw = ControlWindow(window)
     window.show()#FullScreen()
     cw.show()
