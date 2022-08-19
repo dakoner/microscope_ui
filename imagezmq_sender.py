@@ -4,7 +4,7 @@ import imagezmq
 import simplejpeg
 import numpy as np
 
-HOST='gork.local'
+HOST='dekscope.local'
 #port = 5555
 
 # if __name__ == '__main__':
@@ -43,14 +43,14 @@ if __name__ == '__main__':
         ret, img = cap.read()
         if ret:
             t1 = time.time()
-            if t1 - t0 >= 0.05:
+            if t1 - t0 >= 0.1:
             #if counter % 5 == 0:
                 #b, g, r = cv2.split(img)
                 #result = g
                 #result = (r+b)/(r-b+0.0001)*256
                 #print(result)
                 #img = cv2.merge([result, result, result]).astype(np.uint8)
-                jpg_buffer = simplejpeg.encode_jpeg(img, quality=100, colorspace='BGR')
+                jpg_buffer = simplejpeg.encode_jpeg(img, quality=98, colorspace='BGR')
                 sender.send_jpg(HOST, jpg_buffer)
                 t0 = t1
         counter += 1
