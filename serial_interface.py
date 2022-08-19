@@ -8,7 +8,7 @@ import queue
 import paho.mqtt.client as mqtt
 import numpy as np
 
-MQTT_SERVER="gork.local"
+MQTT_SERVER="dekscope.local"
 DEVICE=sys.argv[1]
 TARGET=sys.argv[2]
 
