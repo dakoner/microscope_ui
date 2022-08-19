@@ -39,7 +39,7 @@ class SerialInterface:
 
         self.serialport = openSerial(port, baud)
         self.startMqtt()
-
+        #self.startStatusThread()
             
     def startMqtt(self):
         self.client =  mqtt.Client()
@@ -49,10 +49,10 @@ class SerialInterface:
 
         self.client.loop_start()
 
-
-    def startStatusThread(self):
-        self.status_thread = threading.Thread(target=self.get_status)
-        self.status_thread.start()
+        
+    #def startStatusThread(self):
+    #    self.status_thread = threading.Thread(target=self.get_status)
+    #    self.status_thread.start()
     
     def readline(self):
         message = self.serialport.readline()
@@ -77,10 +77,10 @@ class SerialInterface:
         time.sleep(0.01)
 
 
-    def get_status(self):
-        while True:
-            self.serialport.write(b"?")
-            time.sleep(0.1) 
+    #def get_status(self):
+    #    while True:
+    #        self.serialport.write(b"?")
+    #        time.sleep(0.1) 
 
     def on_connect(self, client, userdata, flags, rc):
         print("on_connect")
