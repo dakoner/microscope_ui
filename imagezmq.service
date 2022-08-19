@@ -1,0 +1,7 @@
+[Service]
+ExecStart=/home/dek/src/microscope_ui/start_imagezmq.sh
+User=dek
+Before=graphical.target
+
+[Install]
+WantedBy=graphical.target
