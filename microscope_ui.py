@@ -33,7 +33,7 @@ MQTT_SERVER="192.168.1.75"
 IMAGEZMQ='192.168.1.75'
 TARGET=sys.argv[1]
 PORT=sys.argv[2]
-XY_STEP_SIZE=1
+XY_STEP_SIZE=100
 XY_FEED=50
 
 Z_STEP_SIZE=15
@@ -96,12 +96,10 @@ class MplWindow(QtWidgets.QWidget):
 class Window(QtWidgets.QLabel):
     def eventFilter(self, widget, event):
         if isinstance(event, QtGui.QKeyEvent):
-            print(event, event.type(), event.isAutoRepeat())
             if not event.isAutoRepeat():
                 key = event.key()    
 
                 if key == QtCore.Qt.Key_Left:
-                    print("left")
                     if event.type() == QtCore.QEvent.KeyRelease:
                         self.client.publish(f"{TARGET}/cancel")
                     elif event.type() == QtCore.QEvent.KeyPress:
@@ -109,7 +107,6 @@ class Window(QtWidgets.QLabel):
                         cmd = f"$J=G91 G21 F{XY_FEED:.3f} X-{XY_STEP_SIZE:.3f}"
                         self.client.publish(f"{TARGET}/command", cmd)
                 elif key == QtCore.Qt.Key_Right:
-                    print("right")
                     if event.type() == QtCore.QEvent.KeyRelease:
                         self.client.publish(f"{TARGET}/cancel")
                     elif event.type() == QtCore.QEvent.KeyPress:
@@ -117,7 +114,6 @@ class Window(QtWidgets.QLabel):
                         cmd = f"$J=G91 G21 F{XY_FEED:.3f} X{XY_STEP_SIZE:.3f}"
                         self.client.publish(f"{TARGET}/command", cmd)
                 elif key == QtCore.Qt.Key_Up:
-                    print("up")
                     if event.type() == QtCore.QEvent.KeyRelease:
                         self.client.publish(f"{TARGET}/cancel")
                     elif event.type() == QtCore.QEvent.KeyPress:
@@ -125,7 +121,6 @@ class Window(QtWidgets.QLabel):
                         cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y-{XY_STEP_SIZE:.3f}"
                         self.client.publish(f"{TARGET}/command", cmd)
                 elif key == QtCore.Qt.Key_Down:
-                    print("down")
                     if event.type() == QtCore.QEvent.KeyRelease:
                         self.client.publish(f"{TARGET}/cancel")
                     elif event.type() == QtCore.QEvent.KeyPress:
@@ -133,7 +128,6 @@ class Window(QtWidgets.QLabel):
                         cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y{XY_STEP_SIZE:.3f}"
                         self.client.publish(f"{TARGET}/command", cmd)
                 elif key == QtCore.Qt.Key_Plus:
-                    print("plus")
                     if event.type() == QtCore.QEvent.KeyRelease:
                         self.client.publish(f"{TARGET}/cancel")
                     elif event.type() == QtCore.QEvent.KeyPress:
@@ -141,7 +135,6 @@ class Window(QtWidgets.QLabel):
                         cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z-{Z_STEP_SIZE:.3f}"
                         self.client.publish(f"{TARGET}/command", cmd)
                 elif key == QtCore.Qt.Key_Minus:
-                    print("plus")
                     if event.type() == QtCore.QEvent.KeyRelease:
                         self.client.publish(f"{TARGET}/cancel")
                     elif event.type() == QtCore.QEvent.KeyPress:
@@ -195,7 +188,6 @@ class Window(QtWidgets.QLabel):
         self.timer.start(1000)
 
     def timerExpired(self, *args):
-        print("timer:", args)
         if self.connected:
             self.client.publish(f"{TARGET}/command", "?")
 
