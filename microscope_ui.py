@@ -183,14 +183,6 @@ class Window(QtWidgets.QLabel):
 
         self.queue = deque()
 
-        self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self.timerExpired)
-        self.timer.start(1000)
-
-    def timerExpired(self, *args):
-        if self.connected:
-            self.client.publish(f"{TARGET}/command", "?")
-
     def on_message(self, client, userdata, message):
         if message.topic == f"{TARGET}/m_pos":
             self.m_pos = eval(message.payload)
