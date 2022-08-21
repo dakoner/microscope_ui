@@ -29,8 +29,8 @@ import matplotlib.pyplot as plt
 
 pcutoff=0.5
 pixel_to_mm = 0.00005
-MQTT_SERVER="192.168.1.75"
-IMAGEZMQ='192.168.1.75'
+MQTT_SERVER="192.168.1.152"
+IMAGEZMQ='192.168.1.152'
 TARGET=sys.argv[1]
 PORT=sys.argv[2]
 XY_STEP_SIZE=100
