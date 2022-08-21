@@ -35,10 +35,15 @@ class SerialInterface:
     
     def __init__(self, port=DEVICE, baud=115200):
         super().__init__()
-
+        self.status_time = time.time()
         self.serialport = openSerial(port, baud)
         self.startMqtt()
-            
+        self.startStatusThread()
+
+    def startStatusThread(self):
+        self.status_thread = threading.Thread(target=self.get_status)
+        self.status_thread.start()
+
     def startMqtt(self):
         self.client =  mqtt.Client()
         self.client.on_connect = self.on_connect
@@ -58,6 +63,9 @@ class SerialInterface:
             rest = message[1:-3].split('|')
             self.state = rest[0]
             self.client.publish(f"{TARGET}/state", self.state)
+            t = time.time()
+            print("time since last status:", t-self.status_time)
+            self.status_time = t
             for item in rest:
                 if item.startswith("MPos"):
                     m_pos = [float(field) for field in item[5:].split(',')]
@@ -68,13 +76,11 @@ class SerialInterface:
         else:
             print("OUTPUT:", message)
             self.client.publish(f"{TARGET}/output", message)
-        time.sleep(0.01)
 
-
-    #def get_status(self):
-    #    while True:
-    #        self.serialport.write(b"?")
-    #        time.sleep(0.1) 
+    def get_status(self):
+        while True:
+            self.serialport.write(b"?")
+            time.sleep(0.25) 
 
     def on_connect(self, client, userdata, flags, rc):
         print("on_connect")
@@ -102,7 +108,7 @@ class SerialInterface:
             
     def soft_reset(self):
         print("soft reset")
-        self.serialport.write("\x18") # Ctrl-X
+        self.serialport.write(b"\x18") # Ctrl-X
 
     def reset(self):
         print("reset\r")
