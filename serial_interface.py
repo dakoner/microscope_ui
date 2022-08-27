@@ -59,12 +59,11 @@ class SerialInterface:
         if message == '':
             return
         if message.startswith("<") and message.endswith(">"):
-            print("STATUS:", message)
+            #print("STATUS:", message)
             rest = message[1:-3].split('|')
             self.state = rest[0]
             self.client.publish(f"{TARGET}/state", self.state)
             t = time.time()
-            print("time since last status:", t-self.status_time)
             self.status_time = t
             for item in rest:
                 if item.startswith("MPos"):
