@@ -1,4 +1,3 @@
-from skimage.registration import phase_cross_correlation
 import numpy as np
 import json
 import os
@@ -10,12 +9,12 @@ import simplejpeg
 import imagezmq
 from mqtt_qobject import MqttClient
 
-IMAGEZMQ='192.168.1.152'
+IMAGEZMQ='raspberrypi'
 PORT=5000
 PIXEL_SCALE=0.0007 * 2
-TARGET="dekscope"
+TARGET="raspberrypi"
 XY_STEP_SIZE=100
-XY_FEED=25
+XY_FEED=100
 
 Z_STEP_SIZE=15
 Z_FEED=1
@@ -43,6 +42,15 @@ class ImageZMQCameraReader(QtCore.QThread):
             self.imageSignal.emit(image_data)
 
 class MainWindow(QtWidgets.QGraphicsView):
+    
+    def mouseReleaseEvent(self, event):
+        br = self.scene.selectionArea().boundingRect()
+        x = -br.topLeft().x()* PIXEL_SCALE
+        y =  br.topLeft().y()* PIXEL_SCALE
+        cmd = "$J=G90 G21 X%.3f Y%.3f F%.3f"% (x, y, XY_FEED)
+        self.client.publish(f"{TARGET}/command", cmd)
+        super().mouseReleaseEvent(event)
+
     def __init__(self):
         super().__init__()
 
@@ -50,10 +58,10 @@ class MainWindow(QtWidgets.QGraphicsView):
         self.scene = QtWidgets.QGraphicsScene(self)
         self.setScene(self.scene)
         self.installEventFilter(self)
-
+        self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
 
         self.client = MqttClient(self)
-        self.client.hostname = "dekscope.local"
+        self.client.hostname = "raspberrypi"
         self.client.connectToHost()
         self.client.stateChanged.connect(self.on_stateChanged)
         self.client.messageSignal.connect(self.on_messageSignal)
@@ -62,12 +70,13 @@ class MainWindow(QtWidgets.QGraphicsView):
        
 
         pen = QtGui.QPen(QtCore.Qt.red)
+        pen.setWidth(10)
         color = QtGui.QColor(255, 0, 0)
         color.setAlpha(1)
 
         brush = QtGui.QBrush(color)
-        # self.origin = self.scene.addRect(0, 0, WIDTH, HEIGHT, pen=pen, brush=brush)
-        # self.origin.setZValue(3)
+        self.currentRect = self.scene.addRect(0, 0, WIDTH, HEIGHT, pen=pen, brush=brush)
+        self.currentRect.setZValue(3)
 
         self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
 
@@ -79,13 +88,12 @@ class MainWindow(QtWidgets.QGraphicsView):
         self.currentPosition = None
 
     def imageTo(self, draw_data):
+        image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
+        self.currentPixmap = QtGui.QPixmap.fromImage(image)#.scaled(QtWidgets.QApplication.instance().primaryScreen().size(), QtCore.Qt.KeepAspectRatio)
         if self.pixmap:
-            image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
-            pixmap = QtGui.QPixmap.fromImage(image)#.scaled(QtWidgets.QApplication.instance().primaryScreen().size(), QtCore.Qt.KeepAspectRatio)
-            self.pixmap.setPixmap(pixmap)
-            self.currentPixmap = pixmap
+            self.pixmap.setPixmap(self.currentPixmap)
             ci = self.pixmap.collidingItems()
-            if ci == []:
+            if [item for item in self.pixmap.collidingItems() if isinstance(item, QtWidgets.QGraphicsPixmapItem)] == []:
                 self.addPixmap()
 
     # def collide(self):
@@ -114,11 +122,12 @@ class MainWindow(QtWidgets.QGraphicsView):
     def addPixmap(self):
         if self.currentPosition and self.currentPixmap:
             pm = self.scene.addPixmap(self.currentPixmap)
-            pm.setFlags(QtWidgets.QGraphicsItem.ItemIsMovable | QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
+            #pm.setFlags(QtWidgets.QGraphicsItem.ItemIsMovable | QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
+            #pm.setFlags(QtWidgets.QGraphicsItem.ItemIsSelectable)
             pos = self.currentPosition
             pm.setPos(-pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
             pm.setZValue(1)
-            pm.setOpacity(0.5)
+            #pm.setOpacity(0.5)
             self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
 
     def eventFilter(self, widget, event):
@@ -140,10 +149,10 @@ class MainWindow(QtWidgets.QGraphicsView):
 
                 if self.state == "Idle":
                     if key == QtCore.Qt.Key_Left and type_ == QtCore.QEvent.KeyPress:
-                            cmd = f"$J=G91 G21 X-{XY_STEP_SIZE:.3f} F{XY_FEED:.3f}"
+                            cmd = f"$J=G91 G21 X{XY_STEP_SIZE:.3f} F{XY_FEED:.3f}"
                             self.client.publish(f"{TARGET}/command", cmd)
                     elif key == QtCore.Qt.Key_Right and type_ == QtCore.QEvent.KeyPress:
-                            cmd = f"$J=G91 G21 X{XY_STEP_SIZE:.3f} F{XY_FEED:.3f}"
+                            cmd = f"$J=G91 G21 X-{XY_STEP_SIZE:.3f} F{XY_FEED:.3f}"
                             self.client.publish(f"{TARGET}/command", cmd)
                     elif key == QtCore.Qt.Key_Up and type_ == QtCore.QEvent.KeyPress:
                             cmd = f"$J=G91 G21 Y-{XY_STEP_SIZE:.3f} F{XY_FEED:.3f}"
@@ -171,14 +180,13 @@ class MainWindow(QtWidgets.QGraphicsView):
         if topic == f'{TARGET}/m_pos':
             pos = json.loads(payload)
             self.currentPosition = pos
-            if not self.pixmap:
-                pixmap = QtGui.QPixmap(WIDTH, HEIGHT)
-                pixmap.fill(QtCore.Qt.white)
-                self.pixmap = self.scene.addPixmap(pixmap)
-                self.pixmap.setZValue(2)
-                self.pixmap.setOpacity(0.5)
-                self.pixmap.name = "current rect"
-            self.pixmap.setPos(-pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
+            self.currentRect.setPos(-pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
+            if self.currentPixmap:
+                if not self.pixmap:
+                    self.pixmap = self.scene.addPixmap(self.currentPixmap)
+                else:
+                    self.pixmap.setPixmap(self.currentPixmap)
+                    self.pixmap.setPos(-pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
             self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
         elif topic == f'{TARGET}/state':
             self.state = payload
