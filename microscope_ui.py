@@ -29,8 +29,8 @@ import matplotlib.pyplot as plt
 
 pcutoff=0.5
 pixel_to_mm = 0.00005
-MQTT_SERVER="192.168.1.152"
-IMAGEZMQ='192.168.1.152'
+MQTT_SERVER="raspberrypi"
+IMAGEZMQ='raspberrypi'
 TARGET=sys.argv[1]
 PORT=sys.argv[2]
 XY_STEP_SIZE=100
@@ -214,8 +214,8 @@ class Window(QtWidgets.QLabel):
     def mousePressEvent(self, event):
         # Compute delta from c_pos to middle of window, then scale by pixel size
         s_pos = QtCore.QPoint(self.size().width()/2, self.size().height()/2)
-        cursor_offset = QtCore.QPointF(event.pos()-s_pos)*pixel_to_mm*5
-        cmd = "$J=G91  G21 X%.3f Y%.3f F%.3f"% (-cursor_offset.x(), -cursor_offset.y(), XY_FEED)
+        cursor_offset = QtCore.QPointF(event.pos()-s_pos)*pixel_to_mm*30
+        cmd = "$J=G91  G21 X%.3f Y%.3f F%.3f"% (-cursor_offset.x(), cursor_offset.y(), XY_FEED)
         self.client.publish(f"{TARGET}/command", cmd)
 
         
