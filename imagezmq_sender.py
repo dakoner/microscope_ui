@@ -4,7 +4,7 @@ import imagezmq
 import simplejpeg
 import numpy as np
 
-HOST='dekscope.local'
+HOST='raspberrypi'
 #port = 5555
 
 #width = 3264;height = 2448
@@ -29,7 +29,7 @@ if __name__ == '__main__':
             t1 = time.time()
             if t1 - t0 >= 0.1:
             #if counter % 5 == 0:
-                jpg_buffer = simplejpeg.encode_jpeg(img, quality=50, colorspace='BGR')
+                jpg_buffer = simplejpeg.encode_jpeg(img, quality=100, colorspace='BGR')
                 sender.send_jpg(HOST, jpg_buffer)
                 t0 = t1
         counter += 1
