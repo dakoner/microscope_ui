@@ -45,10 +45,39 @@ class MainWindow(QtWidgets.QGraphicsView):
     
     def mouseReleaseEvent(self, event):
         br = self.scene.selectionArea().boundingRect()
-        x = -br.topLeft().x()* PIXEL_SCALE
-        y =  br.topLeft().y()* PIXEL_SCALE
-        cmd = "$J=G90 G21 X%.3f Y%.3f F%.3f"% (x, y, XY_FEED)
+        
+
+        pen = QtGui.QPen(QtCore.Qt.green)
+        pen.setWidth(20)
+        color = QtGui.QColor(0, 0, 0)
+        brush = QtGui.QBrush(color)
+        x = br.topLeft().x()
+        y = br.topLeft().y()
+        width = br.width()
+        height = br.height()
+        rect = self.scene.addRect(x, y, width, height, pen=pen, brush=brush)
+        rect.setZValue(1)
+        rect.setOpacity(0.25)
+
+        x_min = br.topLeft().x()* PIXEL_SCALE
+        y_min =  -br.bottomRight().y()* PIXEL_SCALE
+        x_max = br.bottomRight().x()* PIXEL_SCALE
+        y_max =  -br.topLeft().y()* PIXEL_SCALE
+        print(x_min, y_min, x_max, y_max)
+        fov = 600 * PIXEL_SCALE
+        xs = np.arange(x_min, x_max, fov)
+        ys = np.arange(y_min, y_max, fov)
+        xx, yy = np.meshgrid(xs, ys)
+        self.s_grid = list(reversed(np.vstack([xx.ravel(), yy.ravel()]).T))
+
+        if len(self.s_grid):
+            p = self.s_grid.pop()
+        else:
+            p = x, y
+        cmd = f"$J=G90 G21 X{p[0]:.3f} Y{p[1]:.3f} F{XY_FEED:.3f}"
+        print(cmd)
         self.client.publish(f"{TARGET}/command", cmd)
+
         super().mouseReleaseEvent(event)
 
     def __init__(self):
@@ -84,6 +113,7 @@ class MainWindow(QtWidgets.QGraphicsView):
         self.camera.start()
         self.camera.imageSignal.connect(self.imageTo)
 
+        self.s_grid = []
         self.currentPixmap = None
         self.currentPosition = None
 
@@ -125,8 +155,8 @@ class MainWindow(QtWidgets.QGraphicsView):
             #pm.setFlags(QtWidgets.QGraphicsItem.ItemIsMovable | QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
             #pm.setFlags(QtWidgets.QGraphicsItem.ItemIsSelectable)
             pos = self.currentPosition
-            pm.setPos(-pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
-            pm.setZValue(1)
+            pm.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
+            pm.setZValue(2)
             #pm.setOpacity(0.5)
             self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
 
@@ -149,16 +179,16 @@ class MainWindow(QtWidgets.QGraphicsView):
 
                 if self.state == "Idle":
                     if key == QtCore.Qt.Key_Left and type_ == QtCore.QEvent.KeyPress:
-                            cmd = f"$J=G91 G21 X{XY_STEP_SIZE:.3f} F{XY_FEED:.3f}"
-                            self.client.publish(f"{TARGET}/command", cmd)
-                    elif key == QtCore.Qt.Key_Right and type_ == QtCore.QEvent.KeyPress:
                             cmd = f"$J=G91 G21 X-{XY_STEP_SIZE:.3f} F{XY_FEED:.3f}"
                             self.client.publish(f"{TARGET}/command", cmd)
+                    elif key == QtCore.Qt.Key_Right and type_ == QtCore.QEvent.KeyPress:
+                            cmd = f"$J=G91 G21 X{XY_STEP_SIZE:.3f} F{XY_FEED:.3f}"
+                            self.client.publish(f"{TARGET}/command", cmd)
                     elif key == QtCore.Qt.Key_Up and type_ == QtCore.QEvent.KeyPress:
-                            cmd = f"$J=G91 G21 Y-{XY_STEP_SIZE:.3f} F{XY_FEED:.3f}"
+                            cmd = f"$J=G91 G21 Y{XY_STEP_SIZE:.3f} F{XY_FEED:.3f}"
                             self.client.publish(f"{TARGET}/command", cmd)
                     elif key == QtCore.Qt.Key_Down and type_ == QtCore.QEvent.KeyPress:
-                            cmd = f"$J=G91 G21 Y{XY_STEP_SIZE:.3f} F{XY_FEED:.3f}"
+                            cmd = f"$J=G91 G21 Y-{XY_STEP_SIZE:.3f} F{XY_FEED:.3f}"
                             self.client.publish(f"{TARGET}/command", cmd)
                     elif key == QtCore.Qt.Key_Plus and type_ == QtCore.QEvent.KeyPress:
                             cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z-{Z_STEP_SIZE:.3f}"
@@ -180,15 +210,26 @@ class MainWindow(QtWidgets.QGraphicsView):
         if topic == f'{TARGET}/m_pos':
             pos = json.loads(payload)
             self.currentPosition = pos
-            self.currentRect.setPos(-pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
+            self.currentRect.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
             if self.currentPixmap:
                 if not self.pixmap:
                     self.pixmap = self.scene.addPixmap(self.currentPixmap)
                 else:
                     self.pixmap.setPixmap(self.currentPixmap)
-                    self.pixmap.setPos(-pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
+                    self.pixmap.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
             self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
         elif topic == f'{TARGET}/state':
+            if self.state != 'Idle' and payload == 'Idle':
+                # should take photo with *previous stage position* here
+                # get qimage from pixmap
+                # create filename w/ previous stage position
+                # save
+                print("Machine went idle")
+                if self.s_grid != []:
+                    p = self.s_grid.pop()
+                    cmd = f"$J=G90 G21 X{p[0]:.3f} Y{p[1]:.3f} F{XY_FEED:.3f}"
+                    self.client.publish(f"{TARGET}/command", cmd)
+
             self.state = payload
 
 class QApplication(QtWidgets.QApplication):
