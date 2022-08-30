@@ -1,14 +1,10 @@
-import json
-import traceback
 import sys
 import serial
 import time
 import threading
-import queue
 import paho.mqtt.client as mqtt
-import numpy as np
 
-MQTT_SERVER="dekscope.local"
+MQTT_SERVER="raspberrypi"
 DEVICE=sys.argv[1]
 TARGET=sys.argv[2]
 
