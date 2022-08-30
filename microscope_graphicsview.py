@@ -40,9 +40,62 @@ class ImageZMQCameraReader(QtCore.QThread):
                         
 
             self.imageSignal.emit(image_data)
+def calculate_area(qpolygon):
+    area = 0
+    for i in range(qpolygon.size()):
+        p1 = qpolygon[i]
+        p2 = qpolygon[(i + 1) % qpolygon.size()]
+        d = p1.x() * p2.y() - p2.x() * p1.y()
+        area += d
+    return abs(area) / 2
 
 class MainWindow(QtWidgets.QGraphicsView):
+    def __init__(self):
+        super().__init__()
+
+        self.state = "None"
+        self.scene = QtWidgets.QGraphicsScene(self)
+        self.setScene(self.scene)
+        self.installEventFilter(self)
+        self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
+
+        self.client = MqttClient(self)
+        self.client.hostname = "raspberrypi"
+        self.client.connectToHost()
+        self.client.stateChanged.connect(self.on_stateChanged)
+        self.client.messageSignal.connect(self.on_messageSignal)
     
+        self.pixmap = None
+       
+
+        pen = QtGui.QPen()
+        pen.setWidth(20)
+        color = QtGui.QColor(255, 0, 0)
+        color.setAlpha(1)
+
+        brush = QtGui.QBrush(color)
+        #self.currentRect = self.scene.addRect(0, 0, WIDTH, HEIGHT, pen=pen, brush=brush)
+        #self.currentRect.setZValue(3)
+
+        self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
+
+        self.camera = ImageZMQCameraReader()
+        self.camera.start()
+        self.camera.imageSignal.connect(self.imageTo)
+
+        self.grid = []
+        self.currentPixmap = None
+        self.currentPosition = None
+
+        pen = QtGui.QPen(QtGui.QColor(127,127,5))
+        pen.setWidth(40)
+        color = QtGui.QColor(0, 0, 255)
+        color.setAlpha(1)
+        brush = QtGui.QBrush(color)
+        path = QtGui.QPainterPath()
+        self.pathItem = self.scene.addPath(path, pen=pen, brush=brush)
+        self.pathItem.setZValue(5)
+
     def mouseReleaseEvent(self, event):
         br = self.scene.selectionArea().boundingRect()
         
@@ -63,59 +116,38 @@ class MainWindow(QtWidgets.QGraphicsView):
         y_min =  -br.bottomRight().y()* PIXEL_SCALE
         x_max = br.bottomRight().x()* PIXEL_SCALE
         y_max =  -br.topLeft().y()* PIXEL_SCALE
-        print(x_min, y_min, x_max, y_max)
-        fov = 600 * PIXEL_SCALE
-        xs = np.arange(x_min, x_max, fov)
-        ys = np.arange(y_min, y_max, fov)
-        xx, yy = np.meshgrid(xs, ys)
-        self.s_grid = list(reversed(np.vstack([xx.ravel(), yy.ravel()]).T))
 
-        if len(self.s_grid):
-            p = self.s_grid.pop()
+        fov = 600 * PIXEL_SCALE
+        if (x_max - x_min < fov and y_max - y_min < fov):
+            print("Immediate move:")
+            cmd = f"$J=G90 G21 X{x_min:.3f} Y{y_min:.3f} F{XY_FEED:.3f}"
+            self.client.publish(f"{TARGET}/command", cmd)
         else:
-            p = x, y
-        cmd = f"$J=G90 G21 X{p[0]:.3f} Y{p[1]:.3f} F{XY_FEED:.3f}"
-        print(cmd)
-        self.client.publish(f"{TARGET}/command", cmd)
+            self.grid = []
+            gx = x_min
+            gy = y_min
+            forward = True
+
+            self.grid.append("$HX")
+            self.grid.append("$HY")
+
+            while gy <= y_max:
+                if forward:
+                    self.grid.append(f"$J=G90 G21 X{x_min:.3f} Y{gy:.3f} F{XY_FEED:.3f}")
+                    self.grid.append(f"$J=G90 G21 X{x_max:.3f} Y{gy:.3f} F{XY_FEED:.3f}")
+                else:
+                    self.grid.append(f"$J=G90 G21 X{x_max:.3f} Y{gy:.3f} F{XY_FEED:.3f}")
+                    self.grid.append(f"$J=G90 G21 X{x_min:.3f} Y{gy:.3f} F{XY_FEED:.3f}")
+                self.grid.append("$HX")
+
+                forward = not forward
+                gy += fov
+
+            print(self.grid)
+            cmd = self.grid.pop()
+            self.client.publish(f"{TARGET}/command", cmd)
 
         super().mouseReleaseEvent(event)
-
-    def __init__(self):
-        super().__init__()
-
-        self.state = "None"
-        self.scene = QtWidgets.QGraphicsScene(self)
-        self.setScene(self.scene)
-        self.installEventFilter(self)
-        self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
-
-        self.client = MqttClient(self)
-        self.client.hostname = "raspberrypi"
-        self.client.connectToHost()
-        self.client.stateChanged.connect(self.on_stateChanged)
-        self.client.messageSignal.connect(self.on_messageSignal)
-    
-        self.pixmap = None
-       
-
-        pen = QtGui.QPen(QtCore.Qt.red)
-        pen.setWidth(10)
-        color = QtGui.QColor(255, 0, 0)
-        color.setAlpha(1)
-
-        brush = QtGui.QBrush(color)
-        self.currentRect = self.scene.addRect(0, 0, WIDTH, HEIGHT, pen=pen, brush=brush)
-        self.currentRect.setZValue(3)
-
-        self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
-
-        self.camera = ImageZMQCameraReader()
-        self.camera.start()
-        self.camera.imageSignal.connect(self.imageTo)
-
-        self.s_grid = []
-        self.currentPixmap = None
-        self.currentPosition = None
 
     def imageTo(self, draw_data):
         image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
@@ -123,8 +155,34 @@ class MainWindow(QtWidgets.QGraphicsView):
         if self.pixmap:
             self.pixmap.setPixmap(self.currentPixmap)
             ci = self.pixmap.collidingItems()
-            if [item for item in self.pixmap.collidingItems() if isinstance(item, QtWidgets.QGraphicsPixmapItem)] == []:
+            # Get the qpainterpath corresponding to the current image location, minus any overlapping images
+            qp = QtGui.QPainterPath()
+            qp.addRect(self.pixmap.sceneBoundingRect())
+            qp2 = QtGui.QPainterPath()
+            for item in ci:
+                if isinstance(item, QtWidgets.QGraphicsPixmapItem):
+                    qp2.addRect(item.sceneBoundingRect())
+
+            qp3 = qp.subtracted(qp2)
+            p = qp3.toFillPolygon()
+            a = calculate_area(p)
+            self.pathItem.setPath(qp3)
+
+            # for i in range(self.path.elementCount()):
+            #     print(self.path.elementAt(i))
+            if a > 350000:# and [item for item in ci if isinstance(item, QtWidgets.QGraphicsPixmapItem)] == []:
                 self.addPixmap()
+
+    def addPixmap(self):
+        if self.currentPosition and self.currentPixmap:
+            pm = self.scene.addPixmap(self.currentPixmap)
+            #pm.setFlags(QtWidgets.QGraphicsItem.ItemIsMovable | QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
+            #pm.setFlags(QtWidgets.QGraphicsItem.ItemIsSelectable)
+            pos = self.currentPosition
+            pm.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
+            pm.setZValue(2)
+            #pm.setOpacity(0.5)
+            self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
 
     # def collide(self):
     #     items = pm.collidingItems()
@@ -148,17 +206,6 @@ class MainWindow(QtWidgets.QGraphicsView):
     #             #rm = np.frombuffer(moving, np.uint8).reshape((width, height, 3))
     #             print(rn[0][0])
     #             #print(phase_cross_correlation(rn, rm))
-
-    def addPixmap(self):
-        if self.currentPosition and self.currentPixmap:
-            pm = self.scene.addPixmap(self.currentPixmap)
-            #pm.setFlags(QtWidgets.QGraphicsItem.ItemIsMovable | QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
-            #pm.setFlags(QtWidgets.QGraphicsItem.ItemIsSelectable)
-            pos = self.currentPosition
-            pm.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
-            pm.setZValue(2)
-            #pm.setOpacity(0.5)
-            self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
 
     def eventFilter(self, widget, event):
         if isinstance(event, QtGui.QKeyEvent):
@@ -210,7 +257,7 @@ class MainWindow(QtWidgets.QGraphicsView):
         if topic == f'{TARGET}/m_pos':
             pos = json.loads(payload)
             self.currentPosition = pos
-            self.currentRect.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
+            #self.currentRect.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
             if self.currentPixmap:
                 if not self.pixmap:
                     self.pixmap = self.scene.addPixmap(self.currentPixmap)
@@ -225,9 +272,8 @@ class MainWindow(QtWidgets.QGraphicsView):
                 # create filename w/ previous stage position
                 # save
                 print("Machine went idle")
-                if self.s_grid != []:
-                    p = self.s_grid.pop()
-                    cmd = f"$J=G90 G21 X{p[0]:.3f} Y{p[1]:.3f} F{XY_FEED:.3f}"
+                if self.grid != []:
+                    cmd = self.grid.pop()
                     self.client.publish(f"{TARGET}/command", cmd)
 
             self.state = payload
