@@ -31,11 +31,12 @@ class ImageZMQCameraReader(QtCore.QThread):
         print("Connect to url", url)
         self.image_hub = imagezmq.ImageHub(url, REQ_REP=False)
     def run(self):         
-        name, jpg_buffer = self.image_hub.recv_jpg()
+        message, jpg_buffer = self.image_hub.recv_jpg()
         image_data = simplejpeg.decode_jpeg( jpg_buffer, colorspace='RGB')
 
         while True:
-            name, jpg_buffer = self.image_hub.recv_jpg()
+            message, jpg_buffer = self.image_hub.recv_jpg()
+            #print("message:", message)
             image_data = simplejpeg.decode_jpeg( jpg_buffer, colorspace='RGB')
                         
 
@@ -96,6 +97,30 @@ class MainWindow(QtWidgets.QGraphicsView):
         self.pathItem = self.scene.addPath(path, pen=pen, brush=brush)
         self.pathItem.setZValue(5)
 
+    def drawForeground(self, p, rect):
+        if self.currentPosition is not None:
+            p.save()
+            p.resetTransform()
+            
+            
+            pen = QtGui.QPen(QtCore.Qt.red)
+            pen.setWidth(2)
+            p.setPen(pen)        
+
+            font = QtGui.QFont()
+            font.setFamily('Times')
+            font.setBold(True)
+            font.setPointSize(24)
+            p.setFont(font)
+
+            p.drawText(0, 50, self.state)
+            p.drawText(0, 100, "X%8.3fmm" % self.currentPosition[0])
+            p.drawText(0, 150, "Y%8.3fmm" % self.currentPosition[1])
+            p.drawText(0, 200, "Z%8.3fmm" % self.currentPosition[2])
+
+            p.restore()
+
+
     def mouseReleaseEvent(self, event):
         br = self.scene.selectionArea().boundingRect()
         
@@ -131,20 +156,21 @@ class MainWindow(QtWidgets.QGraphicsView):
             # self.grid.append("$HX")
             # self.grid.append("$HY")
 
+            self.grid.append(f"$J=G90 G21 X{x_min:.3f} Y{y_min:.3f} F{XY_FEED:.3f}")
             while gy <= y_max:
                 if forward:
-                    self.grid.append(f"$J=G90 G21 X{x_min:.3f} Y{gy:.3f} F{XY_FEED:.3f}")
                     self.grid.append(f"$J=G90 G21 X{x_max:.3f} Y{gy:.3f} F{XY_FEED:.3f}")
                 else:
-                    self.grid.append(f"$J=G90 G21 X{x_max:.3f} Y{gy:.3f} F{XY_FEED:.3f}")
                     self.grid.append(f"$J=G90 G21 X{x_min:.3f} Y{gy:.3f} F{XY_FEED:.3f}")
                 #self.grid.append("$HX")
                 forward = not forward
                 gy += fov
+
                 self.grid.append(f"$J=G90 G21 Y{gy:.3f} F{XY_FEED:.3f}")
+            self.grid.append(f"$J=G90 G21 X{x_max:.3f} Y{gy:.3f} F{XY_FEED:.3f}")
 
             print(self.grid)
-            cmd = self.grid.pop()
+            cmd = self.grid.pop(0)
             self.client.publish(f"{TARGET}/command", cmd)
 
         super().mouseReleaseEvent(event)
@@ -152,6 +178,7 @@ class MainWindow(QtWidgets.QGraphicsView):
     def imageTo(self, draw_data):
         if self.state == "Jog" or self.state == "Idle":
             image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
+                
             self.currentPixmap = QtGui.QPixmap.fromImage(image)#.scaled(QtWidgets.QApplication.instance().primaryScreen().size(), QtCore.Qt.KeepAspectRatio)
             if self.pixmap:
                 self.pixmap.setPixmap(self.currentPixmap)
@@ -259,9 +286,9 @@ class MainWindow(QtWidgets.QGraphicsView):
     def on_messageSignal(self, topic, payload):
         if topic == f'{TARGET}/m_pos':
             pos = json.loads(payload)
-            if self.state == "Jog" or self.state == "Idle":
-                self.currentPosition = pos
+            self.currentPosition = pos
                 #self.currentRect.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
+            if self.state == "Jog" or self.state == "Idle":
                 if self.currentPixmap:
                     if not self.pixmap:
                         self.pixmap = self.scene.addPixmap(self.currentPixmap)
@@ -277,9 +304,10 @@ class MainWindow(QtWidgets.QGraphicsView):
                 # get qimage from pixmap
                 # create filename w/ previous stage position
                 # save
-                print("Machine went idle")
+                print("Machine went idle", self.grid)
                 if self.grid != []:
-                    cmd = self.grid.pop()
+                    cmd = self.grid.pop(0)
+                    print("send", cmd)
                     self.client.publish(f"{TARGET}/command", cmd)
 
             self.state = payload
