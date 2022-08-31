@@ -128,8 +128,8 @@ class MainWindow(QtWidgets.QGraphicsView):
             gy = y_min
             forward = True
 
-            self.grid.append("$HX")
-            self.grid.append("$HY")
+            # self.grid.append("$HX")
+            # self.grid.append("$HY")
 
             while gy <= y_max:
                 if forward:
@@ -138,10 +138,10 @@ class MainWindow(QtWidgets.QGraphicsView):
                 else:
                     self.grid.append(f"$J=G90 G21 X{x_max:.3f} Y{gy:.3f} F{XY_FEED:.3f}")
                     self.grid.append(f"$J=G90 G21 X{x_min:.3f} Y{gy:.3f} F{XY_FEED:.3f}")
-                self.grid.append("$HX")
-
+                #self.grid.append("$HX")
                 forward = not forward
                 gy += fov
+                self.grid.append(f"$J=G90 G21 Y{gy:.3f} F{XY_FEED:.3f}")
 
             print(self.grid)
             cmd = self.grid.pop()
@@ -150,28 +150,31 @@ class MainWindow(QtWidgets.QGraphicsView):
         super().mouseReleaseEvent(event)
 
     def imageTo(self, draw_data):
-        image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
-        self.currentPixmap = QtGui.QPixmap.fromImage(image)#.scaled(QtWidgets.QApplication.instance().primaryScreen().size(), QtCore.Qt.KeepAspectRatio)
-        if self.pixmap:
-            self.pixmap.setPixmap(self.currentPixmap)
-            ci = self.pixmap.collidingItems()
-            # Get the qpainterpath corresponding to the current image location, minus any overlapping images
-            qp = QtGui.QPainterPath()
-            qp.addRect(self.pixmap.sceneBoundingRect())
-            qp2 = QtGui.QPainterPath()
-            for item in ci:
-                if isinstance(item, QtWidgets.QGraphicsPixmapItem):
-                    qp2.addRect(item.sceneBoundingRect())
+        if self.state == "Jog" or self.state == "Idle":
+            image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
+            self.currentPixmap = QtGui.QPixmap.fromImage(image)#.scaled(QtWidgets.QApplication.instance().primaryScreen().size(), QtCore.Qt.KeepAspectRatio)
+            if self.pixmap:
+                self.pixmap.setPixmap(self.currentPixmap)
+                ci = self.pixmap.collidingItems()
+                # Get the qpainterpath corresponding to the current image location, minus any overlapping images
+                qp = QtGui.QPainterPath()
+                qp.addRect(self.pixmap.sceneBoundingRect())
+                qp2 = QtGui.QPainterPath()
+                for item in ci:
+                    if isinstance(item, QtWidgets.QGraphicsPixmapItem):
+                        qp2.addRect(item.sceneBoundingRect())
 
-            qp3 = qp.subtracted(qp2)
-            p = qp3.toFillPolygon()
-            a = calculate_area(p)
-            self.pathItem.setPath(qp3)
+                qp3 = qp.subtracted(qp2)
+                p = qp3.toFillPolygon()
+                a = calculate_area(p)
+                self.pathItem.setPath(qp3)
 
-            # for i in range(self.path.elementCount()):
-            #     print(self.path.elementAt(i))
-            if a > 350000:# and [item for item in ci if isinstance(item, QtWidgets.QGraphicsPixmapItem)] == []:
-                self.addPixmap()
+                # for i in range(self.path.elementCount()):
+                #     print(self.path.elementAt(i))
+                if a > 350000:# and [item for item in ci if isinstance(item, QtWidgets.QGraphicsPixmapItem)] == []:
+                    self.addPixmap()
+        else:
+            print("Skip because not jogging or idle")
 
     def addPixmap(self):
         if self.currentPosition and self.currentPixmap:
@@ -256,15 +259,18 @@ class MainWindow(QtWidgets.QGraphicsView):
     def on_messageSignal(self, topic, payload):
         if topic == f'{TARGET}/m_pos':
             pos = json.loads(payload)
-            self.currentPosition = pos
-            #self.currentRect.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
-            if self.currentPixmap:
-                if not self.pixmap:
-                    self.pixmap = self.scene.addPixmap(self.currentPixmap)
-                else:
-                    self.pixmap.setPixmap(self.currentPixmap)
-                    self.pixmap.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
-            self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
+            if self.state == "Jog" or self.state == "Idle":
+                self.currentPosition = pos
+                #self.currentRect.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
+                if self.currentPixmap:
+                    if not self.pixmap:
+                        self.pixmap = self.scene.addPixmap(self.currentPixmap)
+                    else:
+                        self.pixmap.setPixmap(self.currentPixmap)
+                        self.pixmap.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
+                self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
+            else:
+                print("Not saving image because not in jog or idle")
         elif topic == f'{TARGET}/state':
             if self.state != 'Idle' and payload == 'Idle':
                 # should take photo with *previous stage position* here
