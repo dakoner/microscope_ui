@@ -93,6 +93,7 @@ class MplWindow(QtWidgets.QWidget):
         self.layout.addWidget(self.canvas)
         self.setLayout(self.layout)
 
+
 class Window(QtWidgets.QLabel):
     def eventFilter(self, widget, event):
         if isinstance(event, QtGui.QKeyEvent):
@@ -104,14 +105,14 @@ class Window(QtWidgets.QLabel):
                         self.client.publish(f"{TARGET}/cancel")
                     elif event.type() == QtCore.QEvent.KeyPress:
                         self.client.publish(f"{TARGET}/cancel")
-                        cmd = f"$J=G91 G21 F{XY_FEED:.3f} X-{XY_STEP_SIZE:.3f}"
+                        cmd = f"$J=G91 G21 F{XY_FEED:.3f} X{XY_STEP_SIZE:.3f}"
                         self.client.publish(f"{TARGET}/command", cmd)
                 elif key == QtCore.Qt.Key_Right:
                     if event.type() == QtCore.QEvent.KeyRelease:
                         self.client.publish(f"{TARGET}/cancel")
                     elif event.type() == QtCore.QEvent.KeyPress:
                         self.client.publish(f"{TARGET}/cancel")
-                        cmd = f"$J=G91 G21 F{XY_FEED:.3f} X{XY_STEP_SIZE:.3f}"
+                        cmd = f"$J=G91 G21 F{XY_FEED:.3f} X-{XY_STEP_SIZE:.3f}"
                         self.client.publish(f"{TARGET}/command", cmd)
                 elif key == QtCore.Qt.Key_Up:
                     if event.type() == QtCore.QEvent.KeyRelease:

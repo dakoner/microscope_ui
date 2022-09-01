@@ -23,13 +23,14 @@ WIDTH=800
 HEIGHT=600
 
 class ImageZMQCameraReader(QtCore.QThread):
-    imageSignal = QtCore.pyqtSignal(np.ndarray)
+    imageSignal = QtCore.pyqtSignal(str, np.ndarray)
     #predictSignal = QtCore.pyqtSignal(list)
     def __init__(self):
         super(ImageZMQCameraReader, self).__init__()
         url = f"tcp://{IMAGEZMQ}:{PORT}"
         print("Connect to url", url)
         self.image_hub = imagezmq.ImageHub(url, REQ_REP=False)
+
     def run(self):         
         message, jpg_buffer = self.image_hub.recv_jpg()
         image_data = simplejpeg.decode_jpeg( jpg_buffer, colorspace='RGB')
@@ -38,9 +39,8 @@ class ImageZMQCameraReader(QtCore.QThread):
             message, jpg_buffer = self.image_hub.recv_jpg()
             #print("message:", message)
             image_data = simplejpeg.decode_jpeg( jpg_buffer, colorspace='RGB')
-                        
+            self.imageSignal.emit(message, image_data)
 
-            self.imageSignal.emit(image_data)
 def calculate_area(qpolygon):
     area = 0
     for i in range(qpolygon.size()):
@@ -66,7 +66,7 @@ class MainWindow(QtWidgets.QGraphicsView):
         self.client.stateChanged.connect(self.on_stateChanged)
         self.client.messageSignal.connect(self.on_messageSignal)
     
-        self.pixmap = None
+        self.pixmap = self.scene.addPixmap(QtGui.QPixmap())
        
 
         pen = QtGui.QPen()
@@ -85,7 +85,6 @@ class MainWindow(QtWidgets.QGraphicsView):
         self.camera.imageSignal.connect(self.imageTo)
 
         self.grid = []
-        self.currentPixmap = None
         self.currentPosition = None
 
         pen = QtGui.QPen(QtGui.QColor(127,127,5))
@@ -169,50 +168,50 @@ class MainWindow(QtWidgets.QGraphicsView):
                 self.grid.append(f"$J=G90 G21 Y{gy:.3f} F{XY_FEED:.3f}")
             self.grid.append(f"$J=G90 G21 X{x_max:.3f} Y{gy:.3f} F{XY_FEED:.3f}")
 
-            print(self.grid)
             cmd = self.grid.pop(0)
             self.client.publish(f"{TARGET}/command", cmd)
 
         super().mouseReleaseEvent(event)
 
-    def imageTo(self, draw_data):
+    def imageTo(self, message, draw_data):
+        m = json.loads(message)
+        #print("message:", m['state'], m['m_pos'])
+        self.state = m['state']
+        self.currentPosition = m['m_pos']
         if self.state == "Jog" or self.state == "Idle":
             image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
                 
-            self.currentPixmap = QtGui.QPixmap.fromImage(image)#.scaled(QtWidgets.QApplication.instance().primaryScreen().size(), QtCore.Qt.KeepAspectRatio)
-            if self.pixmap:
-                self.pixmap.setPixmap(self.currentPixmap)
-                ci = self.pixmap.collidingItems()
-                # Get the qpainterpath corresponding to the current image location, minus any overlapping images
-                qp = QtGui.QPainterPath()
-                qp.addRect(self.pixmap.sceneBoundingRect())
-                qp2 = QtGui.QPainterPath()
-                for item in ci:
-                    if isinstance(item, QtWidgets.QGraphicsPixmapItem):
-                        qp2.addRect(item.sceneBoundingRect())
+            currentPixmap = QtGui.QPixmap.fromImage(image)#.scaled(QtWidgets.QApplication.instance().primaryScreen().size(), QtCore.Qt.KeepAspectRatio)
+            self.pixmap.setPixmap(currentPixmap)
+            pos = self.currentPosition
+            self.pixmap.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
 
-                qp3 = qp.subtracted(qp2)
-                p = qp3.toFillPolygon()
-                a = calculate_area(p)
-                self.pathItem.setPath(qp3)
+            ci = self.pixmap.collidingItems()
+            # Get the qpainterpath corresponding to the current image location, minus any overlapping images
+            qp = QtGui.QPainterPath()
+            qp.addRect(self.pixmap.sceneBoundingRect())
+            qp2 = QtGui.QPainterPath()
+            for item in ci:
+                if isinstance(item, QtWidgets.QGraphicsPixmapItem):
+                    qp2.addRect(item.sceneBoundingRect())
 
-                # for i in range(self.path.elementCount()):
-                #     print(self.path.elementAt(i))
-                if a > 350000:# and [item for item in ci if isinstance(item, QtWidgets.QGraphicsPixmapItem)] == []:
-                    self.addPixmap()
+            qp3 = qp.subtracted(qp2)
+            p = qp3.toFillPolygon()
+            a = calculate_area(p)
+            #self.pathItem.setPath(qp3)
+
+            if a > 450000:# and [item for item in ci if isinstance(item, QtWidgets.QGraphicsPixmapItem)] == []:
+                pm = self.scene.addPixmap(currentPixmap)
+                #pm.setFlags(QtWidgets.QGraphicsItem.ItemIsMovable | QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
+                #pm.setFlags(QtWidgets.QGraphicsItem.ItemIsSelectable)
+                pos = self.currentPosition
+                pm.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
+                pm.setZValue(2)
+                #pm.setOpacity(0.5)
+            self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
         else:
             print("Skip because not jogging or idle")
 
-    def addPixmap(self):
-        if self.currentPosition and self.currentPixmap:
-            pm = self.scene.addPixmap(self.currentPixmap)
-            #pm.setFlags(QtWidgets.QGraphicsItem.ItemIsMovable | QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
-            #pm.setFlags(QtWidgets.QGraphicsItem.ItemIsSelectable)
-            pos = self.currentPosition
-            pm.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
-            pm.setZValue(2)
-            #pm.setOpacity(0.5)
-            self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
 
     # def collide(self):
     #     items = pm.collidingItems()
@@ -243,12 +242,7 @@ class MainWindow(QtWidgets.QGraphicsView):
                 key = event.key()    
                 type_ = event.type()
 
-                if key == QtCore.Qt.Key_A and type_ == QtCore.QEvent.KeyPress:
-                    self.addPixmap()
-                    
-                    
-
-                elif key == QtCore.Qt.Key_C and type_ == QtCore.QEvent.KeyPress:
+                if key == QtCore.Qt.Key_C and type_ == QtCore.QEvent.KeyPress:
                     self.client.publish(f"{TARGET}/cancel", "")
 
                 elif type_ == QtCore.QEvent.KeyRelease and key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right, QtCore.Qt.Key_Up, QtCore.Qt.Key_Down, QtCore.Qt.Key_Plus, QtCore.Qt.Key_Minus):
@@ -286,18 +280,15 @@ class MainWindow(QtWidgets.QGraphicsView):
     def on_messageSignal(self, topic, payload):
         if topic == f'{TARGET}/m_pos':
             pos = json.loads(payload)
-            self.currentPosition = pos
+            #self.currentPosition = pos
                 #self.currentRect.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
-            if self.state == "Jog" or self.state == "Idle":
-                if self.currentPixmap:
-                    if not self.pixmap:
-                        self.pixmap = self.scene.addPixmap(self.currentPixmap)
-                    else:
-                        self.pixmap.setPixmap(self.currentPixmap)
-                        self.pixmap.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
-                self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
-            else:
-                print("Not saving image because not in jog or idle")
+            # if self.state == "Jog" or self.state == "Idle":
+            #     if self.currentPixmap:
+            #             self.pixmap.setPixmap(self.currentPixmap)
+            #             self.pixmap.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
+            #     self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
+            # else:
+            #     print("Not saving image because not in jog or idle")
         elif topic == f'{TARGET}/state':
             if self.state != 'Idle' and payload == 'Idle':
                 # should take photo with *previous stage position* here
@@ -307,10 +298,9 @@ class MainWindow(QtWidgets.QGraphicsView):
                 print("Machine went idle", self.grid)
                 if self.grid != []:
                     cmd = self.grid.pop(0)
-                    print("send", cmd)
                     self.client.publish(f"{TARGET}/command", cmd)
 
-            self.state = payload
+            # self.state = payload
 
 class QApplication(QtWidgets.QApplication):
     def __init__(self, *args, **kwargs):
