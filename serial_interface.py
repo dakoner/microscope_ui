@@ -1,3 +1,6 @@
+import imagezmq
+import simplejpeg
+import cv2
 import sys
 import serial
 import time
@@ -34,8 +37,37 @@ class SerialInterface:
         self.status_time = time.time()
         self.serialport = openSerial(port, baud)
         self.startMqtt()
+        self.status = None
         self.startStatusThread()
+        self.startImageThread()
 
+    def startImageThread(self):
+        self.image_thread = threading.Thread(target=self.get_image)
+        self.image_thread.start()
+
+    def get_image(self):
+        width = 800; height = 600
+        cap = cv2.VideoCapture(0)
+        port = 5000
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        sender = imagezmq.ImageSender("tcp://*:{}".format(port), REQ_REP=False)
+        counter = 0
+        t0 = time.time()
+        
+        while True:
+            ret = cap.grab()
+            if ret:
+                t1 = time.time()
+                if t1 - t0 >= 0.1:
+                    message = '{"state": "%s", "m_pos": [%8.3f, %8.3f, %8.3f]}' %  (self.state, *self.m_pos)
+                    ret, img = cap.retrieve()
+                    if ret:
+                        jpg_buffer = simplejpeg.encode_jpeg(img, quality=100, colorspace='BGR')
+                        sender.send_jpg(message, jpg_buffer)
+                        t0 = t1
+                counter += 1
+        
     def startStatusThread(self):
         self.status_thread = threading.Thread(target=self.get_status)
         self.status_thread.start()
@@ -63,11 +95,11 @@ class SerialInterface:
             self.status_time = t
             for item in rest:
                 if item.startswith("MPos"):
-                    m_pos = [float(field) for field in item[5:].split(',')]
-                    self.client.publish(f"{TARGET}/m_pos", str(m_pos))
+                    self.m_pos = [float(field) for field in item[5:].split(',')]
+                    self.client.publish(f"{TARGET}/m_pos", str(self.m_pos))
                 elif item.startswith("WCO"):
-                    w_pos = [float(field) for field in item[4:].split(',')]
-                    self.client.publish(f"{TARGET}/w_pos", str(w_pos))
+                    self.w_pos = [float(field) for field in item[4:].split(',')]
+                    self.client.publish(f"{TARGET}/w_pos", str(self.w_pos))
         else:
             print("OUTPUT:", message)
             self.client.publish(f"{TARGET}/output", message)
@@ -75,7 +107,7 @@ class SerialInterface:
     def get_status(self):
         while True:
             self.serialport.write(b"?")
-            time.sleep(0.25) 
+            time.sleep(0.05) 
 
     def on_connect(self, client, userdata, flags, rc):
         print("on_connect")
