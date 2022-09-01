@@ -55,10 +55,16 @@ class MainWindow(QtWidgets.QGraphicsView):
         super().__init__()
 
         self.state = "None"
+        self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
         self.scene = QtWidgets.QGraphicsScene(self)
         self.setScene(self.scene)
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         self.installEventFilter(self)
         self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
+        self.scene.setSceneRect(0, -40000, 40000, 40000)
+        self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
+
 
         self.client = MqttClient(self)
         self.client.hostname = "raspberrypi"
@@ -73,12 +79,11 @@ class MainWindow(QtWidgets.QGraphicsView):
         pen.setWidth(20)
         color = QtGui.QColor(255, 0, 0)
         color.setAlpha(1)
-
         brush = QtGui.QBrush(color)
-        #self.currentRect = self.scene.addRect(0, 0, WIDTH, HEIGHT, pen=pen, brush=brush)
-        #self.currentRect.setZValue(3)
+        self.currentRect = self.scene.addRect(0, 0, WIDTH, HEIGHT, pen=pen, brush=brush)
+        self.currentRect.setZValue(3)
 
-        self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
+        #self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
 
         self.camera = ImageZMQCameraReader()
         self.camera.start()
@@ -87,14 +92,14 @@ class MainWindow(QtWidgets.QGraphicsView):
         self.grid = []
         self.currentPosition = None
 
-        pen = QtGui.QPen(QtGui.QColor(127,127,5))
-        pen.setWidth(40)
-        color = QtGui.QColor(0, 0, 255)
-        color.setAlpha(1)
-        brush = QtGui.QBrush(color)
-        path = QtGui.QPainterPath()
-        self.pathItem = self.scene.addPath(path, pen=pen, brush=brush)
-        self.pathItem.setZValue(5)
+        # pen = QtGui.QPen(QtGui.QColor(127,127,5))
+        # pen.setWidth(40)
+        # color = QtGui.QColor(0, 0, 255)
+        # color.setAlpha(1)
+        # brush = QtGui.QBrush(color)
+        # path = QtGui.QPainterPath()
+        # self.pathItem = self.scene.addPath(path, pen=pen, brush=brush)
+        # self.pathItem.setZValue(5)
 
     def drawForeground(self, p, rect):
         if self.currentPosition is not None:
@@ -109,7 +114,7 @@ class MainWindow(QtWidgets.QGraphicsView):
             font = QtGui.QFont()
             font.setFamily('Times')
             font.setBold(True)
-            font.setPointSize(24)
+            font.setPointSize(12)
             p.setFont(font)
 
             p.drawText(0, 50, self.state)
@@ -152,7 +157,7 @@ class MainWindow(QtWidgets.QGraphicsView):
             gy = y_min
             forward = True
 
-            # self.grid.append("$HX")
+            #self.grid.append("$H")
             # self.grid.append("$HY")
 
             self.grid.append(f"$J=G90 G21 X{x_min:.3f} Y{y_min:.3f} F{XY_FEED:.3f}")
@@ -179,11 +184,11 @@ class MainWindow(QtWidgets.QGraphicsView):
         self.state = m['state']
         self.currentPosition = m['m_pos']
         if self.state == "Jog" or self.state == "Idle":
-            image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
-                
-            currentPixmap = QtGui.QPixmap.fromImage(image)#.scaled(QtWidgets.QApplication.instance().primaryScreen().size(), QtCore.Qt.KeepAspectRatio)
-            self.pixmap.setPixmap(currentPixmap)
             pos = self.currentPosition
+            self.currentRect.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
+            image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)    
+            currentPixmap = QtGui.QPixmap.fromImage(image)
+            self.pixmap.setPixmap(currentPixmap)
             self.pixmap.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
 
             ci = self.pixmap.collidingItems()
@@ -208,34 +213,13 @@ class MainWindow(QtWidgets.QGraphicsView):
                 pm.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
                 pm.setZValue(2)
                 #pm.setOpacity(0.5)
-            self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
+            # #self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
         else:
             print("Skip because not jogging or idle")
 
 
-    # def collide(self):
-    #     items = pm.collidingItems()
-        
-    #     #items = self.items()
-    #     #print("Intersections:", items)
-    #     for item in items:
-    #         # compute PCC
-    #         if isinstance(item, QtWidgets.QGraphicsPixmapItem):
-    #             i = item.pixmap().toImage()
-    #             reference = i.convertToFormat(QtGui.QImage.Format.Format_RGB888).bits()
-    #             height = i.height()
-    #             width = i.width()
-    #             reference.setsize(height * width * 3)
-    #             rn = np.frombuffer(reference, np.uint8).reshape(width, height, 3)
-    #             #i2 = pm.pixmap().toImage()
-    #             #height = i2.height()
-    #             #width = i2.width()
-    #             #moving = i2.convertToFormat(QtGui.QImage.Format.Format_RGB888).constBits()
-    #             #moving.setsize(height * width * 3)
-    #             #rm = np.frombuffer(moving, np.uint8).reshape((width, height, 3))
-    #             print(rn[0][0])
-    #             #print(phase_cross_correlation(rn, rm))
-
+    def keyPressEvent(self, *args):
+        print("kpe:", args)
     def eventFilter(self, widget, event):
         if isinstance(event, QtGui.QKeyEvent):
             if not event.isAutoRepeat():
@@ -244,57 +228,52 @@ class MainWindow(QtWidgets.QGraphicsView):
 
                 if key == QtCore.Qt.Key_C and type_ == QtCore.QEvent.KeyPress:
                     self.client.publish(f"{TARGET}/cancel", "")
+                    return True
 
                 elif type_ == QtCore.QEvent.KeyRelease and key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right, QtCore.Qt.Key_Up, QtCore.Qt.Key_Down, QtCore.Qt.Key_Plus, QtCore.Qt.Key_Minus):
                     self.client.publish(f"{TARGET}/cancel", "")
+                    return True
 
-                if self.state == "Idle":
+                elif self.state == "Idle":
                     if key == QtCore.Qt.Key_Left and type_ == QtCore.QEvent.KeyPress:
                             cmd = f"$J=G91 G21 X-{XY_STEP_SIZE:.3f} F{XY_FEED:.3f}"
                             self.client.publish(f"{TARGET}/command", cmd)
+                            return True
                     elif key == QtCore.Qt.Key_Right and type_ == QtCore.QEvent.KeyPress:
                             cmd = f"$J=G91 G21 X{XY_STEP_SIZE:.3f} F{XY_FEED:.3f}"
                             self.client.publish(f"{TARGET}/command", cmd)
+                            return True
                     elif key == QtCore.Qt.Key_Up and type_ == QtCore.QEvent.KeyPress:
                             cmd = f"$J=G91 G21 Y{XY_STEP_SIZE:.3f} F{XY_FEED:.3f}"
                             self.client.publish(f"{TARGET}/command", cmd)
+                            return True
                     elif key == QtCore.Qt.Key_Down and type_ == QtCore.QEvent.KeyPress:
                             cmd = f"$J=G91 G21 Y-{XY_STEP_SIZE:.3f} F{XY_FEED:.3f}"
                             self.client.publish(f"{TARGET}/command", cmd)
+                            return True
                     elif key == QtCore.Qt.Key_Plus and type_ == QtCore.QEvent.KeyPress:
                             cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z-{Z_STEP_SIZE:.3f}"
                             self.client.publish(f"{TARGET}/command", cmd)
+                            return True
                     elif key == QtCore.Qt.Key_Minus and type_ == QtCore.QEvent.KeyPress:
                             cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z{Z_STEP_SIZE:.3f}"
                             self.client.publish(f"{TARGET}/command", cmd)
+                            return True
 
         return super().eventFilter(widget, event)
+        #return True
+
              
     @QtCore.pyqtSlot(int)
     def on_stateChanged(self, state):
         if state == MqttClient.Connected:
             self.client.subscribe(f"{TARGET}/state")
-            self.client.subscribe(f"{TARGET}/m_pos")
 
     @QtCore.pyqtSlot(str, str)
     def on_messageSignal(self, topic, payload):
-        if topic == f'{TARGET}/m_pos':
-            pos = json.loads(payload)
-            #self.currentPosition = pos
-                #self.currentRect.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
-            # if self.state == "Jog" or self.state == "Idle":
-            #     if self.currentPixmap:
-            #             self.pixmap.setPixmap(self.currentPixmap)
-            #             self.pixmap.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
-            #     self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
-            # else:
-            #     print("Not saving image because not in jog or idle")
-        elif topic == f'{TARGET}/state':
+ 
+        if topic == f'{TARGET}/state':
             if self.state != 'Idle' and payload == 'Idle':
-                # should take photo with *previous stage position* here
-                # get qimage from pixmap
-                # create filename w/ previous stage position
-                # save
                 print("Machine went idle", self.grid)
                 if self.grid != []:
                     cmd = self.grid.pop(0)
