@@ -51,32 +51,67 @@ def calculate_area(qpolygon):
     return abs(area) / 2
 
 class MainWindow(QtWidgets.QGraphicsView):
-    def __del__(self):
-        print("done")
-        self.camera.quit()
+    # def __del__(self):
+    #     print("done")
+    #     self.camera.quit()
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
+  
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
+
+
+    # def drawForeground(self, p, rect):
+    #     if self.currentPosition is not None:
+    #         p.save()
+    #         p.resetTransform()
+            
+            
+    #         pen = QtGui.QPen(QtCore.Qt.red)
+    #         pen.setWidth(2)
+    #         p.setPen(pen)        
+
+    #         font = QtGui.QFont()
+    #         font.setFamily('Times')
+    #         font.setBold(True)
+    #         font.setPointSize(12)
+    #         p.setFont(font)
+
+    #         p.drawText(0, 50, self.state)
+    #         p.drawText(0, 100, "X%8.3fmm" % self.currentPosition[0])
+    #         p.drawText(0, 150, "Y%8.3fmm" % self.currentPosition[1])
+    #         p.drawText(0, 200, "Z%8.3fmm" % self.currentPosition[2])
+
+    #         p.restore()
+
+
+    def keyPressEvent(self, *args):
+        print("key press in ev")
+        return None
+
+
+class QApplication(QtWidgets.QApplication):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.widget = MainWindow()
+        self.widget.show()
 
         self.state = "None"
-        self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
         self.scene = QtWidgets.QGraphicsScene(self)
-        self.setScene(self.scene)
-        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
-        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
-        self.installEventFilter(self)
-        self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
+        self.widget.setScene(self.scene)
         self.scene.setSceneRect(0, -35000, 35000, 35000)
-        self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
-
+        self.widget.fitInView(self.scene.sceneRect())
 
         self.client = MqttClient(self)
         self.client.hostname = "raspberrypi"
         self.client.connectToHost()
-        
     
         self.pixmap = self.scene.addPixmap(QtGui.QPixmap())
-       
 
         pen = QtGui.QPen()
         pen.setWidth(20)
@@ -86,7 +121,6 @@ class MainWindow(QtWidgets.QGraphicsView):
         self.currentRect = self.scene.addRect(0, 0, WIDTH, HEIGHT, pen=pen, brush=brush)
         self.currentRect.setZValue(3)
 
-        #self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
 
         self.camera = ImageZMQCameraReader()
         self.camera.start()
@@ -110,76 +144,15 @@ class MainWindow(QtWidgets.QGraphicsView):
         self.tile_config.flush()
         self.counter = 0
 
-    def drawForeground(self, p, rect):
-        if self.currentPosition is not None:
-            p.save()
-            p.resetTransform()
-            
-            
-            pen = QtGui.QPen(QtCore.Qt.red)
-            pen.setWidth(2)
-            p.setPen(pen)        
+        self.installEventFilter(self)
 
-            font = QtGui.QFont()
-            font.setFamily('Times')
-            font.setBold(True)
-            font.setPointSize(12)
-            p.setFont(font)
+    # def notify(self, obj, event):
+    #     try:
+    #         return QtWidgets.QApplication.notify(self, obj, event)
+    #     except Exception:
+    #         print(traceback.format_exception(*sys.exc_info()))
+    #         return False
 
-            p.drawText(0, 50, self.state)
-            p.drawText(0, 100, "X%8.3fmm" % self.currentPosition[0])
-            p.drawText(0, 150, "Y%8.3fmm" % self.currentPosition[1])
-            p.drawText(0, 200, "Z%8.3fmm" % self.currentPosition[2])
-
-            p.restore()
-
-
-    def mouseReleaseEvent(self, event):
-        br = self.scene.selectionArea().boundingRect()
-        
-
-        pen = QtGui.QPen(QtCore.Qt.green)
-        pen.setWidth(20)
-        color = QtGui.QColor(0, 0, 0)
-        brush = QtGui.QBrush(color)
-        x = br.topLeft().x()
-        y = br.topLeft().y()
-        width = br.width()
-        height = br.height()
-        rect = self.scene.addRect(x, y, width, height, pen=pen, brush=brush)
-        rect.setZValue(1)
-        rect.setOpacity(0.25)
-
-        x_min = br.topLeft().x()* PIXEL_SCALE
-        y_min =  -br.bottomRight().y()* PIXEL_SCALE
-        x_max = br.bottomRight().x()* PIXEL_SCALE
-        y_max =  -br.topLeft().y()* PIXEL_SCALE
-
-        fov = 600 * PIXEL_SCALE
-        if (x_max - x_min < fov and y_max - y_min < fov):
-            print("Immediate move:")
-            cmd = f"$J=G90 G21 X{x_min:.3f} Y{y_min:.3f} F{XY_FEED:.3f}"
-            self.client.publish(f"{TARGET}/command", cmd)
-        else:
-            self.grid = []
-            gx = x_min
-            gy = y_min
-
-            #self.grid.append("$H")
-            # self.grid.append("$HY")
-            #self.grid.append("$HY")
-
-            while gy <= y_max:
-                while gx <= x_max:
-                    self.grid.append(f"$J=G90 G21 X{gx:.3f} Y{gy:.3f} F{XY_FEED:.3f}")
-                    gx += fov/2
-                gx = x_min
-                gy += fov/2
-
-            cmd = self.grid.pop(0)
-            self.client.publish(f"{TARGET}/command", cmd)
-
-        super().mouseReleaseEvent(event)
 
     def imageTo(self, message, draw_data):
         m = json.loads(message)
@@ -237,11 +210,58 @@ class MainWindow(QtWidgets.QGraphicsView):
                 cmd = self.grid.pop(0)
                 self.client.publish(f"{TARGET}/command", cmd)
         
-    def keyPressEvent(self, *args):
-        return None
+
+
+    def generateGrid(self):
+        br = self.scene.itemsBoundingRect()
+
+        pen = QtGui.QPen(QtCore.Qt.green)
+        pen.setWidth(20)
+        color = QtGui.QColor(0, 0, 0)
+        brush = QtGui.QBrush(color)
+        x = br.topLeft().x()
+        y = br.topLeft().y()
+        width = br.width()
+        height = br.height()
+        rect = self.scene.addRect(x, y, width, height, pen=pen, brush=brush)
+        rect.setZValue(1)
+        rect.setOpacity(0.25)
+
+        x_min = br.topLeft().x()* PIXEL_SCALE
+        y_min =  -br.bottomRight().y()* PIXEL_SCALE
+        x_max = br.bottomRight().x()* PIXEL_SCALE
+        y_max =  -br.topLeft().y()* PIXEL_SCALE
+
+        fov = 600 * PIXEL_SCALE
+        if (x_max - x_min < fov and y_max - y_min < fov):
+            print("Immediate move:")
+            cmd = f"$J=G90 G21 X{x_min:.3f} Y{y_min:.3f} F{XY_FEED:.3f}"
+            self.client.publish(f"{TARGET}/command", cmd)
+        else:
+            self.grid = []
+            gx = x_min
+            gy = y_min
+
+            #self.grid.append("$H")
+            # self.grid.append("$HY")
+            #self.grid.append("$HY")
+
+            while gy <= y_max:
+                while gx <= x_max:
+                    self.grid.append(f"$J=G90 G21 X{gx:.3f} Y{gy:.3f} F{XY_FEED:.3f}")
+                    gx += fov/2
+                gx = x_min
+                gy += fov/2
+
+            cmd = self.grid.pop(0)
+            self.client.publish(f"{TARGET}/command", cmd)
+
 
     def eventFilter(self, widget, event):
-        if isinstance(event, QtGui.QKeyEvent):
+        if isinstance(event, QtGui.QMouseEvent) and event.type() == QtCore.QEvent.MouseButtonRelease:
+            self.generateGrid()
+            
+        elif isinstance(event, QtGui.QKeyEvent):
             if not event.isAutoRepeat():
                 key = event.key()    
                 type_ = event.type()
@@ -283,10 +303,8 @@ class MainWindow(QtWidgets.QGraphicsView):
         return super().eventFilter(widget, event)
         #return True
 
-     
 if __name__ == '__main__':
     #signal.signal(signal.SIGINT, signal.SIG_DFL)
-    app = QtWidgets.QApplication(sys.argv)
-    widget = MainWindow()
-    widget.show()
+    app = QApplication(sys.argv)
+   
     app.exec_()
