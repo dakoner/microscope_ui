@@ -51,67 +51,81 @@ def calculate_area(qpolygon):
     return abs(area) / 2
 
 class MainWindow(QtWidgets.QGraphicsView):
-    # def __del__(self):
-    #     print("done")
-    #     self.camera.quit()
-
-    def __init__(self, *args, **kwargs):
+   
+    def __init__(self, app, *args, **kwargs):
+        self.app = app
         super().__init__(*args, **kwargs)
 
         self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
-  
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
 
-
-    # def drawForeground(self, p, rect):
-    #     if self.currentPosition is not None:
-    #         p.save()
-    #         p.resetTransform()
-            
-            
-    #         pen = QtGui.QPen(QtCore.Qt.red)
-    #         pen.setWidth(2)
-    #         p.setPen(pen)        
-
-    #         font = QtGui.QFont()
-    #         font.setFamily('Times')
-    #         font.setBold(True)
-    #         font.setPointSize(12)
-    #         p.setFont(font)
-
-    #         p.drawText(0, 50, self.state)
-    #         p.drawText(0, 100, "X%8.3fmm" % self.currentPosition[0])
-    #         p.drawText(0, 150, "Y%8.3fmm" % self.currentPosition[1])
-    #         p.drawText(0, 200, "Z%8.3fmm" % self.currentPosition[2])
-
-    #         p.restore()
-
-
     def keyPressEvent(self, *args):
-        print("key press in ev")
         return None
 
+    def drawForeground(self, p, rect):
+        if self.app.currentPosition is not None:
+            p.save()
+            p.resetTransform()
+            
+            
+            pen = QtGui.QPen(QtCore.Qt.red)
+            pen.setWidth(2)
+            p.setPen(pen)        
+
+            font = QtGui.QFont()
+            font.setFamily('Times')
+            font.setBold(True)
+            font.setPointSize(12)
+            p.setFont(font)
+
+            p.drawText(0, 50, self.app.state)
+            p.drawText(0, 100, "X%8.3fmm" % self.app.currentPosition[0])
+            p.drawText(0, 150, "Y%8.3fmm" % self.app.currentPosition[1])
+            p.drawText(0, 200, "Z%8.3fmm" % self.app.currentPosition[2])
+
+            p.restore()
+
+
+
+class ZoomWindow(QtWidgets.QGraphicsView):
+   
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
+    
+    def keyPressEvent(self, *args):
+        return None
 
 class QApplication(QtWidgets.QApplication):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.widget = MainWindow()
-        self.widget.show()
-
         self.state = "None"
-        self.scene = QtWidgets.QGraphicsScene(self)
-        self.widget.setScene(self.scene)
-        self.scene.setSceneRect(0, -35000, 35000, 35000)
-        self.widget.fitInView(self.scene.sceneRect())
+        self.grid = []
+        self.currentPosition = None
 
         self.client = MqttClient(self)
         self.client.hostname = "raspberrypi"
         self.client.connectToHost()
+
+        self.widget = MainWindow(app=self)
+        self.widget.show()
+        
+
+        self.scene = QtWidgets.QGraphicsScene(self)
+        self.scene.setSceneRect(0, -35000, 35000, 35000)
+
+        self.widget.setScene(self.scene)
+        self.widget.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
+ 
     
         self.pixmap = self.scene.addPixmap(QtGui.QPixmap())
+        self.pixmap.setZValue(4)
 
         pen = QtGui.QPen()
         pen.setWidth(20)
@@ -121,13 +135,22 @@ class QApplication(QtWidgets.QApplication):
         self.currentRect = self.scene.addRect(0, 0, WIDTH, HEIGHT, pen=pen, brush=brush)
         self.currentRect.setZValue(3)
 
+        
+        self.widget2 = ZoomWindow()
+        self.widget2.show()
+        self.widget2.setScene(self.scene)
+        #self.widget2.fitInView(self.scene.sceneRect())
+        #self.widget2.scale(10,10)
+
+        # self.widget2.centerOn(self.currentRect)
+        # self.widget2.fitInView(self.currentRect, QtCore.Qt.KeepAspectRatio)
+        
+
 
         self.camera = ImageZMQCameraReader()
         self.camera.start()
         self.camera.imageSignal.connect(self.imageTo)
 
-        self.grid = []
-        self.currentPosition = None
 
         # pen = QtGui.QPen(QtGui.QColor(127,127,5))
         # pen.setWidth(40)
@@ -169,11 +192,16 @@ class QApplication(QtWidgets.QApplication):
 
         if self.state != 'Home':
             pos = self.currentPosition
-            self.currentRect.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
+            scale_pos = pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE
+            self.currentRect.setPos(*scale_pos)
+              
+            self.widget2.centerOn(self.currentRect)
+            self.widget2.fitInView(self.currentRect, QtCore.Qt.KeepAspectRatio)
+
             image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)    
             currentPixmap = QtGui.QPixmap.fromImage(image)
             self.pixmap.setPixmap(currentPixmap)
-            self.pixmap.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
+            self.pixmap.setPos(*scale_pos)
 
             ci = self.pixmap.collidingItems()
             # Get the qpainterpath corresponding to the current image location, minus any overlapping images
@@ -189,7 +217,6 @@ class QApplication(QtWidgets.QApplication):
             a = calculate_area(p)
             #self.pathItem.setPath(qp3)
 
-            scale_pos = pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE
             if a > 240000:# and [item for item in ci if isinstance(item, QtWidgets.QGraphicsPixmapItem)] == []:
                 pm = self.scene.addPixmap(currentPixmap)
                 pm.setPos(*scale_pos)
@@ -224,7 +251,7 @@ class QApplication(QtWidgets.QApplication):
         width = br.width()
         height = br.height()
         rect = self.scene.addRect(x, y, width, height, pen=pen, brush=brush)
-        rect.setZValue(1)
+        rect.setZValue(6)
         rect.setOpacity(0.25)
 
         x_min = br.topLeft().x()* PIXEL_SCALE
@@ -240,24 +267,27 @@ class QApplication(QtWidgets.QApplication):
         else:
             self.grid = []
             gx = x_min
-            gy = y_min
+            gy = y_max
 
             #self.grid.append("$H")
             # self.grid.append("$HY")
             #self.grid.append("$HY")
 
-            while gy <= y_max:
+            while gy >= y_min:
                 while gx <= x_max:
                     self.grid.append(f"$J=G90 G21 X{gx:.3f} Y{gy:.3f} F{XY_FEED:.3f}")
                     gx += fov/2
                 gx = x_min
-                gy += fov/2
+                gy -= fov/2
 
             cmd = self.grid.pop(0)
             self.client.publish(f"{TARGET}/command", cmd)
 
 
     def eventFilter(self, widget, event):
+        # if widget != self.widget:
+        #     return False
+
         if isinstance(event, QtGui.QMouseEvent) and event.type() == QtCore.QEvent.MouseButtonRelease:
             self.generateGrid()
             
