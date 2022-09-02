@@ -14,7 +14,7 @@ PORT=5000
 PIXEL_SCALE=0.0007 * 2
 TARGET="raspberrypi"
 XY_STEP_SIZE=100
-XY_FEED=100
+XY_FEED=50
 
 Z_STEP_SIZE=15
 Z_FEED=1
@@ -51,6 +51,10 @@ def calculate_area(qpolygon):
     return abs(area) / 2
 
 class MainWindow(QtWidgets.QGraphicsView):
+    def __del__(self):
+        print("done")
+        self.camera.quit()
+
     def __init__(self):
         super().__init__()
 
@@ -62,15 +66,14 @@ class MainWindow(QtWidgets.QGraphicsView):
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         self.installEventFilter(self)
         self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
-        self.scene.setSceneRect(0, -40000, 40000, 40000)
+        self.scene.setSceneRect(0, -35000, 35000, 35000)
         self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
 
 
         self.client = MqttClient(self)
         self.client.hostname = "raspberrypi"
         self.client.connectToHost()
-        self.client.stateChanged.connect(self.on_stateChanged)
-        self.client.messageSignal.connect(self.on_messageSignal)
+        
     
         self.pixmap = self.scene.addPixmap(QtGui.QPixmap())
        
@@ -100,6 +103,12 @@ class MainWindow(QtWidgets.QGraphicsView):
         # path = QtGui.QPainterPath()
         # self.pathItem = self.scene.addPath(path, pen=pen, brush=brush)
         # self.pathItem.setZValue(5)
+
+
+        self.tile_config = open("movie/TileConfiguration.txt", "w")
+        self.tile_config.write("dim=2\n")
+        self.tile_config.flush()
+        self.counter = 0
 
     def drawForeground(self, p, rect):
         if self.currentPosition is not None:
@@ -155,23 +164,17 @@ class MainWindow(QtWidgets.QGraphicsView):
             self.grid = []
             gx = x_min
             gy = y_min
-            forward = True
 
             #self.grid.append("$H")
             # self.grid.append("$HY")
+            #self.grid.append("$HY")
 
-            self.grid.append(f"$J=G90 G21 X{x_min:.3f} Y{y_min:.3f} F{XY_FEED:.3f}")
             while gy <= y_max:
-                if forward:
-                    self.grid.append(f"$J=G90 G21 X{x_max:.3f} Y{gy:.3f} F{XY_FEED:.3f}")
-                else:
-                    self.grid.append(f"$J=G90 G21 X{x_min:.3f} Y{gy:.3f} F{XY_FEED:.3f}")
-                #self.grid.append("$HX")
-                forward = not forward
-                gy += fov
-
-                self.grid.append(f"$J=G90 G21 Y{gy:.3f} F{XY_FEED:.3f}")
-            self.grid.append(f"$J=G90 G21 X{x_max:.3f} Y{gy:.3f} F{XY_FEED:.3f}")
+                while gx <= x_max:
+                    self.grid.append(f"$J=G90 G21 X{gx:.3f} Y{gy:.3f} F{XY_FEED:.3f}")
+                    gx += fov/2
+                gx = x_min
+                gy += fov/2
 
             cmd = self.grid.pop(0)
             self.client.publish(f"{TARGET}/command", cmd)
@@ -180,10 +183,18 @@ class MainWindow(QtWidgets.QGraphicsView):
 
     def imageTo(self, message, draw_data):
         m = json.loads(message)
+        print(m)
         #print("message:", m['state'], m['m_pos'])
-        self.state = m['state']
+        state = m['state']
+        
+        went_idle=False
+        if self.state != 'Idle' and state == 'Idle':
+            went_idle=True
+        self.state = state
+        
         self.currentPosition = m['m_pos']
-        if self.state == "Jog" or self.state == "Idle":
+
+        if self.state != 'Home':
             pos = self.currentPosition
             self.currentRect.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
             image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)    
@@ -205,21 +216,30 @@ class MainWindow(QtWidgets.QGraphicsView):
             a = calculate_area(p)
             #self.pathItem.setPath(qp3)
 
-            if a > 450000:# and [item for item in ci if isinstance(item, QtWidgets.QGraphicsPixmapItem)] == []:
+            scale_pos = pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE
+            if a > 240000:# and [item for item in ci if isinstance(item, QtWidgets.QGraphicsPixmapItem)] == []:
                 pm = self.scene.addPixmap(currentPixmap)
-                #pm.setFlags(QtWidgets.QGraphicsItem.ItemIsMovable | QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
-                #pm.setFlags(QtWidgets.QGraphicsItem.ItemIsSelectable)
-                pos = self.currentPosition
-                pm.setPos(pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE)
+                pm.setPos(*scale_pos)
                 pm.setZValue(2)
+
                 #pm.setOpacity(0.5)
-            # #self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
-        else:
-            print("Skip because not jogging or idle")
+            if went_idle:
+                fname = "image.%05d.png" % self.counter
+                image.convertToFormat(QtGui.QImage.Format_Grayscale8).save("movie/" + fname)
+                self.tile_config.write(f"{fname}; ; ({scale_pos[0]}, {scale_pos[1]})\n")
+                self.tile_config.flush()
+                self.counter += 1
+        self.scene.update()
 
-
+        if went_idle:
+            print("Machine went idle", self.grid)
+            if self.grid != []:
+                cmd = self.grid.pop(0)
+                self.client.publish(f"{TARGET}/command", cmd)
+        
     def keyPressEvent(self, *args):
-        print("kpe:", args)
+        return None
+
     def eventFilter(self, widget, event):
         if isinstance(event, QtGui.QKeyEvent):
             if not event.isAutoRepeat():
@@ -263,37 +283,10 @@ class MainWindow(QtWidgets.QGraphicsView):
         return super().eventFilter(widget, event)
         #return True
 
-             
-    @QtCore.pyqtSlot(int)
-    def on_stateChanged(self, state):
-        if state == MqttClient.Connected:
-            self.client.subscribe(f"{TARGET}/state")
-
-    @QtCore.pyqtSlot(str, str)
-    def on_messageSignal(self, topic, payload):
- 
-        if topic == f'{TARGET}/state':
-            if self.state != 'Idle' and payload == 'Idle':
-                print("Machine went idle", self.grid)
-                if self.grid != []:
-                    cmd = self.grid.pop(0)
-                    self.client.publish(f"{TARGET}/command", cmd)
-
-            # self.state = payload
-
-class QApplication(QtWidgets.QApplication):
-    def __init__(self, *args, **kwargs):
-        super(QApplication, self).__init__(*args, **kwargs)
-    def notify(self, obj, event):
-        try:
-            return QtWidgets.QApplication.notify(self, obj, event)
-        except Exception:
-            print(traceback.format_exception(*sys.exc_info()))
-            return False
-        
+     
 if __name__ == '__main__':
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
-    app = QApplication(sys.argv)
+    #signal.signal(signal.SIGINT, signal.SIG_DFL)
+    app = QtWidgets.QApplication(sys.argv)
     widget = MainWindow()
     widget.show()
     app.exec_()
