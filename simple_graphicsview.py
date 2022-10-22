@@ -4,7 +4,7 @@ import os
 import traceback
 import sys
 import signal
-from PyQt5 import QtGui, QtCore, QtWidgets, QtSvg
+from PyQt5 import QtGui, QtCore, QtWidgets
 import simplejpeg
 import imagezmq
 from mqtt_qobject import MqttClient

@@ -10,7 +10,8 @@ import paho.mqtt.client as mqtt
 MQTT_SERVER="raspberrypi"
 DEVICE=sys.argv[1]
 TARGET=sys.argv[2]
-
+IMAGE_TIMEOUT=0.1
+STATUS_TIMEOUT=0.1
 XY_FEED=5
 
 def openSerial(port, baud):
@@ -25,7 +26,7 @@ def openSerial(port, baud):
     try:
         serialport.open()
     except serial.SerialException as e:
-        sys.stderr.write("Could not open serial port {}: {}\n".format(ser.name, e))
+        sys.stderr.write("Could not open serial port {}: {}\n".format(serialport.name, e))
         raise
 
     return serialport
@@ -59,8 +60,11 @@ class SerialInterface:
             ret = cap.grab()
             if ret:
                 t1 = time.time()
-                if t1 - t0 >= 0.1:
-                    message = '{"state": "%s", "m_pos": [%8.3f, %8.3f, %8.3f]}' %  (self.state, *self.m_pos)
+                if t1 - t0 >= IMAGE_TIMEOUT:
+                    # self.state = 'Idle'
+                    # self.m_pos = 0, 0, 0
+                    # print(self.m_pos)
+                    message = '{"state": "%s", "m_pos": [%8.3f, %8.3f, %8.3f]}' %  (self.state, *self.m_pos[:3])
                     ret, img = cap.retrieve()
                     if ret:
                         jpg_buffer = simplejpeg.encode_jpeg(img, quality=100, colorspace='BGR')
@@ -83,11 +87,11 @@ class SerialInterface:
         
     def readline(self):
         message = self.serialport.readline()
-        message = str(message, 'ascii').strip()
+        message = str(message, 'utf8').strip()
         if message == '':
             return
         if message.startswith("<") and message.endswith(">"):
-            #print("STATUS:", message)
+            # print("STATUS:", message)
             rest = message[1:-3].split('|')
             self.state = rest[0]
             self.client.publish(f"{TARGET}/state", self.state)
@@ -107,7 +111,7 @@ class SerialInterface:
     def get_status(self):
         while True:
             self.serialport.write(b"?")
-            time.sleep(0.05) 
+            time.sleep(STATUS_TIMEOUT)
 
     def on_connect(self, client, userdata, flags, rc):
         print("on_connect")
