@@ -9,15 +9,15 @@ import simplejpeg
 import imagezmq
 from mqtt_qobject import MqttClient
 
-IMAGEZMQ='raspberrypi'
+IMAGEZMQ='raspberrypi.local'
 PORT=5000
 PIXEL_SCALE=0.0007 * 2
 TARGET="raspberrypi"
 XY_STEP_SIZE=100
-XY_FEED=50
+XY_FEED=100
 
-Z_STEP_SIZE=15
-Z_FEED=1
+Z_STEP_SIZE=100
+Z_FEED=25
 
 WIDTH=800
 HEIGHT=600
@@ -110,7 +110,7 @@ class QApplication(QtWidgets.QApplication):
         self.currentPosition = None
 
         self.client = MqttClient(self)
-        self.client.hostname = "raspberrypi"
+        self.client.hostname = "raspberrypi.local"
         self.client.connectToHost()
 
         self.widget = MainWindow(app=self)
@@ -136,11 +136,15 @@ class QApplication(QtWidgets.QApplication):
         self.currentRect.setZValue(3)
 
         
-        self.widget2 = ZoomWindow()
-        self.widget2.show()
-        self.widget2.setScene(self.scene)
-        #self.widget2.fitInView(self.scene.sceneRect())
-        #self.widget2.scale(10,10)
+        # self.widget2 = ZoomWindow()
+        # self.widget2.show()
+        # self.widget2.setScene(self.scene)
+
+        self.widget3 = QtWidgets.QLabel()
+        self.widget3.show()
+        
+        # self.widget2.fitInView(self.scene.sceneRect())
+        # self.widget2.scale(10,10)
 
         # self.widget2.centerOn(self.currentRect)
         # self.widget2.fitInView(self.currentRect, QtCore.Qt.KeepAspectRatio)
@@ -179,10 +183,11 @@ class QApplication(QtWidgets.QApplication):
 
     def imageTo(self, message, draw_data):
         m = json.loads(message)
-        print(m)
+        #print(m)
         #print("message:", m['state'], m['m_pos'])
         state = m['state']
-        
+        if self.state != state:
+            print("Change in state:", self.state, state)
         went_idle=False
         if self.state != 'Idle' and state == 'Idle':
             went_idle=True
@@ -192,16 +197,19 @@ class QApplication(QtWidgets.QApplication):
 
         if self.state != 'Home':
             pos = self.currentPosition
-            scale_pos = pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE
-            self.currentRect.setPos(*scale_pos)
+            self.scale_pos = pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE
+            self.currentRect.setPos(*self.scale_pos)
               
-            self.widget2.centerOn(self.currentRect)
-            self.widget2.fitInView(self.currentRect, QtCore.Qt.KeepAspectRatio)
+            # self.widget2.centerOn(self.currentRect)
+            # self.widget2.fitInView(self.currentRect, QtCore.Qt.KeepAspectRatio)
 
-            image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)    
-            currentPixmap = QtGui.QPixmap.fromImage(image)
-            self.pixmap.setPixmap(currentPixmap)
-            self.pixmap.setPos(*scale_pos)
+            self.currentImage = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)    
+            self.currentPixmap = QtGui.QPixmap.fromImage(self.currentImage)
+            self.pixmap.setPixmap(self.currentPixmap)
+            self.pixmap.setPos(*self.scale_pos)
+
+            self.widget3.setPixmap(self.currentPixmap)
+            self.widget3.adjustSize()
 
             ci = self.pixmap.collidingItems()
             # Get the qpainterpath corresponding to the current image location, minus any overlapping images
@@ -218,17 +226,17 @@ class QApplication(QtWidgets.QApplication):
             #self.pathItem.setPath(qp3)
 
             if a > 240000:# and [item for item in ci if isinstance(item, QtWidgets.QGraphicsPixmapItem)] == []:
-                pm = self.scene.addPixmap(currentPixmap)
-                pm.setPos(*scale_pos)
+                pm = self.scene.addPixmap(self.currentPixmap)
+                pm.setPos(*self.scale_pos)
                 pm.setZValue(2)
 
                 #pm.setOpacity(0.5)
-            if went_idle:
-                fname = "image.%05d.png" % self.counter
-                image.convertToFormat(QtGui.QImage.Format_Grayscale8).save("movie/" + fname)
-                self.tile_config.write(f"{fname}; ; ({scale_pos[0]}, {scale_pos[1]})\n")
-                self.tile_config.flush()
-                self.counter += 1
+            # if went_idle:
+            #     fname = "image.%05d.png" % self.counter
+            #     image.convertToFormat(QtGui.QImage.Format_Grayscale8).save("movie/" + fname)
+            #     self.tile_config.write(f"{fname}; ; ({self.scale_pos[1]}, {self.scale_pos[0]})\n")
+            #     self.tile_config.flush()
+            #     self.counter += 1
         self.scene.update()
 
         if went_idle:
@@ -241,7 +249,6 @@ class QApplication(QtWidgets.QApplication):
 
     def generateGrid(self):
         br = self.scene.itemsBoundingRect()
-
         pen = QtGui.QPen(QtCore.Qt.green)
         pen.setWidth(20)
         color = QtGui.QColor(0, 0, 0)
@@ -259,12 +266,14 @@ class QApplication(QtWidgets.QApplication):
         x_max = br.bottomRight().x()* PIXEL_SCALE
         y_max =  -br.topLeft().y()* PIXEL_SCALE
 
+        print(x_min, y_min, x_max, y_max)
         fov = 600 * PIXEL_SCALE
         if (x_max - x_min < fov and y_max - y_min < fov):
             print("Immediate move:")
-            cmd = f"$J=G90 G21 X{x_min:.3f} Y{y_min:.3f} F{XY_FEED:.3f}"
+            cmd = f"$J=G90 G21 F{XY_FEED:.3f} X{x_min:.3f} Y{y_min:.3f}"
             self.client.publish(f"{TARGET}/command", cmd)
         else:
+            print("grid")
             self.grid = []
             gx = x_min
             gy = y_max
@@ -275,12 +284,14 @@ class QApplication(QtWidgets.QApplication):
 
             while gy >= y_min:
                 while gx <= x_max:
-                    self.grid.append(f"$J=G90 G21 X{gx:.3f} Y{gy:.3f} F{XY_FEED:.3f}")
+                    self.grid.append(f"$J=G90 G21 F{XY_FEED:.3f} X{gx:.3f} Y{gy:.3f}")
                     gx += fov/2
                 gx = x_min
                 gy -= fov/2
 
+            print(self.grid)
             cmd = self.grid.pop(0)
+            print("Run kickoff command:", cmd)
             self.client.publish(f"{TARGET}/command", cmd)
 
 
@@ -306,29 +317,39 @@ class QApplication(QtWidgets.QApplication):
 
                 elif self.state == "Idle":
                     if key == QtCore.Qt.Key_Left and type_ == QtCore.QEvent.KeyPress:
-                            cmd = f"$J=G91 G21 X-{XY_STEP_SIZE:.3f} F{XY_FEED:.3f}"
-                            self.client.publish(f"{TARGET}/command", cmd)
-                            return True
+                        cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y{XY_STEP_SIZE:.3f}"
+                        print(f"{TARGET}/command", cmd)
+                        self.client.publish(f"{TARGET}/command", cmd)
+                        return True
                     elif key == QtCore.Qt.Key_Right and type_ == QtCore.QEvent.KeyPress:
-                            cmd = f"$J=G91 G21 X{XY_STEP_SIZE:.3f} F{XY_FEED:.3f}"
-                            self.client.publish(f"{TARGET}/command", cmd)
-                            return True
+                        cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y-{XY_STEP_SIZE:.3f}"
+                        self.client.publish(f"{TARGET}/command", cmd)
+                        return True
                     elif key == QtCore.Qt.Key_Up and type_ == QtCore.QEvent.KeyPress:
-                            cmd = f"$J=G91 G21 Y{XY_STEP_SIZE:.3f} F{XY_FEED:.3f}"
-                            self.client.publish(f"{TARGET}/command", cmd)
-                            return True
+                        cmd = f"$J=G91 G21 F{XY_FEED:.3f} X{XY_STEP_SIZE:.3f}"
+                        self.client.publish(f"{TARGET}/command", cmd)
+                        return True
                     elif key == QtCore.Qt.Key_Down and type_ == QtCore.QEvent.KeyPress:
-                            cmd = f"$J=G91 G21 Y-{XY_STEP_SIZE:.3f} F{XY_FEED:.3f}"
-                            self.client.publish(f"{TARGET}/command", cmd)
-                            return True
+                        cmd = f"$J=G91 G21 F{XY_FEED:.3f} X-{XY_STEP_SIZE:.3f}"
+                        self.client.publish(f"{TARGET}/command", cmd)
+                        return True
                     elif key == QtCore.Qt.Key_Plus and type_ == QtCore.QEvent.KeyPress:
-                            cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z-{Z_STEP_SIZE:.3f}"
-                            self.client.publish(f"{TARGET}/command", cmd)
-                            return True
+                        cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z-{Z_STEP_SIZE:.3f}"
+                        self.client.publish(f"{TARGET}/command", cmd)
+                        return True
                     elif key == QtCore.Qt.Key_Minus and type_ == QtCore.QEvent.KeyPress:
-                            cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z{Z_STEP_SIZE:.3f}"
-                            self.client.publish(f"{TARGET}/command", cmd)
-                            return True
+                        cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z{Z_STEP_SIZE:.3f}"
+                        self.client.publish(f"{TARGET}/command", cmd)
+                        return True
+
+                    elif key == QtCore.Qt.Key_P and type_ == QtCore.QEvent.KeyPress:
+                        fname = "image.%05d.png" % self.counter
+                        if self.currentImage:
+                            print("takephoto")
+                            self.currentImage.convertToFormat(QtGui.QImage.Format_Grayscale8).save("movie/" + fname)
+                            self.tile_config.write(f"{fname}; ; ({self.scale_pos[1]}, {-self.scale_pos[0]})\n")
+                            self.tile_config.flush()
+                            self.counter += 1
 
         return super().eventFilter(widget, event)
         #return True
