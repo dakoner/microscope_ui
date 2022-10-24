@@ -62,36 +62,9 @@ class MainWindow(QtWidgets.QGraphicsView):
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
 
-    def keyPressEvent(self, *args):
-        return None
-
-    # def drawForeground(self, p, rect):
-    #     if self.app.currentPosition is not None:
-    #         p.save()
-    #         p.resetTransform()
-            
-            
-    #         pen = QtGui.QPen(QtCore.Qt.red)
-    #         pen.setWidth(2)
-    #         p.setPen(pen)        
-
-    #         font = QtGui.QFont()
-    #         font.setFamily('Times')
-    #         font.setBold(True)
-    #         font.setPointSize(12)
-    #         p.setFont(font)
-
-    #         p.drawText(0, 50, self.app.state)
-    #         p.drawText(0, 100, "X%8.3fmm" % self.app.currentPosition[0])
-    #         p.drawText(0, 150, "Y%8.3fmm" % self.app.currentPosition[1])
-    #         p.drawText(0, 200, "Z%8.3fmm" % self.app.currentPosition[2])
-
-    #         p.restore()
-
-
 
 class ZoomWindow(QtWidgets.QGraphicsView):
-   
+ 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
@@ -108,15 +81,61 @@ class DRO(QtWidgets.QWidget):
         loadUi("dro.ui", self)
 
 class Scene(QtWidgets.QGraphicsScene):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, app, *args, **kwargs):
+        self.app = app
         super().__init__(*args, **kwargs)
         self.setSceneRect(0, -35000, 35000, 35000)
-    #     self.installEventFilter(self)
 
+    def mousePressEvent(self, event):
+        self.press = event.scenePos()
 
-    # def eventFilter(self, widget, event):
-    #     print("scene event filter", widget, event)
-    #     return super().eventFilter(widget, event)
+    def mouseReleaseEvent(self, event):
+        self.app.generateGrid(self.press, event.scenePos())
+
+class ImageWindow(QtWidgets.QLabel):
+    def __init__(self, app, *args, **kwargs):
+        self.app = app
+        super().__init__(*args, **kwargs)
+
+    def keyReleaseEvent(self, event):
+        key = event.key()    
+        if key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right, QtCore.Qt.Key_Up, QtCore.Qt.Key_Down, QtCore.Qt.Key_Plus, QtCore.Qt.Key_Minus):
+            self.app.client.publish(f"{TARGET}/cancel", "")
+
+    def keyPressEvent(self, event):
+        key = event.key()    
+        if key == QtCore.Qt.Key_C:
+            print("cancel")
+            self.client.publish(f"{TARGET}/cancel", "")
+        elif key == QtCore.Qt.Key_S:
+            print("stop")
+            self.app.grid = []
+        elif key == QtCore.Qt.Key_P:
+            fname = "image.%05d.png" % self.app.counter
+            if self.app.currentImage:
+                self.app.currentImage.convertToFormat(QtGui.QImage.Format_Grayscale8).save("movie/" + fname)
+                self.app.tile_config.write(f"{fname}; ; ({self.app.scale_pos[1]}, {-self.app.scale_pos[0]})\n")
+                self.app.tile_config.flush()
+                self.app.counter += 1
+        elif self.app.state == "Idle":
+            if key == QtCore.Qt.Key_Left:
+                cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y{XY_STEP_SIZE:.3f}"
+                self.app.client.publish(f"{TARGET}/command", cmd)
+            elif key == QtCore.Qt.Key_Right:
+                cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y-{XY_STEP_SIZE:.3f}"
+                self.app.client.publish(f"{TARGET}/command", cmd)
+            elif key == QtCore.Qt.Key_Up:
+                cmd = f"$J=G91 G21 F{XY_FEED:.3f} X{XY_STEP_SIZE:.3f}"
+                self.app.client.publish(f"{TARGET}/command", cmd)
+            elif key == QtCore.Qt.Key_Down:
+                cmd = f"$J=G91 G21 F{XY_FEED:.3f} X-{XY_STEP_SIZE:.3f}"
+                self.app.client.publish(f"{TARGET}/command", cmd)
+            elif key == QtCore.Qt.Key_Plus:
+                cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z-{Z_STEP_SIZE:.3f}"
+                self.app.client.publish(f"{TARGET}/command", cmd)
+            elif key == QtCore.Qt.Key_Minus:
+                cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z{Z_STEP_SIZE:.3f}"
+                self.app.client.publish(f"{TARGET}/command", cmd)
 
 class QApplication(QtWidgets.QApplication):
     def __init__(self, *args, **kwargs):
@@ -159,7 +178,7 @@ class QApplication(QtWidgets.QApplication):
         # self.widget2.show()
         # self.widget2.setScene(self.scene)
 
-        self.widget3 = QtWidgets.QLabel()
+        self.widget3 = ImageWindow(self)
         self.widget3.show()
         
         # self.widget2.fitInView(self.scene.sceneRect())
@@ -272,12 +291,8 @@ class QApplication(QtWidgets.QApplication):
 
 
     def generateGrid(self, start_event, end_event):
-        br = self.scene.itemsBoundingRect()
-        print("bounding rect", br)
-        print("event", start_event, end_event)
-
-        sp = self.widget.mapToScene(start_event)
-        ep = self.widget.mapToScene(end_event)
+        sp = start_event
+        ep = end_event
         x = sp.x()
         y = sp.y()
         width = ep.x()-x
@@ -286,18 +301,11 @@ class QApplication(QtWidgets.QApplication):
         pen.setWidth(20)
         color = QtGui.QColor(0, 0, 0)
         brush = QtGui.QBrush(color)
-        #x = br.topLeft().x()
-        #y = br.topLeft().y()
-        #width = br.width()
-        #height = br.height()
+ 
         rect = self.scene.addRect(x, y, width, height, pen=pen, brush=brush)
         rect.setZValue(6)
         rect.setOpacity(0.25)
 
-        # x_min = br.topLeft().x()* PIXEL_SCALE
-        # y_min =  -br.bottomRight().y()* PIXEL_SCALE
-        # x_max = br.bottomRight().x()* PIXEL_SCALE
-        # y_max =  -br.topLeft().y()* PIXEL_SCALE
 
         x_min = sp.x()* PIXEL_SCALE
         y_min =  -ep.y()* PIXEL_SCALE
@@ -330,76 +338,6 @@ class QApplication(QtWidgets.QApplication):
             self.client.publish(f"{TARGET}/command", cmd)
 
 
-    def eventFilter(self, widget, event):
-        # return super().eventFilter(widget, event)
-
-        # if widget != self.widget:
-        #     return False
-        if isinstance(event, QtGui.QMouseEvent):
-            if event.type() == QtCore.QEvent.MouseButtonPress:
-                self.press = event.pos()
-                return True
-            if event.type() == QtCore.QEvent.MouseButtonRelease:
-                self.generateGrid(self.press, event.pos())
-                return True
-            
-        elif isinstance(event, QtGui.QKeyEvent):
-            #if not event.isAutoRepeat():
-            if True:
-                key = event.key()    
-                type_ = event.type()
-
-                if key == QtCore.Qt.Key_C and type_ == QtCore.QEvent.KeyPress:
-                    print("cancel")
-                    self.client.publish(f"{TARGET}/cancel", "")
-                    return True
-                elif key == QtCore.Qt.Key_S and type_ == QtCore.QEvent.KeyPress:
-                    print("stop")
-                    self.grid = []
-                    return True
-                    
-                elif key == QtCore.Qt.Key_P and type_ == QtCore.QEvent.KeyPress:
-                    fname = "image.%05d.png" % self.counter
-                    if self.currentImage:
-                        self.currentImage.convertToFormat(QtGui.QImage.Format_Grayscale8).save("movie/" + fname)
-                        self.tile_config.write(f"{fname}; ; ({self.scale_pos[1]}, {-self.scale_pos[0]})\n")
-                        self.tile_config.flush()
-                        self.counter += 1
-                    return True
-
-                # elif type_ == QtCore.QEvent.KeyRelease and key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right, QtCore.Qt.Key_Up, QtCore.Qt.Key_Down, QtCore.Qt.Key_Plus, QtCore.Qt.Key_Minus):
-                #     self.client.publish(f"{TARGET}/cancel", "")
-                #     return True
-
-                elif self.state == "Idle":
-                    if key == QtCore.Qt.Key_Left and type_ == QtCore.QEvent.KeyPress:
-                        cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y{XY_STEP_SIZE:.3f}"
-                        self.client.publish(f"{TARGET}/command", cmd)
-                        return True
-                    elif key == QtCore.Qt.Key_Right and type_ == QtCore.QEvent.KeyPress:
-                        cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y-{XY_STEP_SIZE:.3f}"
-                        self.client.publish(f"{TARGET}/command", cmd)
-                        return True
-                    elif key == QtCore.Qt.Key_Up and type_ == QtCore.QEvent.KeyPress:
-                        cmd = f"$J=G91 G21 F{XY_FEED:.3f} X{XY_STEP_SIZE:.3f}"
-                        self.client.publish(f"{TARGET}/command", cmd)
-                        return True
-                    elif key == QtCore.Qt.Key_Down and type_ == QtCore.QEvent.KeyPress:
-                        cmd = f"$J=G91 G21 F{XY_FEED:.3f} X-{XY_STEP_SIZE:.3f}"
-                        self.client.publish(f"{TARGET}/command", cmd)
-                        return True
-                    elif key == QtCore.Qt.Key_Plus and type_ == QtCore.QEvent.KeyPress:
-                        cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z-{Z_STEP_SIZE:.3f}"
-                        self.client.publish(f"{TARGET}/command", cmd)
-                        return True
-                    elif key == QtCore.Qt.Key_Minus and type_ == QtCore.QEvent.KeyPress:
-                        cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z{Z_STEP_SIZE:.3f}"
-                        self.client.publish(f"{TARGET}/command", cmd)
-                        return True
-                    
-
-        return super().eventFilter(widget, event)
-        #return True
 
 if __name__ == '__main__':
     #signal.signal(signal.SIGINT, signal.SIG_DFL)
