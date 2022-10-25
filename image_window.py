@@ -1,14 +1,6 @@
-from PyQt5 import QtWidgets
-
-class ImageWindow(QtWidgets.QLabel):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-
 from PyQt5 import QtCore, QtWidgets, QtGui
-TARGET="raspberrypi"
+from config import XY_FEED, XY_STEP_SIZE, Z_FEED, Z_STEP_SIZE, TARGET
 
-from config import XY_FEED, XY_STEP_SIZE
 
 class ImageWindow(QtWidgets.QLabel):
     def __init__(self, *args, **kwargs):
