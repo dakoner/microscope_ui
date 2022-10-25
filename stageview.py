@@ -8,7 +8,7 @@ from image_zmq_camera_reader import ImageZMQCameraReader
 from scene import Scene
 from mqtt_qobject import MqttClient
 
-from config import PIXEL_SCALE, TARGET, XY_FEED
+from config import PIXEL_SCALE, TARGET, XY_FEED, Z_FEED
 
 def calculate_area(qpolygon):
     area = 0
@@ -166,7 +166,7 @@ class QApplication(QtWidgets.QApplication):
                 fname = "image.%05d.png" % self.counter
                 if self.currentImage is not None:
                     self.currentImage.convertToFormat(QtGui.QImage.Format_Grayscale8).save("movie/" + fname)
-                    self.tile_config.write(f"{fname}; ; ({self.scale_pos[1]}, {self.scale_pos[0]})\n")
+                    self.tile_config.write(f"{fname}; ; ({self.scale_pos[0]}, {-self.scale_pos[1]})\n")
                     self.tile_config.flush()
                     self.counter += 1
         self.scene.update()
