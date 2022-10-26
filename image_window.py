@@ -36,10 +36,10 @@ class ImageWindow(QtWidgets.QLabel):
                 cmd = f"$J=G91 G21 F{XY_FEED:.3f} X{XY_STEP_SIZE:.3f}"
                 self.app.client.publish(f"{TARGET}/command", cmd)
             elif key == QtCore.Qt.Key_Up:
-                cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y{XY_STEP_SIZE:.3f}"
+                cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y-{XY_STEP_SIZE:.3f}"
                 self.app.client.publish(f"{TARGET}/command", cmd)
             elif key == QtCore.Qt.Key_Down:
-                cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y-{XY_STEP_SIZE:.3f}"
+                cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y{XY_STEP_SIZE:.3f}"
                 self.app.client.publish(f"{TARGET}/command", cmd)
             elif key == QtCore.Qt.Key_Plus:
                 cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z-{Z_STEP_SIZE:.3f}"

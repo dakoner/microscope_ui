@@ -5,8 +5,6 @@ class Scene(QtWidgets.QGraphicsScene):
     def __init__(self, app, *args, **kwargs):
         self.app = app
         super().__init__(*args, **kwargs)
-        self.setSceneRect(0, -75/PIXEL_SCALE, 75/PIXEL_SCALE, 75/PIXEL_SCALE)
-
         pen = QtGui.QPen()
         pen.setWidth(20)
         color = QtGui.QColor(255, 0, 0)
@@ -17,22 +15,30 @@ class Scene(QtWidgets.QGraphicsScene):
 
         color = QtGui.QColor(25, 50, 25)
         brush = QtGui.QBrush(color)
-        self.slideRect = self.addRect(0, -50/PIXEL_SCALE, 76/PIXEL_SCALE, 25+26/PIXEL_SCALE, brush=brush)
+        self.slideRect = self.addRect(0, 25/PIXEL_SCALE, 60/PIXEL_SCALE, 25/PIXEL_SCALE, brush=brush)
         self.slideRect.setZValue(1)
 
 
         self.pixmap = self.addPixmap(QtGui.QPixmap())
         self.pixmap.setZValue(4)
 
-
     def mouseMoveEvent(self, event):
-        super().mouseMoveEvent(event)
+        # print("at canvas pos", event.scenePos().x(), event.scenePos().y())
+        print("at stage pos", event.scenePos().x()*PIXEL_SCALE, event.scenePos().y()*PIXEL_SCALE)
+        # print()
+        return super().mouseMoveEvent(event)
 
     def mousePressEvent(self, event):
-        print("at stage pos", event.scenePos().x()*PIXEL_SCALE, event.scenePos().y()*PIXEL_SCALE)
+        #print("mouse press")
         self.press = event.scenePos()
-        super().mouseMoveEvent(event)
+        return super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
-        self.app.generateGrid(self.press, event.scenePos())
-        super().mouseMoveEvent(event)
+        print("mouse release")
+        if (self.press - event.scenePos()).manhattanLength() == 0.0:
+            self.app.moveTo(self.press)
+        else:
+            self.app.generateGrid(self.press, event.scenePos())
+        return super().mouseReleaseEvent(event)
+
+

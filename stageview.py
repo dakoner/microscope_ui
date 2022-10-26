@@ -65,7 +65,13 @@ class QApplication(QtWidgets.QApplication):
         self.counter = 0
 
 
-
+    def moveTo(self, position):
+        x = position.x()*PIXEL_SCALE
+        y = position.y()*PIXEL_SCALE
+        print("moveTo", position, x, y)
+        cmd = f"$J=G90 G21 F{XY_FEED:.3f} X{x:.3f} Y{y:.3f}"
+        self.client.publish(f"{TARGET}/command", cmd)
+ 
     def generateGrid(self, start_event, end_event):
         sp = start_event
         ep = end_event
@@ -73,6 +79,7 @@ class QApplication(QtWidgets.QApplication):
         y = sp.y()
         width = ep.x()-x
         height = ep.y()-y
+        print(x, y, width, height)
         pen = QtGui.QPen(QtCore.Qt.green)
         pen.setWidth(20)
         color = QtGui.QColor(0, 0, 0)
@@ -84,37 +91,34 @@ class QApplication(QtWidgets.QApplication):
 
 
         x_min = sp.x()* PIXEL_SCALE
-        y_min =  -ep.y()* PIXEL_SCALE
+        y_min =  sp.y()* PIXEL_SCALE
         x_max = ep.x()* PIXEL_SCALE
-        y_max =  -sp.y()* PIXEL_SCALE
-        fov = 600 * PIXEL_SCALE
-        if (x_max - x_min < fov and y_max - y_min < fov):
-            print("Immediate move:", x_min, y_min)
-            cmd = f"$J=G90 G21 F{XY_FEED:.3f} X{x_min:.3f} Y{y_min:.3f}"
+        y_max =  ep.y()* PIXEL_SCALE
+        fov = 1200 * PIXEL_SCALE
+
+        self.grid = []
+        gx = x_min 
+        gy = y_min
+
+        #self.grid.append("$H")
+        # self.grid.append("$HY")
+        #self.grid.append("$HY")
+        print(x_min, x_max)
+        print(y_min, y_max)
+        while gy < y_max - fov/2:
+            while gx < x_max - fov/2:
+                self.grid.append(f"$J=G90 G21 F{XY_FEED:.3f} X{gx:.3f} Y{gy:.3f}")
+                gx += fov/2
+            gx = x_min
+            gy += fov/2
+
+        print(self.grid)
+        if len(self.grid):
+            cmd = self.grid.pop(0)
+            print("Run kickoff command:", cmd)
             self.client.publish(f"{TARGET}/command", cmd)
         else:
-            self.grid = []
-            gx = x_min
-            gy = y_max
-
-            #self.grid.append("$H")
-            # self.grid.append("$HY")
-            #self.grid.append("$HY")
-
-            while gy > y_min:
-                while gx < x_max:
-                    self.grid.append(f"$J=G90 G21 F{XY_FEED:.3f} X{gx:.3f} Y{gy:.3f}")
-                    gx += fov/2
-                gx = x_min
-                gy -= fov/2
-
-            print(self.grid)
-            if len(self.grid):
-                cmd = self.grid.pop(0)
-                print("Run kickoff command:", cmd)
-                self.client.publish(f"{TARGET}/command", cmd)
-            else:
-                print("no grid")
+            print("no grid")
 
     def imageTo(self, message, draw_data):
         m = json.loads(message)
@@ -126,7 +130,7 @@ class QApplication(QtWidgets.QApplication):
         self.currentPosition = m['m_pos']
 
         pos = self.currentPosition
-        self.scale_pos = pos[0]/PIXEL_SCALE, -pos[1]/PIXEL_SCALE
+        self.scale_pos = pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE
         self.dro_window.x_value.display(pos[0])
         self.dro_window.y_value.display(pos[1])
         self.dro_window.z_value.display(pos[2])
@@ -136,14 +140,14 @@ class QApplication(QtWidgets.QApplication):
             self.scene.currentRect.setPos(*self.scale_pos)
 
             self.currentImage = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
-            currentPixmap = QtGui.QPixmap.fromImage(self.currentImage.mirrored(horizontal=False, vertical=True))
-            currentPixmapFlipped = QtGui.QPixmap.fromImage(self.currentImage.mirrored(horizontal=False, vertical=True))
+            currentPixmap = QtGui.QPixmap.fromImage(self.currentImage.mirrored(horizontal=False, vertical=False))
+            currentPixmapFlipped = QtGui.QPixmap.fromImage(self.currentImage.mirrored(horizontal=False, vertical=False))
             self.scene.pixmap.setPixmap(currentPixmap)
             self.scene.pixmap.setPos(*self.scale_pos)
 
             self.main_window._image_window.setPixmap(currentPixmap)
-            #self.image_window.adjustSize()
-            self.main_window._image_window.setScaledContents(True)
+            self.main_window._image_window.adjustSize()
+            #self.main_window._image_window.setScaledContents(True)
 
             ci = self.scene.pixmap.collidingItems()
             # Get the qpainterpath corresponding to the current image location, minus any overlapping images
