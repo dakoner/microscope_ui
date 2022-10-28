@@ -47,11 +47,14 @@ class QApplication(QtWidgets.QApplication):
         self.main_window = MainWindow()
         self.main_window.show()
 
-        self.dro_window = DRO()
-        self.dro_window.show()
-
         self.main_window._tile_window.setScene(self.scene)
         self.main_window._tile_window.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
+
+
+        self.dro_window = DRO(parent=self.main_window._image_window)
+        self.dro_window.show()
+        self.dro_window.setAutoFillBackground(True)
+        self.dro_window.raise_()
 
         self.camera = ImageZMQCameraReader()
         self.camera.start()
@@ -136,17 +139,21 @@ class QApplication(QtWidgets.QApplication):
         self.dro_window.z_value.display(pos[2])
         self.dro_window.state_value.setText(self.state)
 
+
+
+
+        self.currentImage = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
+        currentPixmap = QtGui.QPixmap.fromImage(self.currentImage.mirrored(horizontal=False, vertical=False))
+        self.main_window._image_window.setPixmap(currentPixmap)
+        self.main_window._image_window.adjustSize()
+
         if self.state != 'Home':
             self.scene.currentRect.setPos(*self.scale_pos)
 
-            self.currentImage = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
-            currentPixmap = QtGui.QPixmap.fromImage(self.currentImage.mirrored(horizontal=False, vertical=False))
             currentPixmapFlipped = QtGui.QPixmap.fromImage(self.currentImage.mirrored(horizontal=False, vertical=False))
             self.scene.pixmap.setPixmap(currentPixmap)
             self.scene.pixmap.setPos(*self.scale_pos)
 
-            self.main_window._image_window.setPixmap(currentPixmap)
-            self.main_window._image_window.adjustSize()
             #self.main_window._image_window.setScaledContents(True)
 
             ci = self.scene.pixmap.collidingItems()
@@ -170,7 +177,7 @@ class QApplication(QtWidgets.QApplication):
                 fname = "image.%05d.png" % self.counter
                 if self.currentImage is not None:
                     self.currentImage.convertToFormat(QtGui.QImage.Format_Grayscale8).save("movie/" + fname)
-                    self.tile_config.write(f"{fname}; ; ({self.scale_pos[0]}, {-self.scale_pos[1]})\n")
+                    self.tile_config.write(f"{fname}; ; ({self.scale_pos[0]}, {self.scale_pos[1]})\n")
                     self.tile_config.flush()
                     self.counter += 1
         self.scene.update()
@@ -182,7 +189,7 @@ class QApplication(QtWidgets.QApplication):
         
 
 if __name__ == '__main__':
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    #signal.signal(signal.SIGINT, signal.SIG_DFL)
     app = QApplication(sys.argv)
    
     app.exec_()

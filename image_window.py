@@ -6,6 +6,8 @@ class ImageWindow(QtWidgets.QLabel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.app = QtWidgets.QApplication.instance()
+        self.setFocusPolicy(QtCore.Qt.StrongFocus)
+        self.setScaledContents(True)
 
     # def keyReleaseEvent(self, event):
     #     key = event.key()    
@@ -13,6 +15,7 @@ class ImageWindow(QtWidgets.QLabel):
     #         self.app.client.publish(f"{TARGET}/cancel", "")
 
     def keyPressEvent(self, event):
+        print("keytpress")
         key = event.key()  
         # check if autorepeat (only if doing cancelling-moves)  
         if key == QtCore.Qt.Key_C:
@@ -22,12 +25,10 @@ class ImageWindow(QtWidgets.QLabel):
             print("stop")
             self.app.grid = []
         elif key == QtCore.Qt.Key_P:
-            fname = "image.%05d.png" % self.app.counter
+            print("Take photo")
+            fname = "image.%08.3f,%08.3f.png" % (self.app.scale_pos[1], self.app.scale_pos[0])
             if self.app.currentImage:
-                self.app.currentImage.convertToFormat(QtGui.QImage.Format_Grayscale8).save("movie/" + fname)
-                self.app.tile_config.write(f"{fname}; ; ({self.app.scale_pos[1]}, {-self.app.scale_pos[0]})\n")
-                self.app.tile_config.flush()
-                self.app.counter += 1
+                self.app.currentImage.convertToFormat(QtGui.QImage.Format_Grayscale8).save("photo/" + fname)
         elif self.app.state == "Idle":
             if key == QtCore.Qt.Key_Left:
                 cmd = f"$J=G91 G21 F{XY_FEED:.3f} X-{XY_STEP_SIZE:.3f}"
@@ -47,13 +48,3 @@ class ImageWindow(QtWidgets.QLabel):
             elif key == QtCore.Qt.Key_Minus:
                 cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z{Z_STEP_SIZE:.3f}"
                 self.app.client.publish(f"{TARGET}/command", cmd)
-
-# need to map from image coords to scene coords before converting with pixel_scale
-    # def mouseMoveEvent(self, event):
-    #     print("image shoujld move to")
-    #     print(event.pos().x()*PIXEL_SCALE, event.pos().y()*PIXEL_SCALE)
-    #     super().mouseMoveEvent(event)
-
-    # def mousePressEvent(self, event):
-    #     self.press = event.pos()
-    #     super().mouseMoveEvent(event)

@@ -15,7 +15,7 @@ class Scene(QtWidgets.QGraphicsScene):
 
         color = QtGui.QColor(25, 50, 25)
         brush = QtGui.QBrush(color)
-        self.slideRect = self.addRect(0, 25/PIXEL_SCALE, 60/PIXEL_SCALE, 25/PIXEL_SCALE, brush=brush)
+        self.slideRect = self.addRect(0, 25.8/PIXEL_SCALE, 60/PIXEL_SCALE, 20/PIXEL_SCALE, brush=brush)
         self.slideRect.setZValue(1)
 
 
@@ -23,9 +23,7 @@ class Scene(QtWidgets.QGraphicsScene):
         self.pixmap.setZValue(4)
 
     def mouseMoveEvent(self, event):
-        # print("at canvas pos", event.scenePos().x(), event.scenePos().y())
-        print("at stage pos", event.scenePos().x()*PIXEL_SCALE, event.scenePos().y()*PIXEL_SCALE)
-        # print()
+        self.app.main_window.statusBar().showMessage(f"Canvas: {event.scenePos().x():.3f}, {event.scenePos().y():.3f}, Stage: {event.scenePos().x()*PIXEL_SCALE:.3f}, {event.scenePos().y()*PIXEL_SCALE:.3f}")
         return super().mouseMoveEvent(event)
 
     def mousePressEvent(self, event):
