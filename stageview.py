@@ -97,7 +97,8 @@ class QApplication(QtWidgets.QApplication):
         y_min =  sp.y()* PIXEL_SCALE
         x_max = ep.x()* PIXEL_SCALE
         y_max =  ep.y()* PIXEL_SCALE
-        fov = 1200 * PIXEL_SCALE
+        fov_x = 1200 * PIXEL_SCALE
+        fov_y = 800 * PIXEL_SCALE
 
         self.grid = []
         gx = x_min 
@@ -108,12 +109,12 @@ class QApplication(QtWidgets.QApplication):
         #self.grid.append("$HY")
         print(x_min, x_max)
         print(y_min, y_max)
-        while gy < y_max - fov/2:
-            while gx < x_max - fov/2:
+        while gy < y_max - fov_y/2:
+            while gx < x_max - fov_x/2:
                 self.grid.append(f"$J=G90 G21 F{XY_FEED:.3f} X{gx:.3f} Y{gy:.3f}")
-                gx += fov/2
+                gx += fov_x/2
             gx = x_min
-            gy += fov/2
+            gy += fov_y/2
 
         print(self.grid)
         if len(self.grid):
@@ -174,10 +175,10 @@ class QApplication(QtWidgets.QApplication):
                 pm.setPos(*self.scale_pos)
                 pm.setZValue(2)
             if went_idle and len(self.grid):
-                fname = "image.%05d.png" % self.counter
+                fname = "image.%d.png" % self.counter
                 if self.currentImage is not None:
                     self.currentImage.convertToFormat(QtGui.QImage.Format_Grayscale8).save("movie/" + fname)
-                    self.tile_config.write(f"{fname}; ; ({self.scale_pos[0]}, {self.scale_pos[1]})\n")
+                    self.tile_config.write(f"{self.counter}; ; ({self.scale_pos[0]}, {self.scale_pos[1]})\n")
                     self.tile_config.flush()
                     self.counter += 1
         self.scene.update()
