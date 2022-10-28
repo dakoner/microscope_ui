@@ -7,7 +7,7 @@ class TileWindow(QtWidgets.QGraphicsView):
         super().__init__(*args, **kwargs)
         self.setSceneRect(0, 0, 60/PIXEL_SCALE, 60/PIXEL_SCALE)
         self.app = QtWidgets.QApplication.instance()
-
+        self.setMouseTracking(True)
 
     # def drawForeground(self, p, rect):
     #     if self.app.currentPosition is not None:
