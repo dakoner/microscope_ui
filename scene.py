@@ -5,6 +5,18 @@ class Scene(QtWidgets.QGraphicsScene):
     def __init__(self, app, *args, **kwargs):
         self.app = app
         super().__init__(*args, **kwargs)
+
+        pen_color = QtGui.QColor(255, 0, 0)
+        pen = QtGui.QPen(pen_color)
+        pen.setWidth(20)
+        
+        brush_color = QtGui.QColor(0, 255, 0)
+        brush_color.setAlpha(15)
+        brush = QtGui.QBrush(brush_color)
+        self.borderRect = self.addRect(0, 0, 60/PIXEL_SCALE, 60/PIXEL_SCALE, pen=pen, brush=brush)
+        self.borderRect.setZValue(1)
+
+
         pen = QtGui.QPen()
         pen.setWidth(20)
         color = QtGui.QColor(255, 0, 0)
@@ -21,6 +33,8 @@ class Scene(QtWidgets.QGraphicsScene):
 
         self.pixmap = self.addPixmap(QtGui.QPixmap())
         self.pixmap.setZValue(4)
+
+        self.setSceneRect(0, 0, 60/PIXEL_SCALE, 60/PIXEL_SCALE)
 
     def mouseMoveEvent(self, event):
         self.app.main_window.statusBar().showMessage(f"Canvas: {event.scenePos().x():.3f}, {event.scenePos().y():.3f}, Stage: {event.scenePos().x()*PIXEL_SCALE:.3f}, {event.scenePos().y()*PIXEL_SCALE:.3f}")
