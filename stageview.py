@@ -8,7 +8,7 @@ from image_zmq_camera_reader import ImageZMQCameraReader
 from scene import Scene
 from mqtt_qobject import MqttClient
 
-from config import PIXEL_SCALE, TARGET, XY_FEED, Z_FEED
+from config import PIXEL_SCALE, TARGET, XY_FEED, Z_FEED, BIGSTITCH
 
 def calculate_area(qpolygon):
     area = 0
@@ -67,6 +67,7 @@ class QApplication(QtWidgets.QApplication):
         self.tile_config.flush()
         self.counter = 0
 
+        self.acquisition = False
 
     def moveTo(self, position):
         x = position.x()*PIXEL_SCALE
@@ -117,12 +118,11 @@ class QApplication(QtWidgets.QApplication):
             gy += fov_y/2
 
         print(self.grid)
+        self.acquisition = True
         if len(self.grid):
+            print("kickoff")
             cmd = self.grid.pop(0)
-            print("Run kickoff command:", cmd)
             self.client.publish(f"{TARGET}/command", cmd)
-        else:
-            print("no grid")
 
     def imageTo(self, message, draw_data):
         m = json.loads(message)
@@ -134,7 +134,7 @@ class QApplication(QtWidgets.QApplication):
         self.currentPosition = m['m_pos']
 
         pos = self.currentPosition
-        self.scale_pos = pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE
+        self.scale_pos = pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE, pos[2]/PIXEL_SCALE
         self.dro_window.x_value.display(pos[0])
         self.dro_window.y_value.display(pos[1])
         self.dro_window.z_value.display(pos[2])
@@ -149,11 +149,11 @@ class QApplication(QtWidgets.QApplication):
         self.main_window._image_window.adjustSize()
 
         if self.state != 'Home':
-            self.scene.currentRect.setPos(*self.scale_pos)
+            self.scene.currentRect.setPos(self.scale_pos[0], self.scale_pos[1])
 
             currentPixmapFlipped = QtGui.QPixmap.fromImage(self.currentImage.mirrored(horizontal=False, vertical=False))
             self.scene.pixmap.setPixmap(currentPixmap)
-            self.scene.pixmap.setPos(*self.scale_pos)
+            self.scene.pixmap.setPos(self.scale_pos[0], self.scale_pos[1])
 
             #self.main_window._image_window.setScaledContents(True)
 
@@ -172,21 +172,31 @@ class QApplication(QtWidgets.QApplication):
 
             if a > 240000:# and [item for item in ci if isinstance(item, QtWidgets.QGraphicsPixmapItem)] == []:
                 pm = self.scene.addPixmap(currentPixmapFlipped)
-                pm.setPos(*self.scale_pos)
+                pm.setPos(self.scale_pos[0], self.scale_pos[1])
                 pm.setZValue(2)
-            if went_idle and len(self.grid):
-                fname = "image.%d.png" % self.counter
-                if self.currentImage is not None:
-                    self.currentImage.convertToFormat(QtGui.QImage.Format_Grayscale8).save("movie/" + fname)
-                    self.tile_config.write(f"{self.counter}; ; ({self.scale_pos[0]}, {self.scale_pos[1]})\n")
-                    self.tile_config.flush()
-                    self.counter += 1
+            
         self.scene.update()
 
         if went_idle:
-            if self.grid != []:
-                cmd = self.grid.pop(0)
-                self.client.publish(f"{TARGET}/command", cmd)
+            if self.acquisition:
+                if len(self.grid) == 0:
+                    print("stop acquisition")
+                    self.acquisition = False
+                else:
+                    print("collect acquisition frame (%d remaining)" % len(self.grid))
+                    fname = "image.%d.png" % self.counter
+                    if self.currentImage is not None:
+                        self.currentImage.convertToFormat(QtGui.QImage.Format_Grayscale8).save("movie/" + fname)
+                        if BIGSTITCH:
+                            index = str(self.counter)
+                        else:
+                            index = fname
+                        self.tile_config.write(f"{index}; ; ({self.scale_pos[0]}, {self.scale_pos[1]})\n")
+                        self.tile_config.flush()
+                        self.counter += 1
+
+                    cmd = self.grid.pop(0)
+                    self.client.publish(f"{TARGET}/command", cmd)
         
 
 if __name__ == '__main__':
