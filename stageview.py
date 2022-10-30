@@ -84,22 +84,23 @@ class QApplication(QtWidgets.QApplication):
         width = ep.x()-x
         height = ep.y()-y
         print(x, y, width, height)
+
+
         pen = QtGui.QPen(QtCore.Qt.green)
-        pen.setWidth(20)
-        color = QtGui.QColor(0, 0, 0)
+        pen.setWidth(50)
+        color = QtGui.QColor(QtCore.Qt.black)
+        color.setAlpha(0)
         brush = QtGui.QBrush(color)
- 
         rect = self.scene.addRect(x, y, width, height, pen=pen, brush=brush)
-        rect.setZValue(6)
-        rect.setOpacity(0.25)
+        rect.setZValue(1)
 
 
         x_min = sp.x()* PIXEL_SCALE
         y_min =  sp.y()* PIXEL_SCALE
         x_max = ep.x()* PIXEL_SCALE
         y_max =  ep.y()* PIXEL_SCALE
-        fov_x = 1200 * PIXEL_SCALE
-        fov_y = 800 * PIXEL_SCALE
+        fov_x = 600 * PIXEL_SCALE
+        fov_y = 400 * PIXEL_SCALE
 
         self.grid = []
         gx = x_min 
@@ -110,12 +111,12 @@ class QApplication(QtWidgets.QApplication):
         #self.grid.append("$HY")
         print(x_min, x_max)
         print(y_min, y_max)
-        while gy < y_max - fov_y/2:
-            while gx < x_max - fov_x/2:
+        while gy < y_max - fov_y:
+            while gx < x_max - fov_x:
                 self.grid.append(f"$J=G90 G21 F{XY_FEED:.3f} X{gx:.3f} Y{gy:.3f}")
-                gx += fov_x/2
+                gx += fov_x
             gx = x_min
-            gy += fov_y/2
+            gy += fov_y
 
         print(self.grid)
         self.acquisition = True

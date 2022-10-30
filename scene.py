@@ -6,26 +6,26 @@ class Scene(QtWidgets.QGraphicsScene):
         self.app = app
         super().__init__(*args, **kwargs)
 
-        pen_color = QtGui.QColor(255, 0, 0)
+        pen_color = QtGui.QColor(QtCore.Qt.blue)
         pen = QtGui.QPen(pen_color)
         pen.setWidth(20)
         
-        brush_color = QtGui.QColor(0, 255, 0)
+        brush_color = QtGui.QColor(QtCore.Qt.blue)
         brush_color.setAlpha(15)
         brush = QtGui.QBrush(brush_color)
         self.borderRect = self.addRect(0, 0, 60/PIXEL_SCALE, 60/PIXEL_SCALE, pen=pen, brush=brush)
-        self.borderRect.setZValue(1)
+        self.borderRect.setZValue(255)
 
 
         pen = QtGui.QPen()
         pen.setWidth(20)
-        color = QtGui.QColor(255, 0, 0)
+        color = QtGui.QColor(QtCore.Qt.red)
         #color.setAlpha(1)
         brush = QtGui.QBrush(color)
         self.currentRect = self.addRect(0, 0, WIDTH, HEIGHT, pen=pen, brush=brush)
-        self.currentRect.setZValue(10)
+        self.currentRect.setZValue(20)
 
-        color = QtGui.QColor(25, 50, 25)
+        color = QtGui.QColor(25, 25, 25)
         brush = QtGui.QBrush(color)
         self.slideRect = self.addRect(0, 25.8/PIXEL_SCALE, 60/PIXEL_SCALE, 20/PIXEL_SCALE, brush=brush)
         self.slideRect.setZValue(1)
