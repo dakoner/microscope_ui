@@ -62,10 +62,6 @@ class QApplication(QtWidgets.QApplication):
         self.currentImage = None
 
 
-        self.tile_config = open("movie/TileConfiguration.txt", "w")
-        self.tile_config.write("dim=2\n")
-        self.tile_config.flush()
-        self.counter = 0
 
         self.acquisition = False
 
@@ -119,8 +115,17 @@ class QApplication(QtWidgets.QApplication):
             gy += fov_y
 
         print(self.grid)
-        self.acquisition = True
+        
+
         if len(self.grid):
+            self.acquisition = True
+
+            
+            self.tile_config = open("movie/TileConfiguration.txt", "w")
+            self.tile_config.write("dim=2\n")
+            self.tile_config.flush()
+            self.counter = 0
+
             print("kickoff")
             cmd = self.grid.pop(0)
             self.client.publish(f"{TARGET}/command", cmd)
@@ -171,7 +176,7 @@ class QApplication(QtWidgets.QApplication):
             p = qp3.toFillPolygon()
             a = calculate_area(p)
 
-            if a > 240000:# and [item for item in ci if isinstance(item, QtWidgets.QGraphicsPixmapItem)] == []:
+            if a > 120000:# and [item for item in ci if isinstance(item, QtWidgets.QGraphicsPixmapItem)] == []:
                 pm = self.scene.addPixmap(currentPixmapFlipped)
                 pm.setPos(self.scale_pos[0], self.scale_pos[1])
                 pm.setZValue(2)
@@ -183,6 +188,7 @@ class QApplication(QtWidgets.QApplication):
                 if len(self.grid) == 0:
                     print("stop acquisition")
                     self.acquisition = False
+                    self.tile_config.close()
                 else:
                     print("collect acquisition frame (%d remaining)" % len(self.grid))
                     fname = "image.%d.png" % self.counter
