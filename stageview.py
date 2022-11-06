@@ -1,3 +1,6 @@
+import tifffile
+import os
+import time
 import json
 import sys
 sys.path.append("..")
@@ -49,6 +52,7 @@ class QApplication(QtWidgets.QApplication):
 
         self.main_window._tile_window.setScene(self.scene)
         self.main_window._tile_window.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
+        #self.main_window._tile_window.ensureVisible(self.scene.borderRect)
 
 
         self.dro_window = DRO(parent=self.main_window._image_window)
@@ -65,10 +69,12 @@ class QApplication(QtWidgets.QApplication):
 
         self.acquisition = False
 
+    def cancel(self):
+        self.client.publish(f"{TARGET}/cancel", "")
+
     def moveTo(self, position):
         x = position.x()*PIXEL_SCALE
         y = position.y()*PIXEL_SCALE
-        print("moveTo", position, x, y)
         cmd = f"$J=G90 G21 F{XY_FEED:.3f} X{x:.3f} Y{y:.3f}"
         self.client.publish(f"{TARGET}/command", cmd)
  
@@ -95,8 +101,8 @@ class QApplication(QtWidgets.QApplication):
         y_min =  sp.y()* PIXEL_SCALE
         x_max = ep.x()* PIXEL_SCALE
         y_max =  ep.y()* PIXEL_SCALE
-        fov_x = 600 * PIXEL_SCALE
-        fov_y = 400 * PIXEL_SCALE
+        fov_x = 700 * PIXEL_SCALE
+        fov_y = 500 * PIXEL_SCALE
 
         self.grid = []
         gx = x_min 
@@ -105,13 +111,13 @@ class QApplication(QtWidgets.QApplication):
         #self.grid.append("$H")
         # self.grid.append("$HY")
         #self.grid.append("$HY")
-        print(x_min, x_max)
-        print(y_min, y_max)
-        while gy < y_max - fov_y:
-            while gx < x_max - fov_x:
+
+        while gy < y_max:
+            gx = x_min
+            while gx < x_max:
+                # left to right
                 self.grid.append(f"$J=G90 G21 F{XY_FEED:.3f} X{gx:.3f} Y{gy:.3f}")
                 gx += fov_x
-            gx = x_min
             gy += fov_y
 
         print(self.grid)
@@ -120,8 +126,9 @@ class QApplication(QtWidgets.QApplication):
         if len(self.grid):
             self.acquisition = True
 
-            
-            self.tile_config = open("movie/TileConfiguration.txt", "w")
+            self.prefix = str(int(time.time()))
+            os.makedirs(f"movie/{self.prefix}")
+            self.tile_config = open(f"movie/{self.prefix}/TileConfiguration.txt", "w")
             self.tile_config.write("dim=2\n")
             self.tile_config.flush()
             self.counter = 0
@@ -157,54 +164,73 @@ class QApplication(QtWidgets.QApplication):
         if self.state != 'Home':
             self.scene.currentRect.setPos(self.scale_pos[0], self.scale_pos[1])
 
-            currentPixmapFlipped = QtGui.QPixmap.fromImage(self.currentImage.mirrored(horizontal=False, vertical=False))
-            self.scene.pixmap.setPixmap(currentPixmap)
-            self.scene.pixmap.setPos(self.scale_pos[0], self.scale_pos[1])
+            if not self.acquisition:
+                currentPixmapFlipped = QtGui.QPixmap.fromImage(self.currentImage.mirrored(horizontal=False, vertical=False))
+                self.scene.pixmap.setPixmap(currentPixmap)
+                self.scene.pixmap.setPos(self.scale_pos[0], self.scale_pos[1])
 
-            #self.main_window._image_window.setScaledContents(True)
+                #self.main_window._image_window.setScaledContents(True)
 
-            ci = self.scene.pixmap.collidingItems()
-            # Get the qpainterpath corresponding to the current image location, minus any overlapping images
-            qp = QtGui.QPainterPath()
-            qp.addRect(self.scene.pixmap.sceneBoundingRect())
-            qp2 = QtGui.QPainterPath()
-            for item in ci:
-                if isinstance(item, QtWidgets.QGraphicsPixmapItem):
-                    qp2.addRect(item.sceneBoundingRect())
+                ci = self.scene.pixmap.collidingItems()
+                # Get the qpainterpath corresponding to the current image location, minus any overlapping images
+                qp = QtGui.QPainterPath()
+                qp.addRect(self.scene.pixmap.sceneBoundingRect())
+                qp2 = QtGui.QPainterPath()
+                for item in ci:
+                    if isinstance(item, QtWidgets.QGraphicsPixmapItem):
+                        qp2.addRect(item.sceneBoundingRect())
 
-            qp3 = qp.subtracted(qp2)
-            p = qp3.toFillPolygon()
-            a = calculate_area(p)
-
-            if a > 120000:# and [item for item in ci if isinstance(item, QtWidgets.QGraphicsPixmapItem)] == []:
-                pm = self.scene.addPixmap(currentPixmapFlipped)
-                pm.setPos(self.scale_pos[0], self.scale_pos[1])
-                pm.setZValue(2)
-            
+                qp3 = qp.subtracted(qp2)
+                p = qp3.toFillPolygon()
+                a = calculate_area(p)
+                if a > 300000:# and [item for item in ci if isinstance(item, QtWidgets.QGraphicsPixmapItem)] == []:
+                    print("add pixmap")
+                    pm = self.scene.addPixmap(currentPixmapFlipped)
+                    pm.setPos(self.scale_pos[0], self.scale_pos[1])
+                    pm.setZValue(2)
+        
         self.scene.update()
+
 
         if went_idle:
             if self.acquisition:
                 if len(self.grid) == 0:
                     print("stop acquisition")
+                    self.snapPhoto()
                     self.acquisition = False
                     self.tile_config.close()
                 else:
                     print("collect acquisition frame (%d remaining)" % len(self.grid))
-                    fname = "image.%d.png" % self.counter
-                    if self.currentImage is not None:
-                        self.currentImage.convertToFormat(QtGui.QImage.Format_Grayscale8).save("movie/" + fname)
-                        if BIGSTITCH:
-                            index = str(self.counter)
-                        else:
-                            index = fname
-                        self.tile_config.write(f"{index}; ; ({self.scale_pos[0]}, {self.scale_pos[1]})\n")
-                        self.tile_config.flush()
-                        self.counter += 1
+                    self.snapPhoto()
+                    currentPixmapFlipped = QtGui.QPixmap.fromImage(self.currentImage.mirrored(horizontal=False, vertical=False))
+                    pm = self.scene.addPixmap(currentPixmapFlipped)
+                    pm.setPos(self.scale_pos[0], self.scale_pos[1])
+                    pm.setZValue(2)
 
                     cmd = self.grid.pop(0)
                     self.client.publish(f"{TARGET}/command", cmd)
         
+    def snapPhoto(self):
+        fname = f"movie/{self.prefix}/image.{self.counter}.png"
+        self.currentImage.save(fname)
+        # d = { 
+        #     'XPosition': self.scale_pos[0],
+        #     'YPosition': self.scale_pos[1]
+        # }
+        #p = draw_data.reshape(draw_data.shape[0], draw_data.shape[1], 3)
+
+        # tifffile.imwrite(fname, p, extratags=(
+        #         ("XPosition", 's', 0, str(self.scale_pos[0]), True),
+        #         ("YPosition", 's', 0, str(self.scale_pos[1]), True),
+        # ))
+
+        if BIGSTITCH:
+            index = str(self.counter)
+        else:
+            index = os.path.basename(fname)
+        self.tile_config.write(f"{index}; ; ({self.scale_pos[0]}, {self.scale_pos[1]})\n")
+        self.tile_config.flush()
+        self.counter += 1
 
 if __name__ == '__main__':
     #signal.signal(signal.SIGINT, signal.SIG_DFL)
