@@ -32,7 +32,7 @@
       <item>
        <widget class="ImageWindow" name="_image_window">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -59,7 +59,7 @@
         <property name="minimumSize">
          <size>
           <width>600</width>
-          <height>600</height>
+          <height>800</height>
          </size>
         </property>
        </widget>
