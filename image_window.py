@@ -20,6 +20,9 @@ class ImageWindow(QtWidgets.QLabel):
         if key == QtCore.Qt.Key_C:
             print("cancel")
             self.app.client.publish(f"{TARGET}/cancel", "")
+        if key == QtCore.Qt.Key_H:
+            print("home")
+            self.app.client.publish(f"{TARGET}/command", "$H")
         elif key == QtCore.Qt.Key_S:
             print("stop")
             self.app.grid = []
