@@ -9,6 +9,10 @@ class TileWindow(QtWidgets.QGraphicsView):
         self.app = QtWidgets.QApplication.instance()
         self.setMouseTracking(True)
 
+    def resizeEvent(self, event):
+        print("resize")
+        self.fitInView(self.app.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
+
     # def drawForeground(self, p, rect):
     #     if self.app.currentPosition is not None:
     #         p.save()
