@@ -8,7 +8,7 @@ from image_zmq_camera_reader import ImageZMQCameraReader
 from scene import Scene
 from mqtt_qobject import MqttClient
 
-from config import PIXEL_SCALE, TARGET, XY_FEED, Z_FEED
+from config import PIXEL_SCALE, TARGET, XY_FEED, Z_FEED, BIGSTITCH
 
 def calculate_area(qpolygon):
     area = 0
@@ -62,11 +62,8 @@ class QApplication(QtWidgets.QApplication):
         self.currentImage = None
 
 
-        self.tile_config = open("movie/TileConfiguration.txt", "w")
-        self.tile_config.write("dim=2\n")
-        self.tile_config.flush()
-        self.counter = 0
 
+        self.acquisition = False
 
     def moveTo(self, position):
         x = position.x()*PIXEL_SCALE
@@ -83,21 +80,23 @@ class QApplication(QtWidgets.QApplication):
         width = ep.x()-x
         height = ep.y()-y
         print(x, y, width, height)
+
+
         pen = QtGui.QPen(QtCore.Qt.green)
-        pen.setWidth(20)
-        color = QtGui.QColor(0, 0, 0)
+        pen.setWidth(50)
+        color = QtGui.QColor(QtCore.Qt.black)
+        color.setAlpha(0)
         brush = QtGui.QBrush(color)
- 
         rect = self.scene.addRect(x, y, width, height, pen=pen, brush=brush)
-        rect.setZValue(6)
-        rect.setOpacity(0.25)
+        rect.setZValue(1)
 
 
         x_min = sp.x()* PIXEL_SCALE
         y_min =  sp.y()* PIXEL_SCALE
         x_max = ep.x()* PIXEL_SCALE
         y_max =  ep.y()* PIXEL_SCALE
-        fov = 1200 * PIXEL_SCALE
+        fov_x = 600 * PIXEL_SCALE
+        fov_y = 400 * PIXEL_SCALE
 
         self.grid = []
         gx = x_min 
@@ -108,20 +107,28 @@ class QApplication(QtWidgets.QApplication):
         #self.grid.append("$HY")
         print(x_min, x_max)
         print(y_min, y_max)
-        while gy < y_max - fov/2:
-            while gx < x_max - fov/2:
+        while gy < y_max - fov_y:
+            while gx < x_max - fov_x:
                 self.grid.append(f"$J=G90 G21 F{XY_FEED:.3f} X{gx:.3f} Y{gy:.3f}")
-                gx += fov/2
+                gx += fov_x
             gx = x_min
-            gy += fov/2
+            gy += fov_y
 
         print(self.grid)
+        
+
         if len(self.grid):
+            self.acquisition = True
+
+            
+            self.tile_config = open("movie/TileConfiguration.txt", "w")
+            self.tile_config.write("dim=2\n")
+            self.tile_config.flush()
+            self.counter = 0
+
+            print("kickoff")
             cmd = self.grid.pop(0)
-            print("Run kickoff command:", cmd)
             self.client.publish(f"{TARGET}/command", cmd)
-        else:
-            print("no grid")
 
     def imageTo(self, message, draw_data):
         m = json.loads(message)
@@ -133,7 +140,7 @@ class QApplication(QtWidgets.QApplication):
         self.currentPosition = m['m_pos']
 
         pos = self.currentPosition
-        self.scale_pos = pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE
+        self.scale_pos = pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE, pos[2]/PIXEL_SCALE
         self.dro_window.x_value.display(pos[0])
         self.dro_window.y_value.display(pos[1])
         self.dro_window.z_value.display(pos[2])
@@ -148,11 +155,11 @@ class QApplication(QtWidgets.QApplication):
         self.main_window._image_window.adjustSize()
 
         if self.state != 'Home':
-            self.scene.currentRect.setPos(*self.scale_pos)
+            self.scene.currentRect.setPos(self.scale_pos[0], self.scale_pos[1])
 
             currentPixmapFlipped = QtGui.QPixmap.fromImage(self.currentImage.mirrored(horizontal=False, vertical=False))
             self.scene.pixmap.setPixmap(currentPixmap)
-            self.scene.pixmap.setPos(*self.scale_pos)
+            self.scene.pixmap.setPos(self.scale_pos[0], self.scale_pos[1])
 
             #self.main_window._image_window.setScaledContents(True)
 
@@ -169,23 +176,34 @@ class QApplication(QtWidgets.QApplication):
             p = qp3.toFillPolygon()
             a = calculate_area(p)
 
-            if a > 240000:# and [item for item in ci if isinstance(item, QtWidgets.QGraphicsPixmapItem)] == []:
+            if a > 120000:# and [item for item in ci if isinstance(item, QtWidgets.QGraphicsPixmapItem)] == []:
                 pm = self.scene.addPixmap(currentPixmapFlipped)
-                pm.setPos(*self.scale_pos)
+                pm.setPos(self.scale_pos[0], self.scale_pos[1])
                 pm.setZValue(2)
-            if went_idle and len(self.grid):
-                fname = "image.%05d.png" % self.counter
-                if self.currentImage is not None:
-                    self.currentImage.convertToFormat(QtGui.QImage.Format_Grayscale8).save("movie/" + fname)
-                    self.tile_config.write(f"{fname}; ; ({self.scale_pos[0]}, {self.scale_pos[1]})\n")
-                    self.tile_config.flush()
-                    self.counter += 1
+            
         self.scene.update()
 
         if went_idle:
-            if self.grid != []:
-                cmd = self.grid.pop(0)
-                self.client.publish(f"{TARGET}/command", cmd)
+            if self.acquisition:
+                if len(self.grid) == 0:
+                    print("stop acquisition")
+                    self.acquisition = False
+                    self.tile_config.close()
+                else:
+                    print("collect acquisition frame (%d remaining)" % len(self.grid))
+                    fname = "image.%d.png" % self.counter
+                    if self.currentImage is not None:
+                        self.currentImage.convertToFormat(QtGui.QImage.Format_Grayscale8).save("movie/" + fname)
+                        if BIGSTITCH:
+                            index = str(self.counter)
+                        else:
+                            index = fname
+                        self.tile_config.write(f"{index}; ; ({self.scale_pos[0]}, {self.scale_pos[1]})\n")
+                        self.tile_config.flush()
+                        self.counter += 1
+
+                    cmd = self.grid.pop(0)
+                    self.client.publish(f"{TARGET}/command", cmd)
         
 
 if __name__ == '__main__':

@@ -15,7 +15,6 @@ class ImageWindow(QtWidgets.QLabel):
     #         self.app.client.publish(f"{TARGET}/cancel", "")
 
     def keyPressEvent(self, event):
-        print("keytpress")
         key = event.key()  
         # check if autorepeat (only if doing cancelling-moves)  
         if key == QtCore.Qt.Key_C:
@@ -24,6 +23,9 @@ class ImageWindow(QtWidgets.QLabel):
         elif key == QtCore.Qt.Key_S:
             print("stop")
             self.app.grid = []
+        elif key == QtCore.Qt.Key_R:
+            print("reset tiles")
+            self.app.scene.clear()
         elif key == QtCore.Qt.Key_P:
             print("Take photo")
             fname = "image.%08.3f,%08.3f.png" % (self.app.scale_pos[1], self.app.scale_pos[0])
