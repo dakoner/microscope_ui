@@ -10,7 +10,7 @@ from PyQt5.uic import loadUi
 from image_zmq_camera_reader import ImageZMQCameraReader
 from scene import Scene
 from mqtt_qobject import MqttClient
-
+from stitcher import parse, TileWindow
 from config import PIXEL_SCALE, TARGET, XY_FEED, Z_FEED, BIGSTITCH
 
 def calculate_area(qpolygon):
@@ -65,9 +65,8 @@ class QApplication(QtWidgets.QApplication):
         self.camera.imageSignal.connect(self.imageTo)
         self.currentImage = None
 
-
-
         self.acquisition = False
+        self.tile_window = QtWidgets.QTabWidget()
 
     def cancel(self):
         self.client.publish(f"{TARGET}/cancel", "")
@@ -121,21 +120,27 @@ class QApplication(QtWidgets.QApplication):
             gy += fov_y
 
         print(self.grid)
-        
 
         if len(self.grid):
-            self.acquisition = True
+            self.acq_counter = 0
+            self.acq_prefix = str(int(time.time()))
+            os.makedirs(f"movie/{self.acq_prefix}")
+            self.startAcquisition()
 
-            self.prefix = str(int(time.time()))
-            os.makedirs(f"movie/{self.prefix}")
-            self.tile_config = open(f"movie/{self.prefix}/TileConfiguration.txt", "w")
-            self.tile_config.write("dim=2\n")
-            self.tile_config.flush()
-            self.counter = 0
 
-            print("kickoff")
-            cmd = self.grid.pop(0)
-            self.client.publish(f"{TARGET}/command", cmd)
+    def startAcquisition(self):
+        self.acquisition = True
+        self.prefix = f"{self.acq_prefix}/{self.acq_counter}"
+        os.makedirs(f"movie/{self.prefix}")
+        self.tile_config = open(f"movie/{self.prefix}/TileConfiguration.txt", "w")
+        self.tile_config.write("dim=2\n")
+        self.tile_config.flush()
+        self.counter = 0
+
+        print("kickoff")
+        self.orig_grid = self.grid[:]
+        cmd = self.grid.pop(0)
+        self.client.publish(f"{TARGET}/command", cmd)
 
     def imageTo(self, message, draw_data):
         m = json.loads(message)
@@ -161,7 +166,16 @@ class QApplication(QtWidgets.QApplication):
         self.main_window._image_window.setPixmap(currentPixmap)
         self.main_window._image_window.adjustSize()
 
-        if self.state != 'Home':
+        if self.state != 'Home': 
+            if not self.scene.currentRect:
+                pen = QtGui.QPen()
+                pen.setWidth(20)
+                color = QtGui.QColor(QtCore.Qt.red)
+                #color.setAlpha(1)
+                brush = QtGui.QBrush(color)
+                self.scene.currentRect = self.addRect(0, 0, draw_data.shape[1], draw_data.shape[0], pen=pen, brush=brush)
+                self.scene.currentRect.setZValue(20)
+
             self.scene.currentRect.setPos(self.scale_pos[0], self.scale_pos[1])
 
             if not self.acquisition:
@@ -199,6 +213,14 @@ class QApplication(QtWidgets.QApplication):
                     self.snapPhoto()
                     self.acquisition = False
                     self.tile_config.close()
+                    tw = TileWindow(parse(self.tile_config.name))
+                    self.tile_window.addTab(tw, str(self.acq_counter))
+                    self.tile_window.show()
+                    tw.show()
+                    self.grid = self.orig_grid[:]
+                    self.acq_counter += 1
+                    self.startAcquisition()
+
                 else:
                     print("collect acquisition frame (%d remaining)" % len(self.grid))
                     self.snapPhoto()

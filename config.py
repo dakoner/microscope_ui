@@ -2,8 +2,8 @@ IMAGEZMQ='raspberrypi.local'
 TARGET="raspberrypi"
 PORT=5000
 
+# Based on WIDTH=800, HEIGHT=600
 PIXEL_SCALE=0.00141509367
-
 WIDTH=800
 HEIGHT=600
 

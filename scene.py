@@ -1,7 +1,7 @@
 import functools
 import time
 from PyQt5 import QtWidgets, QtCore, QtGui
-from config import WIDTH, HEIGHT, PIXEL_SCALE
+from config import PIXEL_SCALE
 
 class Scene(QtWidgets.QGraphicsScene):
     def __init__(self, app, *args, **kwargs):
@@ -18,14 +18,7 @@ class Scene(QtWidgets.QGraphicsScene):
         self.borderRect = self.addRect(0, 0, 68/PIXEL_SCALE, 85/PIXEL_SCALE, pen=pen, brush=brush)
         self.borderRect.setZValue(255)
 
-
-        pen = QtGui.QPen()
-        pen.setWidth(20)
-        color = QtGui.QColor(QtCore.Qt.red)
-        #color.setAlpha(1)
-        brush = QtGui.QBrush(color)
-        self.currentRect = self.addRect(0, 0, WIDTH, HEIGHT, pen=pen, brush=brush)
-        self.currentRect.setZValue(20)
+        self.currentRect = None
 
         color = QtGui.QColor(25, 25, 25)
         brush = QtGui.QBrush(color)
