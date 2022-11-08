@@ -6,7 +6,7 @@ import serial
 import time
 import threading
 import paho.mqtt.client as mqtt
-
+from config import WIDTH, HEIGHT
 MQTT_SERVER="raspberrypi"
 DEVICE=sys.argv[1]
 TARGET=sys.argv[2]
@@ -47,11 +47,10 @@ class SerialInterface:
         self.image_thread.start()
 
     def get_image(self):
-        width = 800; height = 600
         cap = cv2.VideoCapture(0)
         port = 5000
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
         sender = imagezmq.ImageSender("tcp://*:{}".format(port), REQ_REP=False)
         counter = 0
         t0 = time.time()
