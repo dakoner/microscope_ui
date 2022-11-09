@@ -173,7 +173,7 @@ class QApplication(QtWidgets.QApplication):
                 color = QtGui.QColor(QtCore.Qt.red)
                 #color.setAlpha(1)
                 brush = QtGui.QBrush(color)
-                self.scene.currentRect = self.addRect(0, 0, draw_data.shape[1], draw_data.shape[0], pen=pen, brush=brush)
+                self.scene.currentRect = self.scene.addRect(0, 0, draw_data.shape[1], draw_data.shape[0], pen=pen, brush=brush)
                 self.scene.currentRect.setZValue(20)
 
             self.scene.currentRect.setPos(self.scale_pos[0], self.scale_pos[1])
