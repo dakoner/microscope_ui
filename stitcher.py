@@ -46,7 +46,7 @@ class Scene(QtWidgets.QGraphicsScene):
                 i = QtGui.QImage(filename)
                 p = QtGui.QPixmap(i)
                 item = self.addPixmap(p)
-                item.setPos(*coords)
+                item.setPos(coords[0], coords[1])
 
 class TileWindow(QtWidgets.QGraphicsView):
    
