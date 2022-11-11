@@ -4,3 +4,6 @@ outpy.mkv
 movie/
 movie.bak/
 movie.fullslide/
+data.npz
+test.zarr/
+chimerax/
