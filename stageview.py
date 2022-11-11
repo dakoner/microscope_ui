@@ -11,7 +11,7 @@ from PyQt5.uic import loadUi
 from image_zmq_camera_reader import ImageZMQCameraReader
 from scene import Scene
 from mqtt_qobject import MqttClient
-from config import PIXEL_SCALE, TARGET, XY_FEED, Z_FEED, BIGSTITCH, WIDTH, HEIGHT, FOV_X, FOV_X_PIXELS, FOV_Y, FOV_Y_PIXELS
+from config import PIXEL_SCALE, TARGET, XY_FEED, Z_FEED, WIDTH, HEIGHT, FOV_X, FOV_X_PIXELS, FOV_Y, FOV_Y_PIXELS
 
 
 def calculate_area(qpolygon):
@@ -130,22 +130,26 @@ class QApplication(QtWidgets.QApplication):
         #print(self.grid)
 
         if len(self.grid):
-            self.data = {}
+            self.prefix= "movie/" + str(int(time.time()))
+            os.makedirs(self.prefix)
+            with open(f"{self.prefix}/acquisition_config.json", "w") as w:
+                r = {
+                'pixel_scale': PIXEL_SCALE,
+                'fov_x': FOV_X,
+                'fov_y': FOV_Y,  
+                }
+                json.dump(r, w)
             self.acq_counter = 0
-            self.acq_prefix = str(int(time.time()))
-            os.makedirs(f"movie/{self.acq_prefix}")
+            self.tile_config = open(f"{self.prefix}/tile_config.json", "w")
             self.startAcquisition()
 
 
     def startAcquisition(self):
         self.acquisition = True
-        self.prefix = f"{self.acq_prefix}/{self.acq_counter}"
-        os.makedirs(f"movie/{self.prefix}")
-        self.tile_config = open(f"movie/{self.prefix}/TileConfiguration.txt", "w")
-        self.tile_config.write("dim=2\n")
-        self.tile_config.flush()
+
         self.counter = 0
 
+        # set up to hold space for n_z, n_c, n_y, n_x
         print("kickoff")
         self.orig_grid = self.grid[:]
         addr, cmd = self.grid.pop(0)
@@ -221,15 +225,13 @@ class QApplication(QtWidgets.QApplication):
                 if len(self.grid) == 0:
                     self.snapPhoto()
                     self.acquisition = False
-                    self.tile_config.close()
                     
                     self.grid = self.orig_grid[:]
                     self.acq_counter += 1
                     if self.acq_counter < 7:
                         self.startAcquisition()
                     else:
-                        np.savez("data.npz", **self.data)
-                        print("done with acquisition")
+                        self.tile_config.close()
                 else:
                     print("collect acquisition frame (%d remaining)" % len(self.grid))
                     self.snapPhoto()
@@ -243,30 +245,22 @@ class QApplication(QtWidgets.QApplication):
                     self.client.publish(f"{TARGET}/command", cmd)
         
     def snapPhoto(self):
-        fname = f"movie/{self.prefix}/image.{self.counter}.png"
+        fname = f"{self.prefix}/{self.acq_counter}_{self.counter}.tiff"
         self.currentImage.save(fname)
-        index = [self.acq_counter]
-        index.extend(self.array_index)
-        print("At index", index)
-        self.data[str(index)] = self.draw_data.transpose(2,0,1)
-        #pos = num_x*FOV_Y_PIXELS+HEIGHT, num_y*FOV_X_PIXELS+WIDTH
-
-        # d = { 
-        #     'XPosition': self.scale_pos[0],
-        #     'YPosition': self.scale_pos[1]
-        # }
-        #p = draw_data.reshape(draw_data.shape[0], draw_data.shape[1], 3)
-
-        # tifffile.imwrite(fname, p, extratags=(
-        #         ("XPosition", 's', 0, str(self.scale_pos[0]), True),
-        #         ("YPosition", 's', 0, str(self.scale_pos[1]), True),
-        # ))
-
-        if BIGSTITCH:
-            index = str(self.counter)
-        else:
-            index = os.path.basename(fname)
-        self.tile_config.write(f"{index}; ; ({self.scale_pos[0]}, {self.scale_pos[1]})\n")
+        r = {
+            'fname': fname,
+            'gz': self.array_index[0],
+            'gy': self.array_index[1],
+            'gx': self.array_index[2],
+            'acquisition_counter': self.acq_counter,
+            'x': self.scale_pos[1],
+            'y': self.scale_pos[0],
+            'z': self.scale_pos[2],
+            'width': self.currentImage.width(),
+            'height': self.currentImage.height()
+        }
+        json.dump(r, self.tile_config)
+        self.tile_config.write("\n")
         self.tile_config.flush()
         self.counter += 1
 
