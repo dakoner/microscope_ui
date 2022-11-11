@@ -1,3 +1,4 @@
+import numpy as np
 import tifffile
 import os
 import time
@@ -10,8 +11,8 @@ from PyQt5.uic import loadUi
 from image_zmq_camera_reader import ImageZMQCameraReader
 from scene import Scene
 from mqtt_qobject import MqttClient
-from stitcher import parse, TileWindow
-from config import PIXEL_SCALE, TARGET, XY_FEED, Z_FEED, BIGSTITCH
+from config import PIXEL_SCALE, TARGET, XY_FEED, Z_FEED, BIGSTITCH, WIDTH, HEIGHT, FOV_X, FOV_X_PIXELS, FOV_Y, FOV_Y_PIXELS
+
 
 def calculate_area(qpolygon):
     area = 0
@@ -84,7 +85,6 @@ class QApplication(QtWidgets.QApplication):
         y = sp.y()
         width = ep.x()-x
         height = ep.y()-y
-        print(x, y, width, height)
 
 
         pen = QtGui.QPen(QtCore.Qt.green)
@@ -100,28 +100,37 @@ class QApplication(QtWidgets.QApplication):
         y_min =  sp.y()* PIXEL_SCALE
         x_max = ep.x()* PIXEL_SCALE
         y_max =  ep.y()* PIXEL_SCALE
-        fov_x = 700 * PIXEL_SCALE
-        fov_y = 500 * PIXEL_SCALE
+        
 
         self.grid = []
-        gx = x_min 
-        gy = y_min
+        dz = [-0.2, -0.1, 0, 0.1, 0.2]
+        
 
         #self.grid.append("$H")
         # self.grid.append("$HY")
         #self.grid.append("$HY")
 
-        while gy < y_max:
-            gx = x_min
-            while gx < x_max:
-                # left to right
-                self.grid.append(f"$J=G90 G21 F{XY_FEED:.3f} X{gx:.3f} Y{gy:.3f}")
-                gx += fov_x
-            gy += fov_y
+        z = self.currentPosition[2]
+        num_z = len(dz)
+        ys = np.arange(y_min, y_max, FOV_Y)
+        num_y = len(ys)
+        xs = np.arange(x_min, x_max, FOV_X)
+        num_x = len(xs)
+        
 
-        print(self.grid)
+        self.dimensions = (num_z, num_y, num_x)
+
+        for i, deltaz in enumerate(dz):
+            for j, gy in enumerate(ys):
+                for k, gx in enumerate(xs):
+                    curr_z = z + deltaz
+                    g = f"$J=G90 G21 F{XY_FEED:.3f} X{gx:.3f} Y{gy:.3f} Z{curr_z:.3f}"
+                    self.grid.append(((i,j,k),g))
+
+        #print(self.grid)
 
         if len(self.grid):
+            self.data = {}
             self.acq_counter = 0
             self.acq_prefix = str(int(time.time()))
             os.makedirs(f"movie/{self.acq_prefix}")
@@ -139,7 +148,8 @@ class QApplication(QtWidgets.QApplication):
 
         print("kickoff")
         self.orig_grid = self.grid[:]
-        cmd = self.grid.pop(0)
+        addr, cmd = self.grid.pop(0)
+        self.array_index = addr
         self.client.publish(f"{TARGET}/command", cmd)
 
     def imageTo(self, message, draw_data):
@@ -152,7 +162,8 @@ class QApplication(QtWidgets.QApplication):
         self.currentPosition = m['m_pos']
 
         pos = self.currentPosition
-        self.scale_pos = pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE, pos[2]/PIXEL_SCALE
+        # Z not scaled because it's already in mm
+        self.scale_pos = pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE, pos[2]
         self.dro_window.x_value.display(pos[0])
         self.dro_window.y_value.display(pos[1])
         self.dro_window.z_value.display(pos[2])
@@ -160,7 +171,7 @@ class QApplication(QtWidgets.QApplication):
 
 
 
-
+        self.draw_data = draw_data
         self.currentImage = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
         currentPixmap = QtGui.QPixmap.fromImage(self.currentImage.mirrored(horizontal=False, vertical=False))
         self.main_window._image_window.setPixmap(currentPixmap)
@@ -198,7 +209,6 @@ class QApplication(QtWidgets.QApplication):
                 p = qp3.toFillPolygon()
                 a = calculate_area(p)
                 if a > 300000:# and [item for item in ci if isinstance(item, QtWidgets.QGraphicsPixmapItem)] == []:
-                    print("add pixmap")
                     pm = self.scene.addPixmap(currentPixmapFlipped)
                     pm.setPos(self.scale_pos[0], self.scale_pos[1])
                     pm.setZValue(2)
@@ -209,18 +219,17 @@ class QApplication(QtWidgets.QApplication):
         if went_idle:
             if self.acquisition:
                 if len(self.grid) == 0:
-                    print("stop acquisition")
                     self.snapPhoto()
                     self.acquisition = False
                     self.tile_config.close()
-                    tw = TileWindow(parse(self.tile_config.name))
-                    self.tile_window.addTab(tw, str(self.acq_counter))
-                    self.tile_window.show()
-                    tw.show()
+                    
                     self.grid = self.orig_grid[:]
                     self.acq_counter += 1
-                    self.startAcquisition()
-
+                    if self.acq_counter < 7:
+                        self.startAcquisition()
+                    else:
+                        np.savez("data.npz", **self.data)
+                        print("done with acquisition")
                 else:
                     print("collect acquisition frame (%d remaining)" % len(self.grid))
                     self.snapPhoto()
@@ -229,12 +238,19 @@ class QApplication(QtWidgets.QApplication):
                     pm.setPos(self.scale_pos[0], self.scale_pos[1])
                     pm.setZValue(2)
 
-                    cmd = self.grid.pop(0)
+                    addr, cmd = self.grid.pop(0)
+                    self.array_index = addr
                     self.client.publish(f"{TARGET}/command", cmd)
         
     def snapPhoto(self):
         fname = f"movie/{self.prefix}/image.{self.counter}.png"
         self.currentImage.save(fname)
+        index = [self.acq_counter]
+        index.extend(self.array_index)
+        print("At index", index)
+        self.data[str(index)] = self.draw_data.transpose(2,0,1)
+        #pos = num_x*FOV_Y_PIXELS+HEIGHT, num_y*FOV_X_PIXELS+WIDTH
+
         # d = { 
         #     'XPosition': self.scale_pos[0],
         #     'YPosition': self.scale_pos[1]

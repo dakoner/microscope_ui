@@ -5,7 +5,7 @@ class TileWindow(QtWidgets.QGraphicsView):
    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setSceneRect(0, 0, 60/PIXEL_SCALE, 60/PIXEL_SCALE)
+        self.setSceneRect(0, 0, 70/PIXEL_SCALE, 125/PIXEL_SCALE)
         self.app = QtWidgets.QApplication.instance()
         self.setMouseTracking(True)
 
