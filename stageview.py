@@ -136,7 +136,9 @@ class QApplication(QtWidgets.QApplication):
                 r = {
                 'pixel_scale': PIXEL_SCALE,
                 'fov_x': FOV_X,
-                'fov_y': FOV_Y,  
+                'fov_y': FOV_Y,   
+                'width': WIDTH,
+                'height': HEIGHT
                 }
                 json.dump(r, w)
             self.acq_counter = 0
@@ -256,8 +258,6 @@ class QApplication(QtWidgets.QApplication):
             'x': self.scale_pos[1],
             'y': self.scale_pos[0],
             'z': self.scale_pos[2],
-            'width': self.currentImage.width(),
-            'height': self.currentImage.height()
         }
         json.dump(r, self.tile_config)
         self.tile_config.write("\n")
