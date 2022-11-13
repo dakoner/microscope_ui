@@ -25,6 +25,8 @@ class ImageWindow(QtWidgets.QLabel):
             self.app.client.publish(f"{TARGET}/command", "$H")
         elif key == QtCore.Qt.Key_S:
             print("stop")
+            self.app.client.publish(f"{TARGET}/cancel", "")
+            self.app.acquisition = False
             self.app.grid = []
         elif key == QtCore.Qt.Key_R:
             print("reset tiles")
