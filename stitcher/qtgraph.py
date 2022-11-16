@@ -18,9 +18,10 @@ class QApplication(QtWidgets.QApplication):
         loadUi("qtgraph.ui", self.main_window)
         self.main_window.show()
 
-        data = np.load("c:\\Users\\dek\\Desktop\\data2.npy")
+        data = np.load("c:\\Users\\dek\\Desktop\\data.npy")
+        data = data[:, 0, :, :]
         self.main_window.graphicsView.setImage(data, xvals=np.linspace(1., 20., data.shape[0]))
-
+        self.main_window.graphicsView.play(10)
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -29,23 +30,4 @@ if __name__ == '__main__':
     pg.setConfigOptions(imageAxisOrder='row-major')
 
     app = QApplication(sys.argv)
-
-    # # Display the data and assign each frame a time value from 1.0 to 3.0
-    # imv.setImage(data, xvals=np.linspace(1., 20., data.shape[0]))
-    # imv.play(10)
-
-    # ## Set a custom color map
-    # colors = [
-    #     (0, 0, 0),
-    #     (45, 5, 61),
-    #     (84, 42, 55),
-    #     (150, 87, 60),
-    #     (208, 171, 141),
-    #     (255, 255, 255)
-    # ]
-    # cmap = pg.ColorMap(pos=np.linspace(0.0, 1.0, 6), color=colors)
-    # imv.setColorMap(cmap)
-
     app.exec()
-
-

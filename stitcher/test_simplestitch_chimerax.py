@@ -65,10 +65,11 @@ from config import FOV_X_PIXELS, FOV_Y_PIXELS, WIDTH, HEIGHT # should obtain fro
 #                     **options)
 
 def main():
-    prefix = "movie/1668194778"
+    prefix = "movie/1668218840"
     r = pd.read_json(f"{prefix}/tile_config.json", lines=True)
     r.set_index(['acquisition_counter', 'gx', 'gy', 'gz'])
-    for t in r.acquisition_counter.unique():
+    for t in r.acquisition_counter.unique()[:-1]:
+        print(t)
         # Get all items in time t
         d = r[r.acquisition_counter == t]
 
@@ -78,27 +79,29 @@ def main():
 
 
         # We now have all the CZYX data for a time
-        # Iterate over all Z planes
+    
         for gz in d.gz.unique():
             d2 = d[d.gz == gz]
-            # output: C, Y, X
             o = np.zeros(shape=(3, y_max, x_max), dtype=np.ubyte)
-            # all overlapping tiles in this Z plane
             for row in d2.itertuples():
                 fname = row.fname
                 data = tifffile.imread(row.fname)
+                x0 = row.gx * FOV_X_PIXELS
+                y0 = row.gy * FOV_Y_PIXELS
+                x1 = x0 + WIDTH
+                y1 = y0 + HEIGHT
                 for c in range(3):
-                    channel_data = data[:, :, c]
-                    x0 = row.gx * FOV_X_PIXELS
-                    y0 = row.gy * FOV_Y_PIXELS
-                    x1 = x0 + WIDTH
-                    y1 = y0 + HEIGHT
                     # add this tile's channel-specific data to the full Z-plane
-                    o[c, y0:y1, x0:x1] = channel_data
+                    o[c, y0:y1, x0:x1] = data[:, :, c]
             for c in range(3):
                 out_fname = f"chimerax/image_{t}_{c}_{gz}.tiff"
                 with tifffile.TiffWriter(out_fname) as tif:
-                    tif.write(o[c])
+                    tif.write(
+                        o[c],
+                        tile=(32, 32),
+                        compression='zlib',
+                        compressionargs={'level': 8}
+                        )
     
 if __name__ == '__main__':
     main()

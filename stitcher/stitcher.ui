@@ -6,21 +6,27 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>1600</width>
+    <height>1200</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="CentralWidget" name="centralwidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
    <widget class="TabWidget" name="tabWidget">
     <property name="geometry">
      <rect>
       <x>-1</x>
       <y>-1</y>
-      <width>791</width>
-      <height>561</height>
+      <width>1600</width>
+      <height>1200</height>
      </rect>
     </property>
     <property name="currentIndex">
@@ -33,7 +39,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>1600</width>
      <height>18</height>
     </rect>
    </property>

@@ -3,10 +3,11 @@ import numpy as np
 import tifffile
 from config import FOV_X_PIXELS, FOV_Y_PIXELS, WIDTH, HEIGHT # should obtain from movie json.
 
+
 adj_FOV_Y_PIXELS=FOV_Y_PIXELS+5
 def get_data():
     prefix = "z:\\src\\microscope_ui"
-    r = pd.read_json(f"{prefix}\\movie\\1668311323\\tile_config.json", lines=True)
+    r = pd.read_json(f"{prefix}\\movie\\1668366874\\tile_config.json", lines=True)
     r.set_index(['acquisition_counter', 'gx', 'gy', 'gz'])
     os = []
     t_max = len(r.acquisition_counter.unique())
@@ -37,5 +38,4 @@ if __name__ == '__main__':
     o = get_data()
     # T Z Y X C
     np.save("c:\\Users\\dek\\Desktop\\data.npy", o)
-    o2 = o[:, 0, :, :, 0]
-    np.save("c:\\Users\\dek\\Desktop\\data2.npy", o2)
+    

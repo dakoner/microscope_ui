@@ -1,3 +1,6 @@
+import pandas as pd
+import tifffile
+import numpy as np
 import glob
 import json
 import sys
@@ -6,31 +9,8 @@ import signal
 from PyQt5 import QtGui, QtCore, QtWidgets
 import os
 from PyQt5.uic import loadUi
+from config import FOV_X_PIXELS, FOV_Y_PIXELS, WIDTH, HEIGHT # should obtain from movie json.
 
-
-def parse(filename):
-    results = []
-    f = open(filename)
-    l = f.readlines()
-    for i in range(len(l)):
-        line = l[i]
-        if line[0] == '#':
-            continue
-        elif line.startswith("dim="):
-            continue
-        elif line == '\n':
-            continue
-        else: # possibly an image line
-            try:
-                image_filename, _, coords = line.split(";")
-            except ValueError:
-                print("Failed to parse", line)
-            else:
-                dir_ = os.path.dirname(filename)
-                fname = os.path.join(dir_, image_filename)
-               
-                results.append((fname, eval(coords)))
-    return results
 
 
 class Scene(QtWidgets.QGraphicsScene):
@@ -38,36 +18,44 @@ class Scene(QtWidgets.QGraphicsScene):
         super().__init__(*args, **kwargs)
         
 
-    def addResults(self, results):
-        for filename, coords in results:
-            if not os.path.exists(filename):
-                print("Could not locate", filename)
-            else:
-                i = QtGui.QImage(filename)
-                p = QtGui.QPixmap(i)
-                item = self.addPixmap(p)
-                item.setPos(coords[0], coords[1])
+    def addResults(self, d):
+
+        #o = np.zeros(shape=(z_max, y_max, x_max, c_max), dtype=np.ubyte)
+
+        # We now have all the ZYXC data for a time
+        for row in d.itertuples():
+            fname = row.fname
+            #data = tifffile.imread(f"{prefix}/{row.fname}")
+            x0 = row.gx * FOV_X_PIXELS
+            y0 = row.gy * FOV_Y_PIXELS
+            i = QtGui.QImage(fname)
+            p = QtGui.QPixmap(i)
+            item = self.addPixmap(p)
+            item.setPos(x0, y0)
+
+    def resizeEvent(self, event):
+        print("scene resize")
 
 class TileWindow(QtWidgets.QGraphicsView):
    
     def __init__(self, results, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+        print("tile window")
         self.scene = Scene()
         self.scene.addResults(results)
 
         self.setScene(self.scene)
 
         self.setMouseTracking(True)
-        self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
-        self.setResizeAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
+        #self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
+        #self.setResizeAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
 
 
-        r = self.scene.sceneRect()
-        self.fitInView(r, QtCore.Qt.KeepAspectRatio)
-        self.scale(2,2)
+        #r = self.scene.sceneRect()
+        #self.fitInView(r, QtCore.Qt.KeepAspectRatio)
+        #self.scale(2,2)
 
     def mousePressEvent(self, event):
         print("mouse press", event.buttons())
@@ -99,8 +87,8 @@ class TileWindow(QtWidgets.QGraphicsView):
             print("mouse moved while left button pressed")
             delta = event.pos() - self.press
             print("delta", delta)
-            #self.translate(delta.x(), delta.y())
-            self.translate(1, 1)
+            self.translate(delta.x(), delta.y())
+            #self.translate(1, 1)
             #event.accept()
 
 
@@ -108,13 +96,29 @@ class TileWindow(QtWidgets.QGraphicsView):
         print("tile window resizeEvent")
         #self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
         #self.scale(2,2)
-        event.accept()
+        #event.accept()
 
 
 class TabWidget(QtWidgets.QTabWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         print("custom tab widget")
+
+        prefix = "z:\\src\\microscope_ui"
+        r = pd.read_json(f"{prefix}\\movie\\1668311323\\tile_config.json", lines=True)
+        r.set_index(['acquisition_counter', 'gx', 'gy', 'gz'])
+        t_max = len(r.acquisition_counter.unique())
+        z_max = len(r.gz.unique())
+        x_max = r.gx.max()*FOV_X_PIXELS+WIDTH
+        y_max = r.gy.max()*FOV_Y_PIXELS+HEIGHT
+        c_max = 3 
+        for t in r.acquisition_counter.unique():
+            print(t)
+            # Get all items in time t
+            d = r[r.acquisition_counter == t]
+
+            self.addTab(TileWindow(d), str(t))
+
 
 
     def resizeEvent(self, event):
@@ -126,9 +130,7 @@ class CentralWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         print("central widget")
-        print("findChild", self.findChild(QtWidgets.QTabWidget))
-
-
+        
     def resizeEvent(self, event):
         print("central widget resizeEvent")
 
@@ -137,23 +139,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         loadUi("stitcher.ui", self)
-        print(self.dumpObjectTree())
-        #self.run()
         self.setCentralWidget(self.centralwidget)
-        self.run()
-
-    def run(self):
-        g = glob.glob(sys.argv[1])
-        g.sort(key=lambda x: int(os.path.basename(x)))
-        for f in g[:1]:
-            results = parse(f"{f}\\TileConfiguration.txt")
-            #print(results)
-            tile_window = TileWindow(results)
-            label = os.path.basename(f)
-            self.tabWidget.addTab(tile_window, label)
-            self.tabWidget.show()
-
-
+                
+        
     def resizeEvent(self, event):
         print("main window  resize event")
         self.centralWidget().resizeEvent(event)
@@ -163,11 +151,11 @@ class QApplication(QtWidgets.QApplication):
         super().__init__(*argv)
 
 
+
+
         self.main_window = MainWindow()
         self.main_window.show()
-
-
-
+        #self.main_window.dumpObjectTree()
 
 
 if __name__ == '__main__':
