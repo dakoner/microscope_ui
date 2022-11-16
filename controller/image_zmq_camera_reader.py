@@ -3,7 +3,9 @@ import json
 import simplejpeg
 import imagezmq
 import numpy as np
-from config import IMAGEZMQ, PORT
+import sys
+sys.path.append("..")
+from microscope_ui.config import IMAGEZMQ, PORT
 
 
 
