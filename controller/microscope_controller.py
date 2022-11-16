@@ -4,12 +4,12 @@ import numpy as np
 import functools
 import json
 import sys
-sys.path.append("..")
 import signal
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.uic import loadUi
 from image_zmq_camera_reader import ImageZMQCameraReader
-from config import PIXEL_SCALE, TARGET, XY_FEED, XY_STEP_SIZE, Z_FEED, Z_STEP_SIZE, HEIGHT, WIDTH, FOV_X, FOV_Y
+sys.path.append("..")
+from microscope_ui.config import PIXEL_SCALE, TARGET, XY_FEED, XY_STEP_SIZE, Z_FEED, Z_STEP_SIZE, HEIGHT, WIDTH, FOV_X, FOV_Y
 from mqtt_qobject import MqttClient
 
 
@@ -27,21 +27,21 @@ class PythonConsole(QtWidgets.QPlainTextEdit):
         super().__init__(*args, **kwargs)
 
         self.appendPlainText('>>> ')
-        self.installEventFilter(self)
+        #self.installEventFilter(self)
         self.interp = code.InteractiveInterpreter()
         self.curPos = self.textCursor().position()
 
-    def eventFilter(self, obj, event):
-        if event.type() == QtCore.QEvent.KeyPress:
-            if event.key() == QtCore.Qt.Key_Return and self.hasFocus():
-                c = self.toPlainText()[self.curPos:self.textCursor().position()]
-                print(c)
-                result = self.interp.runsource(c)
-                print(result)
-                self.appendPlainText("\n>>> ")
-                self.curPos = self.textCursor().position()
+    # def eventFilter(self, obj, event):
+    #     if event.type() == QtCore.QEvent.KeyPress:
+    #         if event.key() == QtCore.Qt.Key_Return and self.hasFocus():
+    #             c = self.toPlainText()[self.curPos:self.textCursor().position()]
+    #             print(c)
+    #             result = self.interp.runsource(c)
+    #             print(result)
+    #             self.appendPlainText("\n>>> ")
+    #             self.curPos = self.textCursor().position()
 
-        return super().eventFilter(obj, event)
+    #     return super().eventFilter(obj, event)
 
 class Scene(QtWidgets.QGraphicsScene):
     def __init__(self, main_window, *args, **kwargs):
@@ -70,49 +70,82 @@ class Scene(QtWidgets.QGraphicsScene):
         return super().mouseReleaseEvent(event)
 
 
-        def keyPressEvent(event):
-            print("keypress",event)
-            key = event.key()  
-            # check if autorepeat (only if doing cancelling-moves)  
-            if key == QtCore.Qt.Key_C:
-                print("cancel")
-                self.client.publish(f"{TARGET}/cancel", "")
-            if key == QtCore.Qt.Key_H:
-                print("home")
-                self.client.publish(f"{TARGET}/command", "$H")
-            elif key == QtCore.Qt.Key_S:
-                print("stop")
-                self.client.publish(f"{TARGET}/cancel", "")
-                self.grid = []
-            elif key == QtCore.Qt.Key_R:
-                print("reset tiles")
-                self.scene.clear()
-            elif self.camera.state == "Idle":
-                if key == QtCore.Qt.Key_Left:
-                    cmd = f"$J=G91 G21 F{XY_FEED:.3f} X-{XY_STEP_SIZE:.3f}"
-                    self.client.publish(f"{TARGET}/command", cmd)
-                elif key == QtCore.Qt.Key_Right:
-                    cmd = f"$J=G91 G21 F{XY_FEED:.3f} X{XY_STEP_SIZE:.3f}"
-                    self.client.publish(f"{TARGET}/command", cmd)
-                elif key == QtCore.Qt.Key_Up:
-                    cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y-{XY_STEP_SIZE:.3f}"
-                    self.client.publish(f"{TARGET}/command", cmd)
-                elif key == QtCore.Qt.Key_Down:
-                    cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y{XY_STEP_SIZE:.3f}"
-                    self.client.publish(f"{TARGET}/command", cmd)
-                elif key == QtCore.Qt.Key_Plus:
-                    cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z-{Z_STEP_SIZE:.3f}"
-                    self.client.publish(f"{TARGET}/command", cmd)
-                elif key == QtCore.Qt.Key_Minus:
-                    cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z{Z_STEP_SIZE:.3f}"
-                    self.client.publish(f"{TARGET}/command", cmd)
+class ScannedImage(QtWidgets.QLabel):
+    def __init__(self, width, height, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.canvas = QtGui.QImage(width, height, QtGui.QImage.Format_ARGB32)
+        self.canvas.fill(QtCore.Qt.transparent)
+
+        self.setFixedSize(width, height)
+
+    def addImage(self, pos, image):
+        p = QtGui.QPainter()
+
+        p.begin(self.canvas)
+        p.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
+        x= int(pos.x())
+        y= int(pos.y())
+        p.drawImage(x, y, image)
+        p.end()
+        self.setPixmap(QtGui.QPixmap.fromImage(self.canvas))
+        self.update()
+        
+class ImageView(QtWidgets.QLabel):
+    def __init__(self, *args, **kwargs):
+        print("ImageView")
+        super().__init__(*args, **kwargs)
+        self.setFocusPolicy(True)
+        
+   
+
+    def keyPressEvent(self, event):
+        print("keypress",event)
+ 
+        app = QtWidgets.QApplication.instance()
+        self.client = app.main_window.client
+        self.camera = app.main_window.camera
+        self.scene = app.main_window.scene
+        key = event.key()  
+        # check if autorepeat (only if doing cancelling-moves)  
+        if key == QtCore.Qt.Key_C:
+            print("cancel")
+            self.client.publish(f"{TARGET}/cancel", "")
+        if key == QtCore.Qt.Key_H:
+            print("home")
+            self.client.publish(f"{TARGET}/command", "$H")
+        elif key == QtCore.Qt.Key_S:
+            print("stop")
+            self.client.publish(f"{TARGET}/cancel", "")
+            self.grid = []
+        elif key == QtCore.Qt.Key_R:
+            print("reset tiles")
+            self.scene.clear()
+        elif self.camera.state == "Idle":
+            if key == QtCore.Qt.Key_Left:
+                print("left")
+                cmd = f"$J=G91 G21 F{XY_FEED:.3f} X-{XY_STEP_SIZE:.3f}"
+                self.client.publish(f"{TARGET}/command", cmd)
+            elif key == QtCore.Qt.Key_Right:
+                cmd = f"$J=G91 G21 F{XY_FEED:.3f} X{XY_STEP_SIZE:.3f}"
+                self.client.publish(f"{TARGET}/command", cmd)
+            elif key == QtCore.Qt.Key_Up:
+                cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y-{XY_STEP_SIZE:.3f}"
+                self.client.publish(f"{TARGET}/command", cmd)
+            elif key == QtCore.Qt.Key_Down:
+                cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y{XY_STEP_SIZE:.3f}"
+                self.client.publish(f"{TARGET}/command", cmd)
+            elif key == QtCore.Qt.Key_Plus:
+                cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z-{Z_STEP_SIZE:.3f}"
+                self.client.publish(f"{TARGET}/command", cmd)
+            elif key == QtCore.Qt.Key_Minus:
+                cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z{Z_STEP_SIZE:.3f}"
+                self.client.publish(f"{TARGET}/command", cmd)
+        return super().keyPressEvent(event)
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
-        self.app = QtWidgets.QApplication.instance()
         super().__init__(*args, **kwargs)
-        print("loading ui")
-        loadUi("microscope_controller.ui", self)
+        loadUi("controller/microscope_controller.ui", self)
 
         self.client = MqttClient(self)
         self.client.hostname = "raspberrypi.local"
@@ -124,14 +157,14 @@ class MainWindow(QtWidgets.QMainWindow):
         pen.setWidth(1)
         color = QtGui.QColor()
         brush = QtGui.QBrush(color)
-        self.stageRect = self.scene.addRect(0, 0, 50/PIXEL_SCALE, 85/PIXEL_SCALE, pen=pen, brush=brush)
+        self.stageRect = self.scene.addRect(0, 0, 68/PIXEL_SCALE, 85/PIXEL_SCALE, pen=pen, brush=brush)
         self.stageRect.setZValue(0)
 
         pen = QtGui.QPen(QtCore.Qt.green)
         pen.setWidth(50)
         brush = QtGui.QBrush()
         self.currentRect = self.scene.addRect(0, 0, WIDTH, HEIGHT, pen=pen, brush=brush)
-        self.currentRect.setZValue(0)
+        self.currentRect.setZValue(1)
 
         self.scene.setSceneRect(self.stageRect.boundingRect())
         self.graphicsView.setScene(self.scene)
@@ -150,15 +183,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.camera.start()
 
         self.grid = []
-        self.extra_views = []
-
-
-        # # should be a label/pixmap not a graphicsview on the same scene
-        # # because it was receiving mouse events    
-        # self.gv2 = QtWidgets.QGraphicsView()
-        # self.gv2.setScene(self.scene)
-        # self.gv2.show()
-        # self.gv2.setFixedSize(800, 600)
 
     def rubberBandChanged(self, rect, from_ , to):
         if from_.isNull() and to.isNull():    
@@ -167,27 +191,29 @@ class MainWindow(QtWidgets.QMainWindow):
             color = QtGui.QColor(QtCore.Qt.black)
             color.setAlpha(0)
             brush = QtGui.QBrush(color)
+            
             rect = self.scene.addRect(
                 self.lastRubberBand[0].x(), self.lastRubberBand[0].y(),
-                self.lastRubberBand[1].x()-self.lastRubberBand[0].x(), self.lastRubberBand[1].y()-self.lastRubberBand[0].y(),
+                self.lastRubberBand[1].x()-self.lastRubberBand[0].x(), 
+                self.lastRubberBand[1].y()-self.lastRubberBand[0].y(),
                 pen=pen, brush=brush)
             rect.setZValue(1)
 
             self.grid = self.generateGrid(*self.lastRubberBand)
-            # implement this as a Qimage?
-            gv = QtWidgets.QGraphicsView()
-            gv.setScene(self.scene)
-            gv.fitInView(rect.rect(), QtCore.Qt.KeepAspectRatio)
-            gv.setFixedSize(800, 600)
-            gv.show()
+            self.startPos = QtCore.QPointF(self.lastRubberBand[0].x(), self.lastRubberBand[0].y())
+            
+            self.scanned_image = ScannedImage(
+                int(self.lastRubberBand[1].x()-self.lastRubberBand[0].x())+WIDTH, 
+                int(self.lastRubberBand[1].y()-self.lastRubberBand[0].y())+HEIGHT)
+            self.scanned_image.show()
 
-            self.extra_views.append(gv)
 
             addr, cmd = self.grid.pop(0)
             self.client.publish(f"{TARGET}/command", cmd)
         else:
             self.lastRubberBand = from_, to
-        
+
+
     def generateGrid(self, from_, to):
         grid = []
         dz = [0]
@@ -215,6 +241,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     g = f"$J=G90 G21 F{XY_FEED:.3f} X{gx:.3f} Y{gy:.3f} Z{curr_z:.3f}"
                     grid.append(((i,j,k),g))
 
+        grid.append(None)
         return grid
 
     def resizeEvent(self, *args):
@@ -224,31 +251,43 @@ class MainWindow(QtWidgets.QMainWindow):
     def cancel(self):
         self.client.publish(f"{TARGET}/cancel", "")
         
+    def snapPhoto(self):
+        draw_data = self.camera.image
+        pos = self.camera.pos
+        image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
+        pixmap = QtGui.QPixmap.fromImage(image)
+        pm = self.scene.addPixmap(pixmap)
+        pm.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
+        pm.setZValue(1)
+        self.image_view.setPixmap(pixmap)
+
+        # image = image.convertToFormat(QtGui.QImage.Format_ARGB32)
+        a = QtGui.QImage(
+                np.full((draw_data.shape[1], draw_data.shape[0]), 127, dtype=np.ubyte),
+                draw_data.shape[1], draw_data.shape[0],
+                QtGui.QImage.Format_Alpha8)
+        image.setAlphaChannel(a)
+        current_pos = QtCore.QPointF(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
+        self.scanned_image.addImage(current_pos-self.startPos, image)
+
     def stateChanged(self, state):
         self.state_value.setText(state)
         if state == 'Idle':
-            if len(self.grid) == 0:
-                print("Acquisition done")
-            else:
-                addr, cmd = self.grid.pop(0)
-                print(cmd)
-                self.client.publish(f"{TARGET}/command", cmd)
-                draw_data = self.camera.image
-                pos = self.camera.pos
-                image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
-                pixmap = QtGui.QPixmap.fromImage(image)
-                pm = self.scene.addPixmap(pixmap)
-                pm.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
-                pm.setZValue(1)
+            if len(self.grid):
+                if self.grid == [None]:
+                    self.snapPhoto()
+                    self.grid = []
+                else:
+                    addr, cmd = self.grid.pop(0)
+                    self.client.publish(f"{TARGET}/command", cmd)
+                    self.snapPhoto()
 
     def posChanged(self, pos):
         self.x_value.display(pos[0])
         self.y_value.display(pos[1])
         self.z_value.display(pos[2])
         self.currentRect.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
-        # self.gv2.setSceneRect(self.currentRect.rect())
-        # self.gv2.fitInView(self.currentRect.rect(), QtCore.Qt.KeepAspectRatio)
-
+       
 
     def imageChanged(self, draw_data):
         state = self.camera.state
@@ -272,10 +311,11 @@ class MainWindow(QtWidgets.QMainWindow):
                 pm = self.scene.addPixmap(pixmap)
                 pm.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
                 pm.setZValue(1)
-        if state == 'Idle':
+        if state != 'Home':
             image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
             pixmap = QtGui.QPixmap.fromImage(image)
             self.image_view.setPixmap(pixmap)
+
 
     def moveTo(self, position):
         x = position.x()*PIXEL_SCALE
@@ -287,8 +327,15 @@ class QApplication(QtWidgets.QApplication):
     def __init__(self, *argv):
         super().__init__(*argv)
         self.main_window = MainWindow()
-        self.main_window.show()
+        self.main_window.showMaximized()
 
+        self.installEventFilter(self)
+
+    def eventFilter(self, widget, event):
+        if widget == self.main_window.image_view and isinstance(event, QtGui.QKeyEvent):
+            print("key press for image view")
+            self.main_window.image_view.keyPressEvent(event)
+        return False
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL)

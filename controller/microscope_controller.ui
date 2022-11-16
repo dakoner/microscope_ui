@@ -173,7 +173,7 @@
    <widget class="QWidget" name="dockWidgetContents">
     <layout class="QHBoxLayout" name="horizontalLayout_3">
      <item>
-      <widget class="QLabel" name="image_view">
+      <widget class="ImageView" name="image_view">
        <property name="text">
         <string>TextLabel</string>
        </property>
@@ -208,7 +208,12 @@
   <customwidget>
    <class>PythonConsole</class>
    <extends>QPlainTextEdit</extends>
-   <header>microscope_ui.microscope_controller</header>
+   <header>microscope_ui.controller.microscope_controller</header>
+  </customwidget>
+  <customwidget>
+   <class>ImageView</class>
+   <extends>QLabel</extends>
+   <header>microscope_ui.controller.microscope_controller</header>
   </customwidget>
  </customwidgets>
  <resources/>
