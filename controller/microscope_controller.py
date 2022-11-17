@@ -76,11 +76,13 @@ class ScannedImage(QtWidgets.QGraphicsView):
         super().__init__(*args, **kwargs)
         self.scene = QtWidgets.QGraphicsScene()
         self.setScene(self.scene)
-        self.scene.setSceneRect(0, 0, width, height)
-        #self.setSceneRect(0, 0, width, height)
+        self.scene.setSceneRect(width, height, width, height)
+        self.setSceneRect(0, 0, width, height)
         #self.fitInView(self.scene.sceneRect())
-        #self.setFixedSize(width, height)
+        self.setFixedSize(width, height)
         self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
     def resizeEvent(self, event):
         self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
@@ -94,19 +96,52 @@ class ScannedImage(QtWidgets.QGraphicsView):
             self.scale(0.5,0.5)
 
     def addImage(self, pos, image):
+        a = QtGui.QImage(
+                np.full((image.height(), image.width()), 127, dtype=np.ubyte),
+                image.height(), image.width(),
+                QtGui.QImage.Format_Alpha8)
+        image.setAlphaChannel(a)
         pixmap = QtGui.QPixmap.fromImage(image)
+
+        r = self.scene.addRect(pos.x(), pos.y(), image.width(), image.height())
+        qp = QtGui.QPainterPath()
+        qp.addRect(r.sceneBoundingRect())
+        for item in r.collidingItems():
+            qp2 = QtGui.QPainterPath()
+            if isinstance(item, QtWidgets.QGraphicsPixmapItem):
+                qp2.addRect(item.sceneBoundingRect())
+                qp3 = qp.intersected(qp2)
+                qp3.closeSubpath()
+                pen=QtGui.QPen(QtCore.Qt.red)
+                pen.setWidth(2)
+                color = QtGui.QColor(QtCore.Qt.black)
+                color.setAlpha(0)
+                brush=QtGui.QBrush(color)
+                print(qp3.elementCount())
+                for i in range(qp3.elementCount()):
+                    e =qp3.elementAt(i)
+                    if e.isLineTo():
+                        print("line", e.x, e.y)
+                    elif e.isMoveTo():
+                        print("move", e.x, e.y)
+                    # now map those from scene to item coords (the new rectangle)
+                    # and use that to create a gradient from one image to the other (or just gray?)
+                    # and white everywhere else
+                print
+                p = self.scene.addPath(qp3, pen, brush)
+                p.setZValue(1)
+        self.scene.removeItem(r)
+
         pm = self.scene.addPixmap(pixmap)
         pm.setPos(pos)
-        pm.setZValue(1)
+        pm.setZValue(2)
+
 
         
 class ImageView(QtWidgets.QLabel):
     def __init__(self, *args, **kwargs):
-        print("ImageView")
         super().__init__(*args, **kwargs)
-        self.setFocusPolicy(True)
-        
-   
+        self.setFocusPolicy(True)        
 
     def keyPressEvent(self, event):
         print("keypress",event)
@@ -271,11 +306,6 @@ class MainWindow(QtWidgets.QMainWindow):
         pm.setZValue(1)
         self.image_view.setPixmap(pixmap)
 
-        a = QtGui.QImage(
-                np.full((draw_data.shape[1], draw_data.shape[0]), 127, dtype=np.ubyte),
-                draw_data.shape[1], draw_data.shape[0],
-                QtGui.QImage.Format_Alpha8)
-        image.setAlphaChannel(a)
         current_pos = QtCore.QPointF(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
         self.scanned_image.addImage(current_pos-self.startPos, image)
 
