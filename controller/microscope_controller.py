@@ -84,6 +84,8 @@ class ScannedImage(QtWidgets.QGraphicsView):
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
+        self.tw = QtWidgets.QTabWidget()
+
     def resizeEvent(self, event):
         self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
 
@@ -96,13 +98,9 @@ class ScannedImage(QtWidgets.QGraphicsView):
             self.scale(0.5,0.5)
 
     def addImage(self, pos, image):
-        a = QtGui.QImage(
-                np.full((image.height(), image.width()), 127, dtype=np.ubyte),
-                image.height(), image.width(),
-                QtGui.QImage.Format_Alpha8)
-        image.setAlphaChannel(a)
-        pixmap = QtGui.QPixmap.fromImage(image)
-
+        a = QtGui.QImage(image.width(), image.height(),
+                QtGui.QImage.Format_ARGB32)
+        a.fill(QtGui.QColor(255, 255, 255, 255))
         r = self.scene.addRect(pos.x(), pos.y(), image.width(), image.height())
         qp = QtGui.QPainterPath()
         qp.addRect(r.sceneBoundingRect())
@@ -112,27 +110,38 @@ class ScannedImage(QtWidgets.QGraphicsView):
                 qp2.addRect(item.sceneBoundingRect())
                 qp3 = qp.intersected(qp2)
                 qp3.closeSubpath()
-                pen=QtGui.QPen(QtCore.Qt.red)
-                pen.setWidth(2)
-                color = QtGui.QColor(QtCore.Qt.black)
-                color.setAlpha(0)
-                brush=QtGui.QBrush(color)
-                print(qp3.elementCount())
-                for i in range(qp3.elementCount()):
-                    e =qp3.elementAt(i)
-                    if e.isLineTo():
-                        print("line", e.x, e.y)
-                    elif e.isMoveTo():
-                        print("move", e.x, e.y)
-                    # now map those from scene to item coords (the new rectangle)
-                    # and use that to create a gradient from one image to the other (or just gray?)
-                    # and white everywhere else
-                print
-                p = self.scene.addPath(qp3, pen, brush)
-                p.setZValue(1)
+                x = qp3.boundingRect().x()-pos.x()
+                y = qp3.boundingRect().y()-pos.y()
+                width = qp3.boundingRect().width()
+                height = qp3.boundingRect().height()
+                if width < height:
+                    linearGrad = QtGui.QLinearGradient(0, 0, width, 1)
+                else:
+                    linearGrad = QtGui.QLinearGradient(0, 0, 1, height)
+
+                linearGrad.setColorAt(0, QtGui.QColor(0, 0, 0, 255))
+                linearGrad.setColorAt(1, QtGui.QColor(255, 255, 255, 255))
+                p = QtGui.QPainter()
+                p.begin(a)
+                p.setPen(QtCore.Qt.NoPen)
+                p.setBrush(QtGui.QBrush(linearGrad))
+                p.drawRect(x, y, width, height)
+                p.end()
+                
+            print()    
+        
+        z = QtWidgets.QLabel()
+        z.setPixmap(QtGui.QPixmap.fromImage(a))
+        self.tw.addTab(z, "image")
+        self.tw.show()
+        z.show()
+        image.setAlphaChannel(a)
+        pixmap = QtGui.QPixmap.fromImage(image)
+
         self.scene.removeItem(r)
 
         pm = self.scene.addPixmap(pixmap)
+        
         pm.setPos(pos)
         pm.setZValue(2)
 
@@ -277,10 +286,12 @@ class MainWindow(QtWidgets.QMainWindow):
         
         for i, deltaz in enumerate(dz):           
             for j, gy in enumerate(ys):
-                if j % 2 == 0:
-                    xs_ = xs
-                else:
-                    xs_ = xs[::-1]
+                # if j % 2 == 0:
+                #     xs_ = xs
+                # else:
+                #     xs_ = xs[::-1]
+                # Disable bidirectional scanning since it interferes with tile blending
+                xs_ = xs
                 for k, gx in enumerate(xs_):
                     curr_z = z + deltaz
                     g = f"$J=G90 G21 F{XY_FEED:.3f} X{gx:.3f} Y{gy:.3f} Z{curr_z:.3f}"
