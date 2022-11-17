@@ -1,3 +1,4 @@
+import pyqtgraph
 import pyqtconsole
 import code
 import numpy as np
@@ -70,25 +71,34 @@ class Scene(QtWidgets.QGraphicsScene):
         return super().mouseReleaseEvent(event)
 
 
-class ScannedImage(QtWidgets.QLabel):
+class ScannedImage(QtWidgets.QGraphicsView):
     def __init__(self, width, height, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.canvas = QtGui.QImage(width, height, QtGui.QImage.Format_ARGB32)
-        self.canvas.fill(QtCore.Qt.transparent)
+        self.scene = QtWidgets.QGraphicsScene()
+        self.setScene(self.scene)
+        self.scene.setSceneRect(0, 0, width, height)
+        #self.setSceneRect(0, 0, width, height)
+        #self.fitInView(self.scene.sceneRect())
+        #self.setFixedSize(width, height)
+        self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
 
-        self.setFixedSize(width, height)
+    def resizeEvent(self, event):
+        self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
+
+    def keyPressEvent(self, event):
+        key = event.key()  
+        # check if autorepeat (only if doing cancelling-moves)  
+        if key == QtCore.Qt.Key_Plus:
+            self.scale(2,2)
+        elif key == QtCore.Qt.Key_Minus:
+            self.scale(0.5,0.5)
 
     def addImage(self, pos, image):
-        p = QtGui.QPainter()
+        pixmap = QtGui.QPixmap.fromImage(image)
+        pm = self.scene.addPixmap(pixmap)
+        pm.setPos(pos)
+        pm.setZValue(1)
 
-        p.begin(self.canvas)
-        p.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
-        x= int(pos.x())
-        y= int(pos.y())
-        p.drawImage(x, y, image)
-        p.end()
-        self.setPixmap(QtGui.QPixmap.fromImage(self.canvas))
-        self.update()
         
 class ImageView(QtWidgets.QLabel):
     def __init__(self, *args, **kwargs):
@@ -261,7 +271,6 @@ class MainWindow(QtWidgets.QMainWindow):
         pm.setZValue(1)
         self.image_view.setPixmap(pixmap)
 
-        # image = image.convertToFormat(QtGui.QImage.Format_ARGB32)
         a = QtGui.QImage(
                 np.full((draw_data.shape[1], draw_data.shape[0]), 127, dtype=np.ubyte),
                 draw_data.shape[1], draw_data.shape[0],
