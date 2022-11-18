@@ -76,15 +76,13 @@ class ScannedImage(QtWidgets.QGraphicsView):
         super().__init__(*args, **kwargs)
         self.scene = QtWidgets.QGraphicsScene()
         self.setScene(self.scene)
-        self.scene.setSceneRect(width, height, width, height)
+        self.scene.setSceneRect(0, 0, width, height)
         self.setSceneRect(0, 0, width, height)
-        #self.fitInView(self.scene.sceneRect())
-        self.setFixedSize(width, height)
+        self.showMaximized()
         self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
-        self.tw = QtWidgets.QTabWidget()
 
     def resizeEvent(self, event):
         self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
@@ -128,13 +126,11 @@ class ScannedImage(QtWidgets.QGraphicsView):
                 p.drawRect(x, y, width, height)
                 p.end()
                 
-            print()    
-        
-        z = QtWidgets.QLabel()
-        z.setPixmap(QtGui.QPixmap.fromImage(a))
-        self.tw.addTab(z, "image")
-        self.tw.show()
-        z.show()
+        #z = QtWidgets.QLabel()
+        #z.setPixmap(QtGui.QPixmap.fromImage(a))
+        # self.tw.addTab(z, "image")
+        # self.tw.showMaximized()
+        #z.show()
         image.setAlphaChannel(a)
         pixmap = QtGui.QPixmap.fromImage(image)
 
@@ -145,7 +141,15 @@ class ScannedImage(QtWidgets.QGraphicsView):
         pm.setPos(pos)
         pm.setZValue(2)
 
-
+    def save(self, fname):
+        r = self.scene.sceneRect()
+        print(r)
+        image = QtGui.QImage(r.width(), r.height(), QtGui.QImage.Format_ARGB32)
+        p = QtGui.QPainter(image)
+        self.scene.render(p)
+        p.end()
+        image.save(fname)
+        print("Save done", fname)
         
 class ImageView(QtWidgets.QLabel):
     def __init__(self, *args, **kwargs):
@@ -238,6 +242,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.grid = []
 
+    def startAcquisition(self):
+        scanned_image = ScannedImage(
+                int(self.lastRubberBand[1].x()-self.lastRubberBand[0].x())+WIDTH, 
+                int(self.lastRubberBand[1].y()-self.lastRubberBand[0].y())+HEIGHT)
+        self.scanned_image_tabwidget.addTab(scanned_image, str(self.counter))
+
+        self.grid = self.orig_grid[:]
+        addr, cmd = self.grid.pop(0)
+        self.client.publish(f"{TARGET}/command", cmd)
+
     def rubberBandChanged(self, rect, from_ , to):
         if from_.isNull() and to.isNull():    
             pen = QtGui.QPen(QtCore.Qt.red)
@@ -253,17 +267,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 pen=pen, brush=brush)
             rect.setZValue(1)
 
-            self.grid = self.generateGrid(*self.lastRubberBand)
+            self.orig_grid = self.generateGrid(*self.lastRubberBand)
             self.startPos = QtCore.QPointF(self.lastRubberBand[0].x(), self.lastRubberBand[0].y())
             
-            self.scanned_image = ScannedImage(
-                int(self.lastRubberBand[1].x()-self.lastRubberBand[0].x())+WIDTH, 
-                int(self.lastRubberBand[1].y()-self.lastRubberBand[0].y())+HEIGHT)
-            self.scanned_image.show()
-
-
-            addr, cmd = self.grid.pop(0)
-            self.client.publish(f"{TARGET}/command", cmd)
+            self.scanned_image_tabwidget =  QtWidgets.QTabWidget()
+            self.scanned_image_tabwidget.show()
+            self.counter = 0
+            self.startAcquisition()
         else:
             self.lastRubberBand = from_, to
 
@@ -318,7 +328,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.image_view.setPixmap(pixmap)
 
         current_pos = QtCore.QPointF(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
-        self.scanned_image.addImage(current_pos-self.startPos, image)
+        self.scanned_image_tabwidget.widget(self.counter).addImage(current_pos-self.startPos, image)
 
     def stateChanged(self, state):
         self.state_value.setText(state)
@@ -326,11 +336,13 @@ class MainWindow(QtWidgets.QMainWindow):
             if len(self.grid):
                 if self.grid == [None]:
                     self.snapPhoto()
-                    self.grid = []
+                    self.scanned_image_tabwidget.widget(self.counter).save(f"c:\\Users\\dek\\Desktop\\acquisition\\frame.{self.counter}.tif")
+                    self.counter += 1
+                    self.startAcquisition()
                 else:
+                    self.snapPhoto()
                     addr, cmd = self.grid.pop(0)
                     self.client.publish(f"{TARGET}/command", cmd)
-                    self.snapPhoto()
 
     def posChanged(self, pos):
         self.x_value.display(pos[0])
