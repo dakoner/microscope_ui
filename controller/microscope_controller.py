@@ -136,8 +136,8 @@ class ImageView(QtWidgets.QLabel):
         print("ImageView keypressevent",event)
  
         app = QtWidgets.QApplication.instance()
-        self.client = app.main_window.client
-        self.camera = app.main_window.camera
+        self.client = app.client
+        self.camera = app.camera
         self.scene = app.main_window.tile_graphics_view.scene
         key = event.key()  
         # check if autorepeat (only if doing cancelling-moves)  
@@ -197,12 +197,12 @@ class Acquisition():
         app=QtWidgets.QApplication.instance()
         self.grid = self.orig_grid[:]
         addr, cmd = self.grid.pop(0)
-        app.main_window.client.publish(f"{TARGET}/command", cmd)
+        app.client.publish(f"{TARGET}/command", cmd)
 
 
     def snapPhoto(self):
         app=QtWidgets.QApplication.instance()
-        camera = app.main_window.camera
+        camera = app.camera
         draw_data = camera.image
         pos = camera.pos
         image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
@@ -226,7 +226,7 @@ class Acquisition():
                 self.snapPhoto()
                 addr, cmd = self.grid.pop(0)
                 app=QtWidgets.QApplication.instance()
-                app.main_window.client.publish(f"{TARGET}/command", cmd)
+                app.client.publish(f"{TARGET}/command", cmd)
 
     def generateGrid(self, from_, to):
         grid = []
@@ -239,7 +239,7 @@ class Acquisition():
 
         app=QtWidgets.QApplication.instance()
 
-        z = app.main_window.camera.pos[2]
+        z = app.camera.pos[2]
         num_z = len(dz)
         ys = np.arange(y_min, y_max, FOV_Y)
         #ys = [y_min, y_max]
@@ -267,12 +267,12 @@ class Acquisition():
 
 
 class TileScene(QtWidgets.QGraphicsScene):
-    def __init__(self, main_window, *args, **kwargs):
-        self.main_window = main_window
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
     def mouseMoveEvent(self, event):
-        self.main_window.statusbar.showMessage(f"Canvas: {event.scenePos().x():.3f}, {event.scenePos().y():.3f}, Stage: {event.scenePos().x()*PIXEL_SCALE:.3f}, {event.scenePos().y()*PIXEL_SCALE:.3f}")
+        app = QtWidgets.QApplication.instance()
+        app.main_window.statusbar.showMessage(f"Canvas: {event.scenePos().x():.3f}, {event.scenePos().y():.3f}, Stage: {event.scenePos().x()*PIXEL_SCALE:.3f}, {event.scenePos().y()*PIXEL_SCALE:.3f}")
         return super().mouseMoveEvent(event)
 
     def mousePressEvent(self, event):
@@ -280,16 +280,17 @@ class TileScene(QtWidgets.QGraphicsScene):
         return super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
+        app = QtWidgets.QApplication.instance()
         if (self.press - event.scenePos()).manhattanLength() == 0.0:
-            if self.main_window.state_value.text() == 'Jog':
-                self.main_window.cancel()
+            if app.main_window.state_value.text() == 'Jog':
+                app.cancel()
                 self.timer = QtCore.QTimer()
-                p = functools.partial(self.main_window.moveTo, self.press)
+                p = functools.partial(app.moveTo, self.press)
                 self.timer.timeout.connect(p)
                 self.timer.setSingleShot(True)
                 self.timer.start(100)
             else:
-                self.main_window.moveTo(self.press)
+                app.moveTo(self.press)
         return super().mouseReleaseEvent(event)
 
 class TileGraphicsView(QtWidgets.QGraphicsView):
@@ -301,14 +302,14 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
 
 
-        self.scene = TileScene(self.parent().parent())
+        self.scene = TileScene()
         self.setScene(self.scene)
 
         pen = QtGui.QPen()
         pen.setWidth(1)
         color = QtGui.QColor()
         brush = QtGui.QBrush(color)
-        self.stageRect = self.scene.addRect(0, 0, 68/PIXEL_SCALE, 85/PIXEL_SCALE, pen=pen, brush=brush)
+        self.stageRect = self.scene.addRect(0, 0, 40/PIXEL_SCALE, 85/PIXEL_SCALE, pen=pen, brush=brush)
         self.stageRect.setZValue(0)
 
         pen = QtGui.QPen(QtCore.Qt.green)
@@ -348,7 +349,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
                 pen=pen, brush=brush)
             rect.setZValue(3)
             
-            QtWidgets.QApplication.instance().main_window.cancel()
+            QtWidgets.QApplication.instance().cancel()
             self.acquisition = Acquisition(self.lastRubberBand)
             self.acquisition.startAcquisition()
         else:
@@ -376,13 +377,20 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
             pm = self.scene.addPixmap(pixmap)
             pm.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
             pm.setZValue(1)
+       
 
-class MainWindow(QtWidgets.QMainWindow):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        loadUi("controller/microscope_controller.ui", self)
-        #print(dir(self.toolBar))#.actionTest)
-        self.toolBar.actionTriggered.connect(self.test)
+    
+class QApplication(QtWidgets.QApplication):
+    def __init__(self, *argv):
+        super().__init__(*argv)
+        self.main_window = QtWidgets.QMainWindow()
+        loadUi("controller/microscope_controller.ui", self.main_window)
+
+        self.main_window.showMaximized()
+
+        self.installEventFilter(self)
+
+        self.main_window.toolBar.actionTriggered.connect(self.test)
     
         #button_action.triggered.connect(self.onMyToolBarButtonClick)
 
@@ -396,58 +404,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.camera.posChanged.connect(self.posChanged)
         self.camera.start()
 
-    def test(self, action):
-        print("action", action.objectName())
-        if action.objectName() == 'stopAction':
-            print("STOP")
-            self.cancel()
-            self.tile_graphics_view.stopAcquisition()
-
-
-
-    def cancel(self):
-        self.client.publish(f"{TARGET}/cancel", "")
-        
-
-    def stateChanged(self, state):
-        self.state_value.setText(state)
-        if state == 'Idle':
-            self.tile_graphics_view.doAcquisition()
-            
-
-    def posChanged(self, pos):
-        self.x_value.display(pos[0])
-        self.y_value.display(pos[1])
-        self.z_value.display(pos[2])
-        self.tile_graphics_view.currentRect.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
-       
-
-    def imageChanged(self, draw_data):
-        state = self.camera.state
-        pos = self.camera.pos
-        if state == 'Jog':
-            self.tile_graphics_view.addImageIfMissing(draw_data, pos)
-            
-        if state != 'Home':
-            image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
-            pixmap = QtGui.QPixmap.fromImage(image)
-            self.image_view.setPixmap(pixmap)
-
-
-    def moveTo(self, position):
-        x = position.x()*PIXEL_SCALE
-        y = position.y()*PIXEL_SCALE
-        cmd = f"$J=G90 G21 F{XY_FEED:.3f} X{x:.3f} Y{y:.3f}"
-        self.client.publish(f"{TARGET}/command", cmd)
-    
-class QApplication(QtWidgets.QApplication):
-    def __init__(self, *argv):
-        super().__init__(*argv)
-        self.main_window = MainWindow()
-        self.main_window.showMaximized()
-
-        self.installEventFilter(self)
-
     def eventFilter(self, widget, event):
         if widget == self.main_window.image_view and isinstance(event, QtGui.QKeyEvent):
             print("key press for image view")
@@ -456,6 +412,50 @@ class QApplication(QtWidgets.QApplication):
             print("key press for tile graphics view")
             self.main_window.image_view.keyPressEvent(event)
         return False
+
+    def test(self, action):
+        print("action", action.objectName())
+        if action.objectName() == 'stopAction':
+            print("STOP")
+            self.cancel()
+            self.main_window.tile_graphics_view.stopAcquisition()
+
+
+
+    def cancel(self):
+        self.client.publish(f"{TARGET}/cancel", "")
+        
+
+    def stateChanged(self, state):
+        self.main_window.state_value.setText(state)
+        if state == 'Idle':
+            self.main_window.tile_graphics_view.doAcquisition()
+            
+
+    def posChanged(self, pos):
+        self.main_window.x_value.display(pos[0])
+        self.main_window.y_value.display(pos[1])
+        self.main_window.z_value.display(pos[2])
+        self.main_window.tile_graphics_view.currentRect.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
+       
+
+    def imageChanged(self, draw_data):
+        state = self.camera.state
+        pos = self.camera.pos
+        if state == 'Jog':
+            self.main_window.tile_graphics_view.addImageIfMissing(draw_data, pos)
+            
+        if state != 'Home':
+            image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
+            pixmap = QtGui.QPixmap.fromImage(image)
+            self.main_window.image_view.setPixmap(pixmap)
+
+
+    def moveTo(self, position):
+        x = position.x()*PIXEL_SCALE
+        y = position.y()*PIXEL_SCALE
+        cmd = f"$J=G90 G21 F{XY_FEED:.3f} X{x:.3f} Y{y:.3f}"
+        self.client.publish(f"{TARGET}/command", cmd)
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL)
