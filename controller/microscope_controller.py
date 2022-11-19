@@ -149,7 +149,7 @@ class ScannedImage(QtWidgets.QGraphicsView):
         p.end()
         image.save(fname)
         print("Save done", fname)
-        
+ 
 class ImageView(QtWidgets.QLabel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -199,70 +199,23 @@ class ImageView(QtWidgets.QLabel):
                 self.client.publish(f"{TARGET}/command", cmd)
         return super().keyPressEvent(event)
 
-
-class TileGraphicsView(QtWidgets.QGraphicsView):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        #self.graphicsView.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
-        self.setMouseTracking(True)
-        #self.update()
-        self.rubberBandChanged.connect(self.onRubberBandChanged)
-
-
-        self.scene = Scene(self.parent().parent())
-        self.setScene(self.scene)
-
-        pen = QtGui.QPen()
-        pen.setWidth(1)
-        color = QtGui.QColor()
-        brush = QtGui.QBrush(color)
-        self.stageRect = self.scene.addRect(0, 0, 68/PIXEL_SCALE, 85/PIXEL_SCALE, pen=pen, brush=brush)
-        self.stageRect.setZValue(0)
-
-        pen = QtGui.QPen(QtCore.Qt.green)
-        pen.setWidth(50)
-        brush = QtGui.QBrush()
-        self.currentRect = self.scene.addRect(0, 0, WIDTH, HEIGHT, pen=pen, brush=brush)
-        self.currentRect.setZValue(1)
-
-        self.scene.setSceneRect(self.stageRect.boundingRect())
-
+       
+class Acquisition():
+    def __init__(self, lastRubberBand):
+        self.lastRubberBand = lastRubberBand
         self.grid = []
-
-    def resizeEvent(self, *args):
-        self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
-
-    def onRubberBandChanged(self, rect, from_ , to):
-        if from_.isNull() and to.isNull():    
-            pen = QtGui.QPen(QtCore.Qt.red)
-            pen.setWidth(50)
-            color = QtGui.QColor(QtCore.Qt.black)
-            color.setAlpha(0)
-            brush = QtGui.QBrush(color)
-            
-            rect = self.scene.addRect(
-                self.lastRubberBand[0].x(), self.lastRubberBand[0].y(),
-                self.lastRubberBand[1].x()-self.lastRubberBand[0].x(), 
-                self.lastRubberBand[1].y()-self.lastRubberBand[0].y(),
-                pen=pen, brush=brush)
-            rect.setZValue(1)
-
-            self.orig_grid = self.generateGrid(*self.lastRubberBand)
-            self.startPos = QtCore.QPointF(self.lastRubberBand[0].x(), self.lastRubberBand[0].y())
-            
-            self.scanned_image_tabwidget =  QtWidgets.QTabWidget()
-            self.scanned_image_tabwidget.show()
-            self.counter = 0
-            self.startAcquisition()
-        else:
-            self.lastRubberBand = from_, to
-
+        self.counter = 0
+        self.scanned_image_tabwidget =  QtWidgets.QTabWidget()
 
     def startAcquisition(self):
-        scanned_image = ScannedImage(
-                int(self.lastRubberBand[1].x()-self.lastRubberBand[0].x())+WIDTH, 
-                int(self.lastRubberBand[1].y()-self.lastRubberBand[0].y())+HEIGHT)
+        self.orig_grid = self.generateGrid(*self.lastRubberBand)
+        
+        self.startPos = QtCore.QPointF(self.lastRubberBand[0].x(), self.lastRubberBand[0].y())
+        width = int(self.lastRubberBand[1].x()-self.lastRubberBand[0].x())+WIDTH
+        height = int(self.lastRubberBand[1].y()-self.lastRubberBand[0].y())+HEIGHT
+        scanned_image = ScannedImage(width, height)
         self.scanned_image_tabwidget.addTab(scanned_image, str(self.counter))
+        self.scanned_image_tabwidget.show()
 
         app=QtWidgets.QApplication.instance()
         self.grid = self.orig_grid[:]
@@ -277,7 +230,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         pos = camera.pos
         image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
         pixmap = QtGui.QPixmap.fromImage(image)
-        pm = self.scene.addPixmap(pixmap)
+        pm = app.main_window.tile_graphics_view.scene.addPixmap(pixmap)
         pm.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
         pm.setZValue(1)
         app.main_window.image_view.setPixmap(pixmap)
@@ -334,6 +287,61 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         grid.append(None)
         return grid
 
+class TileGraphicsView(QtWidgets.QGraphicsView):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        #self.graphicsView.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
+        self.setMouseTracking(True)
+        #self.update()
+        self.rubberBandChanged.connect(self.onRubberBandChanged)
+
+
+        self.scene = Scene(self.parent().parent())
+        self.setScene(self.scene)
+
+        pen = QtGui.QPen()
+        pen.setWidth(1)
+        color = QtGui.QColor()
+        brush = QtGui.QBrush(color)
+        self.stageRect = self.scene.addRect(0, 0, 68/PIXEL_SCALE, 85/PIXEL_SCALE, pen=pen, brush=brush)
+        self.stageRect.setZValue(0)
+
+        pen = QtGui.QPen(QtCore.Qt.green)
+        pen.setWidth(50)
+        brush = QtGui.QBrush()
+        self.currentRect = self.scene.addRect(0, 0, WIDTH, HEIGHT, pen=pen, brush=brush)
+        self.currentRect.setZValue(1)
+
+        self.scene.setSceneRect(self.stageRect.boundingRect())
+
+
+    def resizeEvent(self, *args):
+        self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
+
+    def onRubberBandChanged(self, rect, from_ , to):
+        if from_.isNull() and to.isNull():    
+            pen = QtGui.QPen(QtCore.Qt.red)
+            pen.setWidth(50)
+            color = QtGui.QColor(QtCore.Qt.black)
+            color.setAlpha(0)
+            brush = QtGui.QBrush(color)
+            
+            rect = self.scene.addRect(
+                self.lastRubberBand[0].x(), self.lastRubberBand[0].y(),
+                self.lastRubberBand[1].x()-self.lastRubberBand[0].x(), 
+                self.lastRubberBand[1].y()-self.lastRubberBand[0].y(),
+                pen=pen, brush=brush)
+            rect.setZValue(1)
+
+
+            
+            self.acquisition = Acquisition(self.lastRubberBand)
+            self.acquisition.startAcquisition()
+        else:
+            self.lastRubberBand = from_, to
+
+
+
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -357,7 +365,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def stateChanged(self, state):
         self.state_value.setText(state)
         if state == 'Idle':
-            self.tile_graphics_view.doAcquisition()
+            self.tile_graphics_view.acquisition.doAcquisition()
             
 
     def posChanged(self, pos):
