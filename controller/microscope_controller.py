@@ -143,7 +143,6 @@ class ScannedImage(QtWidgets.QGraphicsView):
 
     def save(self, fname):
         r = self.scene.sceneRect()
-        print(r)
         image = QtGui.QImage(r.width(), r.height(), QtGui.QImage.Format_ARGB32)
         p = QtGui.QPainter(image)
         self.scene.render(p)
@@ -162,7 +161,7 @@ class ImageView(QtWidgets.QLabel):
         app = QtWidgets.QApplication.instance()
         self.client = app.main_window.client
         self.camera = app.main_window.camera
-        self.scene = app.main_window.scene
+        self.scene = app.main_window.tile_graphics_view.scene
         key = event.key()  
         # check if autorepeat (only if doing cancelling-moves)  
         if key == QtCore.Qt.Key_C:
@@ -174,7 +173,7 @@ class ImageView(QtWidgets.QLabel):
         elif key == QtCore.Qt.Key_S:
             print("stop")
             self.client.publish(f"{TARGET}/cancel", "")
-            self.grid = []
+            app.main_window.tile_graphics_view.grid = []
         elif key == QtCore.Qt.Key_R:
             print("reset tiles")
             self.scene.clear()
@@ -200,17 +199,19 @@ class ImageView(QtWidgets.QLabel):
                 self.client.publish(f"{TARGET}/command", cmd)
         return super().keyPressEvent(event)
 
-class MainWindow(QtWidgets.QMainWindow):
+
+class TileGraphicsView(QtWidgets.QGraphicsView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        loadUi("controller/microscope_controller.ui", self)
+        #self.graphicsView.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
+        self.setMouseTracking(True)
+        #self.update()
+        self.rubberBandChanged.connect(self.onRubberBandChanged)
 
-        self.client = MqttClient(self)
-        self.client.hostname = "raspberrypi.local"
-        self.client.connectToHost()
 
-        self.scene = Scene(self)
-        
+        self.scene = Scene(self.parent().parent())
+        self.setScene(self.scene)
+
         pen = QtGui.QPen()
         pen.setWidth(1)
         color = QtGui.QColor()
@@ -225,34 +226,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.currentRect.setZValue(1)
 
         self.scene.setSceneRect(self.stageRect.boundingRect())
-        self.graphicsView.setScene(self.scene)
-        #self.graphicsView.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
-        self.graphicsView.setMouseTracking(True)
-        self.graphicsView.update()
-
-        self.graphicsView.rubberBandChanged.connect(self.rubberBandChanged)
-
-
-
-        self.camera = ImageZMQCameraReader()
-        self.camera.imageChanged.connect(self.imageChanged)
-        self.camera.stateChanged.connect(self.stateChanged)
-        self.camera.posChanged.connect(self.posChanged)
-        self.camera.start()
 
         self.grid = []
 
-    def startAcquisition(self):
-        scanned_image = ScannedImage(
-                int(self.lastRubberBand[1].x()-self.lastRubberBand[0].x())+WIDTH, 
-                int(self.lastRubberBand[1].y()-self.lastRubberBand[0].y())+HEIGHT)
-        self.scanned_image_tabwidget.addTab(scanned_image, str(self.counter))
+    def resizeEvent(self, *args):
+        self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
 
-        self.grid = self.orig_grid[:]
-        addr, cmd = self.grid.pop(0)
-        self.client.publish(f"{TARGET}/command", cmd)
-
-    def rubberBandChanged(self, rect, from_ , to):
+    def onRubberBandChanged(self, rect, from_ , to):
         if from_.isNull() and to.isNull():    
             pen = QtGui.QPen(QtCore.Qt.red)
             pen.setWidth(50)
@@ -278,6 +258,46 @@ class MainWindow(QtWidgets.QMainWindow):
             self.lastRubberBand = from_, to
 
 
+    def startAcquisition(self):
+        scanned_image = ScannedImage(
+                int(self.lastRubberBand[1].x()-self.lastRubberBand[0].x())+WIDTH, 
+                int(self.lastRubberBand[1].y()-self.lastRubberBand[0].y())+HEIGHT)
+        self.scanned_image_tabwidget.addTab(scanned_image, str(self.counter))
+
+        app=QtWidgets.QApplication.instance()
+        self.grid = self.orig_grid[:]
+        addr, cmd = self.grid.pop(0)
+        app.main_window.client.publish(f"{TARGET}/command", cmd)
+
+
+    def snapPhoto(self):
+        app=QtWidgets.QApplication.instance()
+        camera = app.main_window.camera
+        draw_data = camera.image
+        pos = camera.pos
+        image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
+        pixmap = QtGui.QPixmap.fromImage(image)
+        pm = self.scene.addPixmap(pixmap)
+        pm.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
+        pm.setZValue(1)
+        app.main_window.image_view.setPixmap(pixmap)
+
+        current_pos = QtCore.QPointF(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
+        self.scanned_image_tabwidget.widget(self.counter).addImage(current_pos-self.startPos, image)
+
+    def doAcquisition(self):
+        if len(self.grid):
+            if self.grid == [None]:
+                self.snapPhoto()
+                self.scanned_image_tabwidget.widget(self.counter).save(f"c:\\Users\\dek\\Desktop\\acquisition\\frame.{self.counter}.tif")
+                self.counter += 1
+                self.startAcquisition()
+            else:
+                self.snapPhoto()
+                addr, cmd = self.grid.pop(0)
+                app=QtWidgets.QApplication.instance()
+                app.main_window.client.publish(f"{TARGET}/command", cmd)
+
     def generateGrid(self, from_, to):
         grid = []
         dz = [0]
@@ -287,20 +307,24 @@ class MainWindow(QtWidgets.QMainWindow):
         x_max = to.x()* PIXEL_SCALE
         y_max =  to.y()* PIXEL_SCALE
 
-        z = self.camera.pos[2]
+        app=QtWidgets.QApplication.instance()
+
+        z = app.main_window.camera.pos[2]
         num_z = len(dz)
         ys = np.arange(y_min, y_max, FOV_Y)
+        #ys = [y_min, y_max]
         num_y = len(ys)
         xs = np.arange(x_min, x_max, FOV_X)
+        #xs = [x_min, x_max]
         num_x = len(xs)
         
         for i, deltaz in enumerate(dz):           
             for j, gy in enumerate(ys):
-                # if j % 2 == 0:
-                #     xs_ = xs
-                # else:
-                #     xs_ = xs[::-1]
-                # Disable bidirectional scanning since it interferes with tile blending
+                if j % 2 == 0:
+                    xs_ = xs
+                else:
+                    xs_ = xs[::-1]
+                ##Disable bidirectional scanning since it interferes with tile blending
                 xs_ = xs
                 for k, gx in enumerate(xs_):
                     curr_z = z + deltaz
@@ -310,55 +334,47 @@ class MainWindow(QtWidgets.QMainWindow):
         grid.append(None)
         return grid
 
-    def resizeEvent(self, *args):
-        print("resize event", args)
-        self.graphicsView.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
+class MainWindow(QtWidgets.QMainWindow):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        loadUi("controller/microscope_controller.ui", self)
+
+
+        self.client = MqttClient(self)
+        self.client.hostname = "raspberrypi.local"
+        self.client.connectToHost()
+
+        self.camera = ImageZMQCameraReader()
+        self.camera.imageChanged.connect(self.imageChanged)
+        self.camera.stateChanged.connect(self.stateChanged)
+        self.camera.posChanged.connect(self.posChanged)
+        self.camera.start()
 
     def cancel(self):
         self.client.publish(f"{TARGET}/cancel", "")
         
-    def snapPhoto(self):
-        draw_data = self.camera.image
-        pos = self.camera.pos
-        image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
-        pixmap = QtGui.QPixmap.fromImage(image)
-        pm = self.scene.addPixmap(pixmap)
-        pm.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
-        pm.setZValue(1)
-        self.image_view.setPixmap(pixmap)
-
-        current_pos = QtCore.QPointF(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
-        self.scanned_image_tabwidget.widget(self.counter).addImage(current_pos-self.startPos, image)
 
     def stateChanged(self, state):
         self.state_value.setText(state)
         if state == 'Idle':
-            if len(self.grid):
-                if self.grid == [None]:
-                    self.snapPhoto()
-                    self.scanned_image_tabwidget.widget(self.counter).save(f"c:\\Users\\dek\\Desktop\\acquisition\\frame.{self.counter}.tif")
-                    self.counter += 1
-                    self.startAcquisition()
-                else:
-                    self.snapPhoto()
-                    addr, cmd = self.grid.pop(0)
-                    self.client.publish(f"{TARGET}/command", cmd)
+            self.tile_graphics_view.doAcquisition()
+            
 
     def posChanged(self, pos):
         self.x_value.display(pos[0])
         self.y_value.display(pos[1])
         self.z_value.display(pos[2])
-        self.currentRect.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
+        self.tile_graphics_view.currentRect.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
        
 
     def imageChanged(self, draw_data):
         state = self.camera.state
         pos = self.camera.pos
-        if state == 'Jog' and len(self.grid) == 0:
-            ci = self.currentRect.collidingItems()
+        if state == 'Jog':# and len(self.grid) == 0:
+            ci = self.tile_graphics_view.currentRect.collidingItems()
             # Get the qpainterpath corresponding to the current image location, minus any overlapping images
             qp = QtGui.QPainterPath()
-            qp.addRect(self.currentRect.sceneBoundingRect())
+            qp.addRect(self.tile_graphics_view.currentRect.sceneBoundingRect())
             qp2 = QtGui.QPainterPath()
             for item in ci:
                 if isinstance(item, QtWidgets.QGraphicsPixmapItem):
@@ -370,7 +386,7 @@ class MainWindow(QtWidgets.QMainWindow):
             if a > 200000:
                 image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
                 pixmap = QtGui.QPixmap.fromImage(image)
-                pm = self.scene.addPixmap(pixmap)
+                pm = self.tile_graphics_view.scene.addPixmap(pixmap)
                 pm.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
                 pm.setZValue(1)
         if state != 'Home':
@@ -390,6 +406,7 @@ class QApplication(QtWidgets.QApplication):
         super().__init__(*argv)
         self.main_window = MainWindow()
         self.main_window.showMaximized()
+
 
         self.installEventFilter(self)
 

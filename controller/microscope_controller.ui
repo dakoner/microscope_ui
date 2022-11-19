@@ -28,7 +28,7 @@
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QGraphicsView" name="graphicsView">
+     <widget class="TileGraphicsView" name="tile_graphics_view">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
         <horstretch>0</horstretch>
@@ -213,6 +213,11 @@
   <customwidget>
    <class>ImageView</class>
    <extends>QLabel</extends>
+   <header>microscope_ui.controller.microscope_controller</header>
+  </customwidget>
+  <customwidget>
+   <class>TileGraphicsView</class>
+   <extends>QGraphicsView</extends>
    <header>microscope_ui.controller.microscope_controller</header>
   </customwidget>
  </customwidgets>
