@@ -133,7 +133,6 @@ class ImageView(QtWidgets.QLabel):
         self.setFocusPolicy(True)        
 
     def keyPressEvent(self, event):
-        print("ImageView keypressevent",event)
  
         app = QtWidgets.QApplication.instance()
         self.client = app.client
@@ -142,21 +141,16 @@ class ImageView(QtWidgets.QLabel):
         key = event.key()  
         # check if autorepeat (only if doing cancelling-moves)  
         if key == QtCore.Qt.Key_C:
-            print("cancel")
             self.client.publish(f"{TARGET}/cancel", "")
         if key == QtCore.Qt.Key_H:
-            print("home")
             self.client.publish(f"{TARGET}/command", "$H")
         elif key == QtCore.Qt.Key_S:
-            print("stop")
             self.client.publish(f"{TARGET}/cancel", "")
             app.main_window.tile_graphics_view.stopAcquisition()
         elif key == QtCore.Qt.Key_R:
-            print("reset tiles")
             self.scene.clear()
         elif self.camera.state == "Idle":
             if key == QtCore.Qt.Key_Left:
-                print("left")
                 cmd = f"$J=G91 G21 F{XY_FEED:.3f} X-{XY_STEP_SIZE:.3f}"
                 self.client.publish(f"{TARGET}/command", cmd)
             elif key == QtCore.Qt.Key_Right:
@@ -406,10 +400,8 @@ class QApplication(QtWidgets.QApplication):
 
     def eventFilter(self, widget, event):
         if widget == self.main_window.image_view and isinstance(event, QtGui.QKeyEvent):
-            print("key press for image view")
             self.main_window.image_view.keyPressEvent(event)
         elif widget == self.main_window.tile_graphics_view and isinstance(event, QtGui.QKeyEvent):
-            print("key press for tile graphics view")
             self.main_window.image_view.keyPressEvent(event)
         return False
 
