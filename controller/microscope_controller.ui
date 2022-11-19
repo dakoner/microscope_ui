@@ -164,7 +164,7 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="actionTest"/>
+   <addaction name="stopAction"/>
   </widget>
   <widget class="QDockWidget" name="dockWidget">
    <attribute name="dockWidgetArea">
@@ -198,9 +198,9 @@
     </layout>
    </widget>
   </widget>
-  <action name="actionTest">
+  <action name="stopAction">
    <property name="text">
-    <string>Test</string>
+    <string>Stop</string>
    </property>
   </action>
  </widget>

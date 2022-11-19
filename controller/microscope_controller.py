@@ -44,31 +44,6 @@ class PythonConsole(QtWidgets.QPlainTextEdit):
 
     #     return super().eventFilter(obj, event)
 
-class Scene(QtWidgets.QGraphicsScene):
-    def __init__(self, main_window, *args, **kwargs):
-        self.main_window = main_window
-        super().__init__(*args, **kwargs)
-
-    def mouseMoveEvent(self, event):
-        self.main_window.statusbar.showMessage(f"Canvas: {event.scenePos().x():.3f}, {event.scenePos().y():.3f}, Stage: {event.scenePos().x()*PIXEL_SCALE:.3f}, {event.scenePos().y()*PIXEL_SCALE:.3f}")
-        return super().mouseMoveEvent(event)
-
-    def mousePressEvent(self, event):
-        self.press = event.scenePos()
-        return super().mousePressEvent(event)
-
-    def mouseReleaseEvent(self, event):
-        if (self.press - event.scenePos()).manhattanLength() == 0.0:
-            if self.main_window.state_value.text() == 'Jog':
-                self.main_window.cancel()
-                self.timer = QtCore.QTimer()
-                p = functools.partial(self.main_window.moveTo, self.press)
-                self.timer.timeout.connect(p)
-                self.timer.setSingleShot(True)
-                self.timer.start(100)
-            else:
-                self.main_window.moveTo(self.press)
-        return super().mouseReleaseEvent(event)
 
 
 class ScannedImage(QtWidgets.QGraphicsView):
@@ -85,9 +60,11 @@ class ScannedImage(QtWidgets.QGraphicsView):
 
 
     def resizeEvent(self, event):
+        # fitInView interferes with scale()
         self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
 
     def keyPressEvent(self, event):
+        print("ScannedImage event")
         key = event.key()  
         # check if autorepeat (only if doing cancelling-moves)  
         if key == QtCore.Qt.Key_Plus:
@@ -156,7 +133,7 @@ class ImageView(QtWidgets.QLabel):
         self.setFocusPolicy(True)        
 
     def keyPressEvent(self, event):
-        print("keypress",event)
+        print("ImageView keypressevent",event)
  
         app = QtWidgets.QApplication.instance()
         self.client = app.main_window.client
@@ -173,7 +150,7 @@ class ImageView(QtWidgets.QLabel):
         elif key == QtCore.Qt.Key_S:
             print("stop")
             self.client.publish(f"{TARGET}/cancel", "")
-            app.main_window.tile_graphics_view.grid = []
+            app.main_window.tile_graphics_view.stopAcquisition()
         elif key == QtCore.Qt.Key_R:
             print("reset tiles")
             self.scene.clear()
@@ -273,10 +250,11 @@ class Acquisition():
         
         for i, deltaz in enumerate(dz):           
             for j, gy in enumerate(ys):
-                if j % 2 == 0:
-                    xs_ = xs
-                else:
-                    xs_ = xs[::-1]
+                # if j % 2 == 0:
+                #     xs_ = xs
+                # else:
+                #     xs_ = xs[::-1]
+                # print(xs_)
                 ##Disable bidirectional scanning since it interferes with tile blending
                 xs_ = xs
                 for k, gx in enumerate(xs_):
@@ -287,16 +265,43 @@ class Acquisition():
         grid.append(None)
         return grid
 
+
+class TileScene(QtWidgets.QGraphicsScene):
+    def __init__(self, main_window, *args, **kwargs):
+        self.main_window = main_window
+        super().__init__(*args, **kwargs)
+
+    def mouseMoveEvent(self, event):
+        self.main_window.statusbar.showMessage(f"Canvas: {event.scenePos().x():.3f}, {event.scenePos().y():.3f}, Stage: {event.scenePos().x()*PIXEL_SCALE:.3f}, {event.scenePos().y()*PIXEL_SCALE:.3f}")
+        return super().mouseMoveEvent(event)
+
+    def mousePressEvent(self, event):
+        self.press = event.scenePos()
+        return super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if (self.press - event.scenePos()).manhattanLength() == 0.0:
+            if self.main_window.state_value.text() == 'Jog':
+                self.main_window.cancel()
+                self.timer = QtCore.QTimer()
+                p = functools.partial(self.main_window.moveTo, self.press)
+                self.timer.timeout.connect(p)
+                self.timer.setSingleShot(True)
+                self.timer.start(100)
+            else:
+                self.main_window.moveTo(self.press)
+        return super().mouseReleaseEvent(event)
+
 class TileGraphicsView(QtWidgets.QGraphicsView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         #self.graphicsView.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
         self.setMouseTracking(True)
-        #self.update()
         self.rubberBandChanged.connect(self.onRubberBandChanged)
+        self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
 
 
-        self.scene = Scene(self.parent().parent())
+        self.scene = TileScene(self.parent().parent())
         self.setScene(self.scene)
 
         pen = QtGui.QPen()
@@ -310,14 +315,20 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         pen.setWidth(50)
         brush = QtGui.QBrush()
         self.currentRect = self.scene.addRect(0, 0, WIDTH, HEIGHT, pen=pen, brush=brush)
-        self.currentRect.setZValue(1)
+        self.currentRect.setZValue(5)
 
         self.scene.setSceneRect(self.stageRect.boundingRect())
+        self.setSceneRect(self.stageRect.boundingRect())
         self.acquisition = None
 
     def doAcquisition(self):
         if self.acquisition:
             self.acquisition.doAcquisition()
+
+    def stopAcquisition(self):
+        self.acquisition.grid = []
+        self.acquisition.orig_grid = []
+
 
     def resizeEvent(self, *args):
         self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
@@ -335,8 +346,9 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
                 self.lastRubberBand[1].x()-self.lastRubberBand[0].x(), 
                 self.lastRubberBand[1].y()-self.lastRubberBand[0].y(),
                 pen=pen, brush=brush)
-            rect.setZValue(1)
+            rect.setZValue(3)
             
+            QtWidgets.QApplication.instance().main_window.cancel()
             self.acquisition = Acquisition(self.lastRubberBand)
             self.acquisition.startAcquisition()
         else:
@@ -344,8 +356,8 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
 
 
     def addImageIfMissing(self, draw_data, pos):
-        if len(self.acquisition.grid) == 0:
-            return
+        #if not self.acquisition or len(self.acquisition.grid) == 0:
+        #    return
         ci = self.currentRect.collidingItems()
         # Get the qpainterpath corresponding to the current image location, minus any overlapping images
         qp = QtGui.QPainterPath()
@@ -369,7 +381,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         loadUi("controller/microscope_controller.ui", self)
-
+        #print(dir(self.toolBar))#.actionTest)
+        self.toolBar.actionTriggered.connect(self.test)
+    
+        #button_action.triggered.connect(self.onMyToolBarButtonClick)
 
         self.client = MqttClient(self)
         self.client.hostname = "raspberrypi.local"
@@ -380,6 +395,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.camera.stateChanged.connect(self.stateChanged)
         self.camera.posChanged.connect(self.posChanged)
         self.camera.start()
+
+    def test(self, action):
+        print("action", action.objectName())
+        if action.objectName() == 'stopAction':
+            print("STOP")
+            self.cancel()
+            self.tile_graphics_view.stopAcquisition()
+
+
 
     def cancel(self):
         self.client.publish(f"{TARGET}/cancel", "")
@@ -422,12 +446,14 @@ class QApplication(QtWidgets.QApplication):
         self.main_window = MainWindow()
         self.main_window.showMaximized()
 
-
         self.installEventFilter(self)
 
     def eventFilter(self, widget, event):
         if widget == self.main_window.image_view and isinstance(event, QtGui.QKeyEvent):
             print("key press for image view")
+            self.main_window.image_view.keyPressEvent(event)
+        elif widget == self.main_window.tile_graphics_view and isinstance(event, QtGui.QKeyEvent):
+            print("key press for tile graphics view")
             self.main_window.image_view.keyPressEvent(event)
         return False
 
