@@ -313,7 +313,11 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         self.currentRect.setZValue(1)
 
         self.scene.setSceneRect(self.stageRect.boundingRect())
+        self.acquisition = None
 
+    def doAcquisition(self):
+        if self.acquisition:
+            self.acquisition.doAcquisition()
 
     def resizeEvent(self, *args):
         self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
@@ -332,8 +336,6 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
                 self.lastRubberBand[1].y()-self.lastRubberBand[0].y(),
                 pen=pen, brush=brush)
             rect.setZValue(1)
-
-
             
             self.acquisition = Acquisition(self.lastRubberBand)
             self.acquisition.startAcquisition()
@@ -341,6 +343,27 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
             self.lastRubberBand = from_, to
 
 
+    def addImageIfMissing(self, draw_data, pos):
+        if len(self.acquisition.grid) == 0:
+            return
+        ci = self.currentRect.collidingItems()
+        # Get the qpainterpath corresponding to the current image location, minus any overlapping images
+        qp = QtGui.QPainterPath()
+        qp.addRect(self.currentRect.sceneBoundingRect())
+        qp2 = QtGui.QPainterPath()
+        for item in ci:
+            if isinstance(item, QtWidgets.QGraphicsPixmapItem):
+                qp2.addRect(item.sceneBoundingRect())
+
+        qp3 = qp.subtracted(qp2)
+        p = qp3.toFillPolygon()
+        a = calculate_area(p)
+        if a > 200000:
+            image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
+            pixmap = QtGui.QPixmap.fromImage(image)
+            pm = self.scene.addPixmap(pixmap)
+            pm.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
+            pm.setZValue(1)
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
@@ -365,7 +388,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def stateChanged(self, state):
         self.state_value.setText(state)
         if state == 'Idle':
-            self.tile_graphics_view.acquisition.doAcquisition()
+            self.tile_graphics_view.doAcquisition()
             
 
     def posChanged(self, pos):
@@ -378,25 +401,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def imageChanged(self, draw_data):
         state = self.camera.state
         pos = self.camera.pos
-        if state == 'Jog':# and len(self.grid) == 0:
-            ci = self.tile_graphics_view.currentRect.collidingItems()
-            # Get the qpainterpath corresponding to the current image location, minus any overlapping images
-            qp = QtGui.QPainterPath()
-            qp.addRect(self.tile_graphics_view.currentRect.sceneBoundingRect())
-            qp2 = QtGui.QPainterPath()
-            for item in ci:
-                if isinstance(item, QtWidgets.QGraphicsPixmapItem):
-                    qp2.addRect(item.sceneBoundingRect())
-
-            qp3 = qp.subtracted(qp2)
-            p = qp3.toFillPolygon()
-            a = calculate_area(p)
-            if a > 200000:
-                image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
-                pixmap = QtGui.QPixmap.fromImage(image)
-                pm = self.tile_graphics_view.scene.addPixmap(pixmap)
-                pm.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
-                pm.setZValue(1)
+        if state == 'Jog':
+            self.tile_graphics_view.addImageIfMissing(draw_data, pos)
+            
         if state != 'Home':
             image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
             pixmap = QtGui.QPixmap.fromImage(image)
