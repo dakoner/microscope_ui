@@ -119,10 +119,11 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         qp3 = qp.subtracted(qp2)
         p = qp3.toFillPolygon()
         a = calculate_area(p)
-        if a > 200000:
+        if a > 250000:
             image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
             pixmap = QtGui.QPixmap.fromImage(image)
             pm = self.scene.addPixmap(pixmap)
             pm.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
             pm.setZValue(1)
+            print("image added")
        

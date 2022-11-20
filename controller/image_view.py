@@ -1,4 +1,8 @@
+import sys
+sys.path.append("..")
+from microscope_ui.config import PIXEL_SCALE, TARGET, XY_FEED, XY_STEP_SIZE, Z_FEED, Z_STEP_SIZE, HEIGHT, WIDTH, FOV_X, FOV_Y
 from PyQt5 import QtWidgets, QtCore
+
 class ImageView(QtWidgets.QLabel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

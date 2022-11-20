@@ -69,7 +69,11 @@ class QApplication(QtWidgets.QApplication):
         state = self.camera.state
         pos = self.camera.pos
         if state == 'Jog':
-            self.main_window.tile_graphics_view.addImageIfMissing(draw_data, pos)
+            if self.main_window.tile_graphics_view.acquisition:
+                if self.main_window.tile_graphics_view.acquisition.grid != []:
+                    return
+            else:
+                self.main_window.tile_graphics_view.addImageIfMissing(draw_data, pos)
             
         if state != 'Home':
             image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
