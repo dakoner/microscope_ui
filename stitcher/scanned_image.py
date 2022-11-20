@@ -38,39 +38,39 @@ class ScannedImage(QtWidgets.QGraphicsView):
 
         image = QtGui.QImage(image, width, height, QtGui.QImage.Format_RGB888)
 
-        # r = self.scene.addRect(pos.x(), pos.y(), width, height)
-        # qp = QtGui.QPainterPath()
+        r = self.scene.addRect(pos.x(), pos.y(), width, height)
+        qp = QtGui.QPainterPath()
         
-        # a = QtGui.QImage(width, height, QtGui.QImage.Format_ARGB32)
-        # a.fill(QtGui.QColor(255, 255, 255, 255))
+        a = QtGui.QImage(width, height, QtGui.QImage.Format_ARGB32)
+        a.fill(QtGui.QColor(255, 255, 255, 255))
 
-        # qp.addRect(r.sceneBoundingRect())
-        # for item in r.collidingItems():
-        #     qp2 = QtGui.QPainterPath()
-        #     if isinstance(item, QtWidgets.QGraphicsPixmapItem):
-        #         qp2.addRect(item.sceneBoundingRect())
-        #         qp3 = qp.intersected(qp2)
-        #         qp3.closeSubpath()
-        #         x = qp3.boundingRect().x()-pos.x()
-        #         y = qp3.boundingRect().y()-pos.y()
-        #         width = qp3.boundingRect().width()
-        #         height = qp3.boundingRect().height()
-        #         if width < height:
-        #             linearGrad = QtGui.QLinearGradient(0, 0, width, 1)
-        #         else:
-        #             linearGrad = QtGui.QLinearGradient(0, 0, 1, height)
+        qp.addRect(r.sceneBoundingRect())
+        for item in r.collidingItems():
+            qp2 = QtGui.QPainterPath()
+            if isinstance(item, QtWidgets.QGraphicsPixmapItem):
+                qp2.addRect(item.sceneBoundingRect())
+                qp3 = qp.intersected(qp2)
+                qp3.closeSubpath()
+                x = qp3.boundingRect().x()-pos.x()
+                y = qp3.boundingRect().y()-pos.y()
+                width = qp3.boundingRect().width()
+                height = qp3.boundingRect().height()
+                if width < height:
+                    linearGrad = QtGui.QLinearGradient(0, 0, width, 1)
+                else:
+                    linearGrad = QtGui.QLinearGradient(0, 0, 1, height)
 
-        #         linearGrad.setColorAt(0, QtGui.QColor(0, 0, 0, 255))
-        #         linearGrad.setColorAt(1, QtGui.QColor(255, 255, 255, 255))
-        #         p = QtGui.QPainter()
-        #         p.begin(a)
-        #         p.setPen(QtCore.Qt.NoPen)
-        #         p.setBrush(QtGui.QBrush(linearGrad))
-        #         p.drawRect(x, y, width, height)
-        #         p.end()
-        # self.scene.removeItem(r)
+                linearGrad.setColorAt(0, QtGui.QColor(0, 0, 0, 255))
+                linearGrad.setColorAt(1, QtGui.QColor(255, 255, 255, 255))
+                p = QtGui.QPainter()
+                p.begin(a)
+                p.setPen(QtCore.Qt.NoPen)
+                p.setBrush(QtGui.QBrush(linearGrad))
+                p.drawRect(x, y, width, height)
+                p.end()
+        self.scene.removeItem(r)
         
-        #image.setAlphaChannel(a)
+        image.setAlphaChannel(a)
         pixmap = QtGui.QPixmap.fromImage(image)
 
 
