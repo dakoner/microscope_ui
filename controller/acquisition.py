@@ -41,8 +41,9 @@ class Acquisition():
         
     def generateGrid(self, from_, to):
         grid = []
-        dz = np.linspace(-2, 2, 25)
-        print(dz)
+        #dz = np.linspace(-2, 2, 25)
+        dz = [0]
+        #print(dz)
         #dz = [-.25, -0.2, -0.15, -0.1, -0.05, 0, 0.05, 0.1, 0.15, 0.2, 0.25]
 
         x_min = from_.x()* PIXEL_SCALE
