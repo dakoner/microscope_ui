@@ -49,19 +49,17 @@ def main():
                 polys.append(b)
             c = shapely.geometry.MultiPolygon(polys)
             print("Full size", c.bounds)
-            ##76b900
-            o = np.full((int(c.bounds[3]), int(c.bounds[2]), 4), (0,0,0,255), dtype=np.ubyte)
+            # Target array for all images in this T, Z, Y, X, C (shaped as Y, X, C)
+            o = np.full((int(c.bounds[3]), int(c.bounds[2]), 3), (0,0,0), dtype=np.ubyte)
 
             s = shapely.strtree.STRtree([])
             polys = []
             for row in all_ti.itertuples():
                 fname = row.fname
                 data = tifffile.imread(os.path.join(prefix, row.fname))
-                print(data.shape)
-                data_alpha = np.full((data.shape[0], data.shape[1]), 255)
-                print(data_alpha.shape)
-                print(np.append(data, data_alpha, axis=2).shape)
-                import pdb; pdb.set_trace()
+                #data_alpha = np.full((data.shape[0], data.shape[1], 1), 255)
+                #data = np.concatenate([data, data_alpha], axis=2)
+                #print(data.shape)
                 x0 = row.k * FOV_X_PIXELS
                 y0 = row.j * FOV_Y_PIXELS
                 x1 = x0 + WIDTH
@@ -72,35 +70,36 @@ def main():
                 b.row = row
                 b.data = data
                 results = s.query(b)
-                o2 = np.full((width, height, 4), (0, 0, 0, 255), dtype=np.ubyte)
-                mask = np.full((o.shape[0], o.shape[1]), 255, dtype=np.ubyte)
-                if len(results) == 0:
-                    o[y0:y1, x0:x1, :3] = data
+                #o2 = np.full((height, width, 4), (0, 0, 0, 255), dtype=np.ubyte)
+                #mask = np.full((height, width), 255, dtype=np.ubyte)
+                #if len(results) == 0:
+                #print(y0, y1, x0, x1)
+                o[y0:y1, x0:x1] = data
 
-                else:
-                    for result in results:
-                        #print("\t\t", result.row, result)
-                        ib = result.intersection(b).bounds
-                        ix0 = int(ib[0])
-                        ix1 = int(ib[2])
-                        iy0 = int(ib[1])
-                        iy1 = int(ib[3])
+                # else:
+                #     for result in results:
+                #         #print("\t\t", result.row, result)
+                #         ib = result.intersection(b).bounds
+                #         ix0 = int(ib[0])
+                #         ix1 = int(ib[2])
+                #         iy0 = int(ib[1])
+                #         iy1 = int(ib[3])
 
-                        xs = np.linspace(0, 255, ix1-ix0)
-                        #ys = np.linspace(0, 255, int(ib[3]-ib[1]))
-                        gradient = np.tile(xs, (iy1-iy0,1))
-                        mask[iy0:iy1,ix0:ix1] = gradient
+                #         xs = np.linspace(0, 255, ix1-ix0)
+                #         #ys = np.linspace(0, 255, int(ib[3]-ib[1]))
+                #         gradient = np.tile(xs, (iy1-iy0,1))
+                #         mask[iy0:iy1,ix0:ix1] = gradient
                     
-                print("o2 shape", o2.shape)
-                print(f"box {y0}:{y1}, {x0}:{x1}")
-                print("data shape", data.shape)
-                o2[y0:y1, x0:x1, :3] = data
-                print("mask shape", mask.shape)
-                o2[:, :, 3] = mask
-                #tifffile.imwrite("test.png", o)
+                # print("o2 shape", o2.shape)
+                # print(f"box {y0}:{y1}, {x0}:{x1}")
+                # print("data shape", data.shape)
+                # o2[y0:y1, x0:x1, :3] = data
+                # print("mask shape", mask.shape)
+                # o2[:, :, 3] = mask
+                tifffile.imwrite("c:/Users/dek/Desktop/test.tif", o)
                 #tifffile.imwrite("test2.png", o2)
                 #tifffile.imwrite("test3.png", o3)
-         
+                #import pdb; pdb.set_trace()
                 polys.append(b)
                 s = shapely.strtree.STRtree(polys)
             fname = f"stitched/image_t={t},z={i}.tif"
