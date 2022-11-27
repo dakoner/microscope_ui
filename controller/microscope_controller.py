@@ -62,8 +62,8 @@ class QApplication(QtWidgets.QApplication):
         self.main_window.x_value.display(pos[0])
         self.main_window.y_value.display(pos[1])
         self.main_window.z_value.display(pos[2])
-        self.main_window.tile_graphics_view.currentRect.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
-       
+        self.main_window.tile_graphics_view.updateCurrentRect(pos)
+
 
     def imageChanged(self, draw_data):
         state = self.camera.state

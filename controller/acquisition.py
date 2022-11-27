@@ -91,7 +91,7 @@ class Acquisition():
         camera = app.camera
         draw_data = camera.image
         pos = camera.pos
-        image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
+        
         fname = os.path.join(self.prefix, f"image_{self.counter}_{self.index[0]}_{self.index[1]}_{self.index[2]}.tif")
         json.dump({
             "fname": os.path.basename(fname),
@@ -102,12 +102,20 @@ class Acquisition():
         }, self.tile_config)
         self.tile_config.write("\n")
         self.tile_config.flush()
+
+        image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
+        #a = QtGui.QImage(image.width(), image.height(), QtGui.QImage.Format_ARGB32)
+        #a.fill(QtGui.QColor(255, 255, 255, 255))
+        #image.setAlphaChannel(a)
         image.save(fname)
+
         pixmap = QtGui.QPixmap.fromImage(image)
+        app.main_window.image_view.setPixmap(pixmap)
+        print("add image, for acquisition")
+
         pm = app.main_window.tile_graphics_view.scene.addPixmap(pixmap)
         pm.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
         pm.setZValue(1)
-        app.main_window.image_view.setPixmap(pixmap)
 
     def doAcquisition(self):
         if len(self.grid):
