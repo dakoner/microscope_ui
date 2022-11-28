@@ -2,10 +2,10 @@ IMAGEZMQ='raspberrypi.local'
 TARGET="raspberrypi"
 PORT=5000
 
-# Based on .15mm calibration slide
+
 PIXEL_SCALE=0.00095547487
-WIDTH=800
-HEIGHT=600
+WIDTH=1280
+HEIGHT=720
 
 FOV_X_PIXELS = 750
 FOV_Y_PIXELS = 550
