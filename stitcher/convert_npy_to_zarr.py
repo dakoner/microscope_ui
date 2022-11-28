@@ -1,7 +1,9 @@
 import concurrent.futures
 import numpy as np
 import tifffile
-from config import  WIDTH, HEIGHT, FOV_X, FOV_X_PIXELS, FOV_Y, FOV_Y_PIXELS
+import sys
+sys.path.append("..")
+from microscope_ui.config import  WIDTH, HEIGHT, FOV_X, FOV_X_PIXELS, FOV_Y, FOV_Y_PIXELS
 import zarr
 from ome_zarr.io import parse_url
 from ome_zarr.writer import write_image

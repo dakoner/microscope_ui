@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1600</width>
-    <height>1200</height>
+    <width>982</width>
+    <height>643</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,26 +20,22 @@
      <verstretch>0</verstretch>
     </sizepolicy>
    </property>
-   <widget class="TabWidget" name="tabWidget">
-    <property name="geometry">
-     <rect>
-      <x>-1</x>
-      <y>-1</y>
-      <width>1600</width>
-      <height>1200</height>
-     </rect>
-    </property>
-    <property name="currentIndex">
-     <number>-1</number>
-    </property>
-   </widget>
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="0" column="0">
+     <widget class="TabWidget" name="tabWidget">
+      <property name="currentIndex">
+       <number>-1</number>
+      </property>
+     </widget>
+    </item>
+   </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1600</width>
+     <width>982</width>
      <height>18</height>
     </rect>
    </property>
@@ -50,13 +46,13 @@
   <customwidget>
    <class>TabWidget</class>
    <extends>QTabWidget</extends>
-   <header>microscope_ui.stitcher</header>
+   <header>microscope_ui.stitcher.stitcher</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>CentralWidget</class>
    <extends>QWidget</extends>
-   <header>microscope_ui.stitcher</header>
+   <header>microscope_ui.stitcher.stitcher</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
