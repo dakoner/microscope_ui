@@ -1,7 +1,8 @@
+import time
 import sys
 sys.path.append("..")
 from microscope_ui.config import PIXEL_SCALE, TARGET, XY_FEED, XY_STEP_SIZE, Z_FEED, Z_STEP_SIZE, HEIGHT, WIDTH, FOV_X, FOV_Y
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 
 class ImageView(QtWidgets.QLabel):
     def __init__(self, *args, **kwargs):
@@ -23,6 +24,14 @@ class ImageView(QtWidgets.QLabel):
         elif key == QtCore.Qt.Key_S:
             self.client.publish(f"{TARGET}/cancel", "")
             app.main_window.tile_graphics_view.stopAcquisition()
+        elif key == QtCore.Qt.Key_P:
+            app=QtWidgets.QApplication.instance()
+            camera = app.camera
+            draw_data = camera.image
+            pos = camera.pos
+            fname = f"image_{int(time.time())}.tif"
+            image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
+            image.save(fname)
         elif key == QtCore.Qt.Key_R:
             self.scene.clear()
             app.main_window.tile_graphics_view.addStageRect()
