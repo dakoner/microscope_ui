@@ -54,12 +54,14 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         self.setScene(self.scene)
 
         self.addStageRect()
+
         self.currentRect = None
         
         #self.fitInView(self.stageRect, QtCore.Qt.KeepAspectRatio)
 
-        #self.scene.setSceneRect(self.scene.itemsBoundingRect())
-        #self.setSceneRect(self.scene.sceneRect())
+        self.scene.setSceneRect(self.scene.itemsBoundingRect())
+        self.setSceneRect(self.stageRect.rect())
+        self.fitInView(self.stageRect, QtCore.Qt.KeepAspectRatio)
         #self.scale(0.025, 0.025)
         #self.centerOn(self.currentRect)
         self.acquisition = None
@@ -70,7 +72,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         pen.setWidth(1)
         color = QtGui.QColor()
         brush = QtGui.QBrush(color)
-        self.stageRect = self.scene.addRect(0, 0, 54/PIXEL_SCALE, 85/PIXEL_SCALE, pen=pen, brush=brush)
+        self.stageRect = self.scene.addRect(0, 0, 65/PIXEL_SCALE, 85/PIXEL_SCALE, pen=pen, brush=brush)
         self.stageRect.setZValue(0)
 
     def addCurrentRect(self):
