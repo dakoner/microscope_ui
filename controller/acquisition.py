@@ -46,34 +46,37 @@ class Acquisition():
         #print(dz)
         #dz = [-.25, -0.2, -0.15, -0.1, -0.05, 0, 0.05, 0.1, 0.15, 0.2, 0.25]
 
-        x_min = from_.x()* PIXEL_SCALE
-        y_min =  from_.y()* PIXEL_SCALE
-        x_max = to.x()* PIXEL_SCALE
-        y_max =  to.y()* PIXEL_SCALE
+        self.x_min = from_.x()* PIXEL_SCALE
+        self.y_min =  from_.y()* PIXEL_SCALE
+        self.x_max = to.x()* PIXEL_SCALE
+        self.y_max =  to.y()* PIXEL_SCALE
 
         app=QtWidgets.QApplication.instance()
 
         z = app.camera.pos[2]
         num_z = len(dz)
-        ys = np.arange(y_min, y_max, FOV_Y)
+        self.ys = np.arange(self.y_min, self.y_max, FOV_Y)
         #ys = [y_min, y_max]
-        num_y = len(ys)
-        xs = np.arange(x_min, x_max, FOV_X)
+        num_y = len(self.ys)
+        self.xs = np.arange(self.x_min, self.x_max, FOV_X)
         #xs = [x_min, x_max]
-        num_x = len(xs)
+        num_x = len(self.xs)
         
         for i, deltaz in enumerate(dz):           
-            for j, gy in enumerate(ys):
+            for j, gy in enumerate(self.ys):
                 # if j % 2 == 0:
+                #     print("even")
                 #     xs_ = xs
                 # else:
+
+                #     print("odd")
                 #     xs_ = xs[::-1]
                 # print(xs_)
                 ##Disable bidirectional scanning since it interferes with tile blending
-                xs_ = xs
+                xs_ = self.xs
                 for k, gx in enumerate(xs_):
                     curr_z = z + deltaz
-                    g = f"$J=G90 G21 F{XY_FEED:.3f} X{gx:.3f} Y{gy:.3f} Z{curr_z:.3f}"
+                    g = f"G90 G21 G1 F{XY_FEED:.3f} X{gx:.3f} Y{gy:.3f} Z{curr_z:.3f}"
                     grid.append(((i,j,k),(gx,gy,curr_z),g))
 
         grid.append(None)
@@ -83,6 +86,7 @@ class Acquisition():
         app=QtWidgets.QApplication.instance()
         self.grid = self.orig_grid[:]
         self.index, self.loc, cmd = self.grid.pop(0)
+        app.main_window.label_counter.setText(str(self.counter))
         
         app.client.publish(f"{TARGET}/command", cmd)
 
@@ -111,23 +115,24 @@ class Acquisition():
 
         pixmap = QtGui.QPixmap.fromImage(image)
         app.main_window.image_view.setPixmap(pixmap)
-        print("add image, for acquisition")
 
         pm = app.main_window.tile_graphics_view.scene.addPixmap(pixmap)
         pm.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
         pm.setZValue(1)
 
     def doAcquisition(self):
+        app=QtWidgets.QApplication.instance()
         if len(self.grid):
             if self.grid == [None]:
                 self.snapPhoto()
-                app=QtWidgets.QApplication.instance()
-                camera = app.camera
-                pos = camera.pos
                 self.counter += 1
+                app.main_window.label_counter.setText(str(self.counter))
                 self.startAcquisition()
             else:
                 self.snapPhoto()
                 self.index, self.loc, cmd = self.grid.pop(0)
+                app.main_window.label_i.setText(f"{self.index[0]} of ?")
+                app.main_window.label_j.setText(f"{self.index[1]} of {len(self.ys)}")
+                app.main_window.label_k.setText(f"{self.index[2]} of {len(self.xs)}")
                 app=QtWidgets.QApplication.instance()
                 app.client.publish(f"{TARGET}/command", cmd)
