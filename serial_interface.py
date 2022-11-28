@@ -6,12 +6,12 @@ import serial
 import time
 import threading
 import paho.mqtt.client as mqtt
-from config import WIDTH, HEIGHT
+from config import WIDTH, HEIGHT, FPS
 MQTT_SERVER="raspberrypi"
 DEVICE=sys.argv[1]
 TARGET=sys.argv[2]
-IMAGE_TIMEOUT=0.1
-STATUS_TIMEOUT=0.1
+IMAGE_TIMEOUT=0.03
+STATUS_TIMEOUT=0.03
 XY_FEED=5
 
 def openSerial(port, baud):
@@ -47,8 +47,10 @@ class SerialInterface:
         self.image_thread.start()
 
     def get_image(self):
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture('/dev/video0', 0)
         port = 5000
+        cap.set(cv2.CAP_PROP_FOURCC,cv2.VideoWriter_fourcc('M','J','P','G'))
+        cap.set(cv2.CAP_PROP_FPS, FPS)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
         sender = imagezmq.ImageSender("tcp://*:{}".format(port), REQ_REP=False)
@@ -62,7 +64,6 @@ class SerialInterface:
                 if t1 - t0 >= IMAGE_TIMEOUT:
                     # self.state = 'Idle'
                     # self.m_pos = 0, 0, 0
-                    # print(self.m_pos)
                     message = '{"state": "%s", "m_pos": [%8.3f, %8.3f, %8.3f]}' %  (self.state, *self.m_pos[:3])
                     ret, img = cap.retrieve()
                     if ret:
