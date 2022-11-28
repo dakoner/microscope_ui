@@ -96,7 +96,7 @@ def main():
                 # o2[y0:y1, x0:x1, :3] = data
                 # print("mask shape", mask.shape)
                 # o2[:, :, 3] = mask
-                tifffile.imwrite("c:/Users/dek/Desktop/test.tif", o)
+                tifffile.imwrite("movie_out/test.%05d.tif" % t, o)
                 #tifffile.imwrite("test2.png", o2)
                 #tifffile.imwrite("test3.png", o3)
                 #import pdb; pdb.set_trace()
