@@ -148,7 +148,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         print("tile graphics view key press event")
         key = event.key()  
         if key == QtCore.Qt.Key_Plus:
-            self.scale(2, 2)
+            self.scale(1.1, 1.1)
         elif key == QtCore.Qt.Key_Minus:
-            self.scale(0.5, 0.5)
+            self.scale(0.9, 0.9)
         return super().keyPressEvent(event)
