@@ -1,8 +1,11 @@
+import numpy as np
+import signal
 import time
 import sys
 sys.path.append("..")
 from microscope_ui.config import PIXEL_SCALE, TARGET, XY_FEED, XY_STEP_SIZE, Z_FEED, Z_STEP_SIZE, HEIGHT, WIDTH, FOV_X, FOV_Y
 from PyQt5 import QtWidgets, QtCore, QtGui
+from image_zmq_camera_reader import ImageZMQCameraReader
 
 class ImageView(QtWidgets.QLabel):
     def __init__(self, *args, **kwargs):
@@ -58,4 +61,29 @@ class ImageView(QtWidgets.QLabel):
                 self.client.publish(f"{TARGET}/command", cmd)
         return super().keyPressEvent(event)
 
-       
+class QApplication(QtWidgets.QApplication):
+    def __init__(self, *argv):
+        super().__init__(*argv)
+
+        self.image_view = QtWidgets.QLabel()
+        self.image_view.show()
+
+        self.camera = ImageZMQCameraReader()
+        self.camera.imageChanged.connect(self.imageChanged)
+
+        self.camera.start()
+
+    def imageChanged(self, draw_data):
+        #if np.sum(draw_data) > 200000:
+        image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
+        pixmap = QtGui.QPixmap.fromImage(image)
+        self.image_view.setPixmap(pixmap)
+        self.image_view.setFixedSize(draw_data.shape[1], draw_data.shape[0])
+
+def main():
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    app = QApplication(sys.argv)    
+    app.exec()
+
+if __name__ == '__main__':
+    main()
