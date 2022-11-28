@@ -195,7 +195,7 @@
    <widget class="QWidget" name="dockWidgetContents_3">
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
-      <widget class="QGroupBox" name="groupBox_3">
+      <widget class="QGroupBox" name="acquisition_group">
        <property name="title">
         <string>Acquisition</string>
        </property>
