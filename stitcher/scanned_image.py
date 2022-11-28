@@ -156,7 +156,9 @@ class QApplication(QtWidgets.QApplication):
 
                 scanned_image.scene.setSceneRect(scanned_image.scene.itemsBoundingRect())
                 scanned_image.save("chimerax", t, i)
-        self.main_window.show()
+        print("exit")
+        self.exit()
+#        self.main_window.show()
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL)
