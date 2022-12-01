@@ -5,7 +5,7 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.uic import loadUi
 from image_zmq_camera_reader import ImageZMQCameraReader
 sys.path.append("..")
-from microscope_ui.config import PIXEL_SCALE, TARGET, XY_FEED, XY_STEP_SIZE, Z_FEED, Z_STEP_SIZE, HEIGHT, WIDTH, FOV_X, FOV_Y
+from microscope_ui.config import PIXEL_SCALE, MQTT_HOST, TARGET, XY_FEED, XY_STEP_SIZE, Z_FEED, Z_STEP_SIZE, HEIGHT, WIDTH, FOV_X, FOV_Y
 from mqtt_qobject import MqttClient
    
 class QApplication(QtWidgets.QApplication):
@@ -23,7 +23,7 @@ class QApplication(QtWidgets.QApplication):
         #button_action.triggered.connect(self.onMyToolBarButtonClick)
 
         self.client = MqttClient(self)
-        self.client.hostname = "raspberrypi.local"
+        self.client.hostname = MQTT_HOST
         self.client.connectToHost()
 
         self.camera = ImageZMQCameraReader()
@@ -76,7 +76,7 @@ class QApplication(QtWidgets.QApplication):
                 self.main_window.tile_graphics_view.addImageIfMissing(draw_data, pos)
             
         if state != 'Home':
-            image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
+            image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_Grayscale8)
             pixmap = QtGui.QPixmap.fromImage(image)
             self.main_window.image_view.setPixmap(pixmap)
 
