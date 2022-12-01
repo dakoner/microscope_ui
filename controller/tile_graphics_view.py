@@ -136,7 +136,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         p = qp3.toFillPolygon()
         a = calculate_area(p)
         if a > 250000:
-            image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
+            image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_Grayscale8)
             pixmap = QtGui.QPixmap.fromImage(image)
             print("add image, past threshold")
             pm = self.scene.addPixmap(pixmap)
