@@ -2,6 +2,8 @@ import dask.array as da
 import sys
 import signal
 from PyQt5 import QtGui, QtCore, QtWidgets
+sys.path.append("..")
+from microscope_ui.config import FOV_X_PIXELS, FOV_Y_PIXELS
 import numpy as np
 
 
@@ -28,35 +30,42 @@ class QApplication(QtWidgets.QApplication):
         self.tab_widget = QtWidgets.QTabWidget()
         self.main_window.setCentralWidget(self.tab_widget)
 
-        s = QtWidgets.QGraphicsScene()
 
-        for t in 0, 1:
-            print(t)
-            d = da.from_zarr(f"c:/Users/dek/Desktop/out/image_t={t}.zarr")
-            tab_widget = QtWidgets.QTabWidget()
-            self.tab_widget.addTab(tab_widget, f"t={t}")
-
-            w = 16384
-            h = 16384
-            ys = np.arange(0, d.shape[1], h)
-            xs = np.arange(0, d.shape[2], w)
-            n = np.array(np.meshgrid(xs, ys)).T.reshape(-1,2)
-            for z in range(0,1):
-                print("\t", z)
-                data = np.array(d[z])
-                for x, y in n:
-                    rect = data[y:y+h,x:x+w]
-                    image = QtGui.QImage(rect.tobytes(), rect.shape[1], rect.shape[0], QtGui.QImage.Format_Grayscale8)
-                    p = QtGui.QPixmap(image)
-                    pm = s.addPixmap(p)
-                    pm.setPos(x, y)
+        d = da.from_zarr(f"/Users/davidek/out/images.zarr")
+        # CTZYX
+        print(d.shape)
+        for c in range(d.shape[0]):
+            print("c=", c)
+            for t in range(d.shape[1]):
+                print("\tt=", t)
+                tab_widget = QtWidgets.QTabWidget()
+                self.tab_widget.addTab(tab_widget, f"t={t}")
+                for z in range(d.shape[2]):
+                    print("\t\tz=", z)
+                    data = np.array(d[c, t, z])
+                    print(data.shape)
+                    scene = QtWidgets.QGraphicsScene()
+                    for i in range(data.shape[0]):
+                        for j in range(data.shape[1]):
+                            print(i,j)
+                            image = QtGui.QImage(data[i,j].tobytes(), data.shape[3], data.shape[2], QtGui.QImage.Format_Grayscale8)
+                            p = QtGui.QPixmap(image)
+                            pm = scene.addPixmap(p)
+                            y = i * FOV_Y_PIXELS
+                            x = j * FOV_X_PIXELS
+                            pm.setPos(x, y)
+                    q = TileView()
+                    q.setScene(scene)
+                    tab_widget.addTab(q, f"z={z}")
+                    return
+                            
+                            
                     
-                q = TileView()
-                q.setScene(s)
-                print(d.shape[1], d.shape[2])
-                q.fitInView(0, 0, d.shape[1], d.shape[2])
-                tab_widget.addTab(q, f"z={z}")
-            return
+        #         q = TileView()
+        #         q.setScene(s)
+        #         print(d.shape[1], d.shape[2])
+        #         q.fitInView(0, 0, d.shape[1], d.shape[2])
+        #     return
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL)

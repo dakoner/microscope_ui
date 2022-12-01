@@ -7,7 +7,7 @@ content = requests.get(schemaAddr).content
 schema = etree.fromstring(content)
 xmlschema = etree.XMLSchema(schema)
 
-with tifffile.TiffFile("test.ome.tif" ) as t:
+with tifffile.TiffFile("test.0,0.ome.tif" ) as t:
     print(t.ome_metadata)
     o = t.ome_metadata.encode('utf-8')
     root = etree.fromstring(o)
