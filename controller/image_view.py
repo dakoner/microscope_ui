@@ -75,7 +75,7 @@ class QApplication(QtWidgets.QApplication):
 
     def imageChanged(self, draw_data):
         #if np.sum(draw_data) > 200000:
-        image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
+        image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_Grayscale8)
         pixmap = QtGui.QPixmap.fromImage(image)
         self.image_view.setPixmap(pixmap)
         self.image_view.setFixedSize(draw_data.shape[1], draw_data.shape[0])
