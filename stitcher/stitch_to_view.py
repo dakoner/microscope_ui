@@ -31,7 +31,7 @@ class QApplication(QtWidgets.QApplication):
         self.main_window.setCentralWidget(self.tab_widget)
 
 
-        d = da.from_zarr(f"/Users/davidek/out/images.zarr")
+        d = da.from_zarr(f"out/images.zarr")
         # CTZYX
         print(d.shape)
         for c in range(d.shape[0]):
@@ -59,13 +59,7 @@ class QApplication(QtWidgets.QApplication):
                     tab_widget.addTab(q, f"z={z}")
                     return
                             
-                            
-                    
-        #         q = TileView()
-        #         q.setScene(s)
-        #         print(d.shape[1], d.shape[2])
-        #         q.fitInView(0, 0, d.shape[1], d.shape[2])
-        #     return
+                       
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL)
