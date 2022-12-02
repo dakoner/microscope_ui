@@ -13,7 +13,7 @@ def main():
 
     #tif = tifffile.TiffWriter(f"test.ome.tif", )
 
-    d = da.from_zarr(f"/Users/davidek/out/images.zarr")
+    d = da.from_zarr(f"out/images.zarr")
     # CTZijYX
     print(d.shape)
     for c in range(d.shape[0]):
@@ -30,7 +30,7 @@ def main():
 
 
                     metadata={
-                        'axes': 'ZYXS',
+                        'axes': 'ZYX',
                         #'DimensionOrder': 'TCZYXS',
                         #'TimeIncrement': 0.1,
                         #'TimeIncrementUnit': 's',
@@ -52,7 +52,7 @@ def main():
                             #'PositionXUnit': ['µm'] * data.shape[0],
                             #'PositionY': [y] * data.shape[0],
                             #'PositionYUnit': ['µm'] * data.shape[0]
-                            'PositionZ': [0]*data.shape[0]
+                            'PositionZ': list(range(data.shape[0]),
                         },
                     }
                     # print(metadata)
@@ -63,9 +63,8 @@ def main():
                         resolutionunit='CENTIMETER',
                         resolution=(1e4, 1e4))
                     print(data.shape)
-                    data = np.expand_dims(data, 3)
                     print(data.shape)
-                    tifffile.imwrite("test.tif", data, bigtiff=True, metadata=metadata, **options)
+                    tifffile.imwrite(f"out/test.{i}.{j}.ome.tif", data, bigtiff=True, metadata=metadata, **options)
                     return
                     #tif.write(data, metadata=metadata, **options)
 main()
