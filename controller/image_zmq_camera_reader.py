@@ -27,12 +27,11 @@ class ImageZMQCameraReader(QtCore.QThread):
 
     def run(self):         
         message, jpg_buffer = self.image_hub.recv_jpg()
-        image_data = simplejpeg.decode_jpeg( jpg_buffer, colorspace='RGB')
+        image_data = simplejpeg.decode_jpeg( jpg_buffer, colorspace='GRAY')
 
         while True:
             message, jpg_buffer = self.image_hub.recv_jpg()
-            #print("message:", message)
-            image_data = simplejpeg.decode_jpeg( jpg_buffer, colorspace='RGB')
+            image_data = simplejpeg.decode_jpeg( jpg_buffer, colorspace='GRAY')
             m = json.loads(message)
 
             self.pos = m['m_pos']
