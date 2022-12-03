@@ -23,7 +23,7 @@ class QApplication(QtWidgets.QApplication):
         #button_action.triggered.connect(self.onMyToolBarButtonClick)
 
         self.client = MqttClient(self)
-        self.client.hostname = "raspberrypi.local"
+        self.client.hostname = "microcontroller"
         self.client.connectToHost()
 
         self.camera = ImageZMQCameraReader()

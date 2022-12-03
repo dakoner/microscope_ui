@@ -1,21 +1,15 @@
-IMAGEZMQ='raspberrypi.local'
-TARGET="raspberrypi"
+IMAGEZMQ='microcontroller'
+TARGET="microcontroller"
 PORT=5000
+MQTT_HOST='microcontroller.local'
 
-<<<<<<< HEAD
 # Based on .15mm calibration slide, 800x600 image
 #PIXEL_SCALE=0.00095547487
 # Based on .15mm calibration slide, 1280x720 image
 PIXEL_SCALE=0.00093167701
-=======
 
-PIXEL_SCALE=0.00095547487
-WIDTH=1280
-HEIGHT=720
->>>>>>> 22dcf1a3db88a4437516dd3df75039a6e76dca6f
-
-WIDTH=1280
-HEIGHT=720
+WIDTH=1440
+HEIGHT=1080
 FPS=30
 
 FOV_X_PIXELS = WIDTH * 0.9

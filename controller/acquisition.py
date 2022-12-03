@@ -51,6 +51,7 @@ class Acquisition():
         self.x_max = to.x()* PIXEL_SCALE
         self.y_max =  to.y()* PIXEL_SCALE
 
+        print(self.x_min, self.y_min, self.x_max, self.y_max)
         app=QtWidgets.QApplication.instance()
 
         z = app.camera.pos[2]
