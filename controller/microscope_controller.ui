@@ -137,22 +137,6 @@
    <attribute name="dockWidgetArea">
     <number>8</number>
    </attribute>
-   <widget class="QWidget" name="dockWidgetContents_2">
-    <layout class="QVBoxLayout" name="verticalLayout_2">
-     <item>
-      <widget class="QGroupBox" name="groupBox">
-       <property name="title">
-        <string>Logs</string>
-       </property>
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <item>
-         <widget class="PythonConsole" name="python_console"/>
-        </item>
-       </layout>
-      </widget>
-     </item>
-    </layout>
-   </widget>
   </widget>
   <widget class="QToolBar" name="toolBar">
    <property name="minimumSize">
@@ -179,7 +163,7 @@
    <widget class="QWidget" name="dockWidgetContents">
     <layout class="QHBoxLayout" name="horizontalLayout_3">
      <item>
-      <widget class="ImageView" name="image_view">
+      <widget class="QLabel" name="image_view">
        <property name="text">
         <string>TextLabel</string>
        </property>
@@ -297,16 +281,6 @@
   </action>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>PythonConsole</class>
-   <extends>QPlainTextEdit</extends>
-   <header>microscope_ui.controller.python_console</header>
-  </customwidget>
-  <customwidget>
-   <class>ImageView</class>
-   <extends>QLabel</extends>
-   <header>microscope_ui.controller.image_view</header>
-  </customwidget>
   <customwidget>
    <class>TileGraphicsView</class>
    <extends>QGraphicsView</extends>
