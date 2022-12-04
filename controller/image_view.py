@@ -16,7 +16,6 @@ class ImageView(QtWidgets.QLabel):
  
         app = QtWidgets.QApplication.instance()
         self.client = app.client
-        self.camera = app.camera
         self.scene = app.main_window.tile_graphics_view.scene
         key = event.key()  
         # check if autorepeat (only if doing cancelling-moves)  
@@ -29,9 +28,8 @@ class ImageView(QtWidgets.QLabel):
             app.main_window.tile_graphics_view.stopAcquisition()
         elif key == QtCore.Qt.Key_P:
             app=QtWidgets.QApplication.instance()
-            camera = app.camera
-            draw_data = camera.image
-            pos = camera.pos
+            draw_data = app.camera.image
+            pos = app.pos
             fname = f"image_{int(time.time())}.tif"
             image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
             image.save(fname)
@@ -40,7 +38,7 @@ class ImageView(QtWidgets.QLabel):
             app.main_window.tile_graphics_view.addStageRect()
             app.main_window.tile_graphics_view.addCurrentRect()
 
-        elif self.camera.state == "Idle":
+        elif app.state == "Idle":
             if key == QtCore.Qt.Key_Left:
                 cmd = f"$J=G91 G21 F{XY_FEED:.3f} X-{XY_STEP_SIZE:.3f}"
                 self.client.publish(f"{TARGET}/command", cmd)

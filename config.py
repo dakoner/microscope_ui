@@ -1,7 +1,7 @@
-IMAGEZMQ='microcontroller.local'
+IMAGEZMQ='microcontroller'
 TARGET="microcontroller"
 PORT=5000
-MQTT_HOST='microcontroller.local'
+MQTT_HOST='microcontroller'
 # Based on .15mm calibration slide, 800x600 image
 #PIXEL_SCALE=0.00095547487
 # Based on .15mm calibration slide, 1280x720 image
@@ -13,8 +13,8 @@ WIDTH=1440
 HEIGHT=1080
 FPS=30
 
-FOV_X_PIXELS = WIDTH * 0.9
-FOV_Y_PIXELS = HEIGHT * 0.9
+FOV_X_PIXELS = WIDTH
+FOV_Y_PIXELS = HEIGHT
 FOV_X = FOV_X_PIXELS * PIXEL_SCALE
 FOV_Y = FOV_Y_PIXELS * PIXEL_SCALE
 

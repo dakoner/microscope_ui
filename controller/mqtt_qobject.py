@@ -128,11 +128,11 @@ class MqttClient(QtCore.QObject):
     #################################################################
     # callbacks
     def on_message(self, mqttc, obj, msg):
-        mstr = msg.payload.decode("ascii")
         #print("on_message", msg.topic, msg.payload)
         self.messageSignal.emit(msg.topic, msg.payload.decode("ascii"))
 
     def on_connect(self, *args):
+        #load bearing print-statement
         print("on_connect", args)
         self.state = MqttClient.Connected
         self.connected.emit()

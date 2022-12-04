@@ -8,3 +8,4 @@ data.npz
 test.zarr/
 chimerax/
 stitched/
+out/
