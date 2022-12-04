@@ -1,7 +1,7 @@
-IMAGEZMQ='microcontroller.local'
+IMAGEZMQ='microcontroller'
 TARGET="microcontroller"
 PORT=5000
-MQTT_HOST='microcontroller.local'
+MQTT_HOST='microcontroller'
 # Based on .15mm calibration slide, 800x600 image
 #PIXEL_SCALE=0.00095547487
 # Based on .15mm calibration slide, 1280x720 image
