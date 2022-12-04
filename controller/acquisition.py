@@ -1,3 +1,4 @@
+import cv2
 import json
 import os
 import time
@@ -26,6 +27,10 @@ class Acquisition():
         self.inner_counter = 0
         self.block = None
         
+        self.app.camera.imageChanged.connect(self.imageChanged)
+        self.out = None
+        self.fname = None
+        self.vs = []
     # def __del__(self):
     #     print("deleteme")
         #self.tile_config.close()
@@ -48,48 +53,45 @@ class Acquisition():
         #ys = [y_min, y_max]
         num_y = len(self.ys)
         self.xs = np.arange(self.x_min, self.x_max, FOV_X)
-        #self.xs = [self.x_min, self.x_max]
+        self.xs = [self.x_min, self.x_max]
         num_x = len(self.xs)
-        
+
         for i, deltaz in enumerate(self.zs):           
+            curr_z = z + deltaz
             for j, gy in enumerate(self.ys):
-                # if j % 2 == 0:
-                #     print("even")
-                #     xs_ = xs
-                # else:
-
-                #     print("odd")
-                #     xs_ = xs[::-1]
-                # print(xs_)
-                ##Disable bidirectional scanning since it interferes with tile blending
-                xs_ = self.xs
                 inner_grid = []
-                for k, gx in enumerate(xs_):
-                    curr_z = z + deltaz
-                    inner_grid.append(["MOVE_TO", (gx,gy,curr_z), (i,j,k)])
-                    inner_grid.append(["WAIT"])
-                    inner_grid.append(["PHOTO", (gx,gy,curr_z), (i,j,k)])
-
-                    #g = f"G90 G21 G1 F{XY_FEED:.3f} X{gx:.3f} Y{gy:.3f} Z{curr_z:.3f}"
+                inner_grid.append(["MOVE_TO", (self.xs[0],gy,curr_z), (i,j,0)])
+                inner_grid.append(["WAIT"])
+                inner_grid.append(["START_VIDEO", (gy,curr_z), (i,j)])
+                inner_grid.append(["MOVE_TO", (self.xs[1],gy,curr_z), (i,j,1)])
+                inner_grid.append(["WAIT"])
+                inner_grid.append(["STOP_VIDEO"])
+                #for k, gx in enumerate(xs_):
+                #    inner_grid.append(["MOVE_TO", (gx,gy,curr_z), (i,j,k)])
+                #    inner_grid.append(["WAIT"])
+                #    inner_grid.append(["PHOTO", (gx,gy,curr_z), (i,j,k)])
+                #    inner_grid.append(["MOVE_TO", (gx,gy,curr_z), (i,j,k)])
+                #    inner_grid.append(["WAIT"])
+                #    inner_grid.append(["PHOTO", (gx,gy,curr_z), (i,j,k)])
                 grid.append(inner_grid)
 
         grid.append(["DONE"])
 
-        with open(os.path.join(self.prefix, "scan_config.json"), "w") as scan_config:
-            json.dump({
-                    "i_dim": i+1,
-                    "j_dim": j+1,
-                    "k_dim": k+1,
-                    "x_min": self.x_min,
-                    "y_min": self.y_min,
-                    "z_min": self.z_min,
-                    "x_max": self.x_max,
-                    "y_max": self.y_max,
-                    "z_max": self.z_max,
-                    "pixel_scale": PIXEL_SCALE,
-                    "fov_x_pixels": FOV_X_PIXELS,
-                    "fov_y_pixels": FOV_Y_PIXELS,
-                }, scan_config)
+        # with open(os.path.join(self.prefix, "scan_config.json"), "w") as scan_config:
+        #     json.dump({
+        #             "i_dim": i+1,
+        #             "j_dim": j+1,
+        #             "k_dim": k+1,
+        #             "x_min": self.x_min,
+        #             "y_min": self.y_min,
+        #             "z_min": self.z_min,
+        #             "x_max": self.x_max,
+        #             "y_max": self.y_max,
+        #             "z_max": self.z_max,
+        #             "pixel_scale": PIXEL_SCALE,
+        #             "fov_x_pixels": FOV_X_PIXELS,
+        #             "fov_y_pixels": FOV_Y_PIXELS,
+        #         }, scan_config)
         return grid
 
     def startAcquisition(self):
@@ -110,20 +112,35 @@ class Acquisition():
         subcmd = self.block.pop(0)
     
         self.cur = subcmd
+        print(self.cur)
+        
         if subcmd[0] == "MOVE_TO":
             x, y, z = subcmd[1]
             i, j, k = subcmd[2]
-            g = f"G90 G21 G1 F{XY_FEED:.3f} X{x:.3f} Y{y:.3f} Z{z:.3f}"
-            self.app.client.publish(f"{TARGET}/command", g)
-            self.app.main_window.label_i.setText(f"{i} of {len(self.zs)}")
-            self.app.main_window.label_j.setText(f"{j} of {len(self.ys)}")
-            self.app.main_window.label_k.setText(f"{k} of {len(self.xs)}")
+            pos = self.app.m_pos
+            if pos[0] == x and pos[1] == y and pos[2] == z:
+                print("already at position")
+            else:
+                g = f"G90 G21 G1 F{XY_FEED:.3f} X{x:.3f} Y{y:.3f} Z{z:.3f}"
+                self.app.client.publish(f"{TARGET}/command", g)
+                self.app.main_window.label_i.setText(f"{i} of {len(self.zs)}")
+                self.app.main_window.label_j.setText(f"{j} of {len(self.ys)}")
+                self.app.main_window.label_k.setText(f"{k} of {len(self.xs)}")
         elif subcmd[0] == 'WAIT':
             self.app.client.publish(f"{TARGET}/command", "G4 P0.1")
         elif subcmd[0] == 'PHOTO':
             x, y, z = subcmd[1]
             i, j, k = subcmd[2]
             self.snapPhoto(x, y, z, i, j, k)
+            self.doCmd()
+        elif subcmd[0] == 'START_VIDEO':
+            x, y = subcmd[1]
+            i, j = subcmd[2]
+            self.startVideo(x, y, i, j)
+            self.doCmd()
+        elif subcmd[0] == 'STOP_VIDEO':
+
+            self.stopVideo()
             self.doCmd()
         else:
             print("Unknown subcmd", subcmd)
@@ -150,6 +167,37 @@ class Acquisition():
     #             self.inner_counter += 1
     #             self.app.client.publish(f"{TARGET}/command", cmd)
 
+
+    def imageChanged(self, draw_data):
+        if self.fname:
+            val = draw_data.sum()/ (draw_data.shape[0]*draw_data.shape[1])
+            if val > 10:
+                d = np.repeat(draw_data, 3, axis=2)
+                self.data.append(d)
+
+    def startVideo(self, x, y, i, j):
+        self.fname = os.path.join(self.prefix, f"output.{i},{j}.mkv")
+        self.data = []
+
+    def stopVideo(self):
+        class VideoSaver(QtCore.QThread):
+            def __init__(self, out, data):
+                super().__init__()
+                self.out = out
+                self.data = data
+            def run(self):
+                for frame in self.data:
+                    self.out.write(frame)
+                self.out.release()
+                print("done")
+
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        self.out = cv2.VideoWriter(self.fname, fourcc, 60.0, (WIDTH, HEIGHT))
+        v = VideoSaver(self.out, self.data.copy())
+        self.vs.append(v)
+        v.start()
+        self.data = None
+        self.fname = None
 
     def snapPhoto(self, x, y, z, i, j, k):
         camera = self.app.camera
