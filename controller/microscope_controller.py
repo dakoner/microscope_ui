@@ -79,79 +79,81 @@ class QApplication(QtWidgets.QApplication):
         return False
 
     def handleKeyEvent(self, widget, event):
-        key = event.key()  
-        if key == QtCore.Qt.Key_Plus:
-            self.main_window.tile_graphics_view.scale(1.1, 1.1)
-            event.accept()
-            return True
-        elif key == QtCore.Qt.Key_Minus:
-            self.main_window.tile_graphics_view.scale(0.9, 0.9)    
-            event.accept()
-            return True
-        elif key == QtCore.Qt.Key_C:
-            self.client.publish(f"{TARGET}/cancel", "")
-            event.accept()
-            return True
-        elif key == QtCore.Qt.Key_H:
-            self.client.publish(f"{TARGET}/command", "$H")
-            event.accept()
-            return True
-        elif key == QtCore.Qt.Key_S:
-            self.client.publish(f"{TARGET}/cancel", "")
-            self.cancel()
-            self.main_window.tile_graphics_view.stopAcquisition()
-            event.accept()
-            return True
-        elif key == QtCore.Qt.Key_P:
-            draw_data = self.camera.image
-            pos = self.pos
-            fname = f"image_{int(time.time())}.tif"
-            image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
-            image.save(fname)
-            event.accept()
-            return True
-        elif key == QtCore.Qt.Key_R:
-            self.scene.clear()
-            self.main_window.tile_graphics_view.addStageRect()
-            self.main_window.tile_graphics_view.addCurrentRect()
+        key = event.key()
+        type_ = event.type()
+        if type_ == QtCore.QEvent.KeyPress:
+            if key == QtCore.Qt.Key_Plus:
+                self.main_window.tile_graphics_view.scale(1.1, 1.1)
+                event.accept()
+                return True
+            elif key == QtCore.Qt.Key_Minus:
+                self.main_window.tile_graphics_view.scale(0.9, 0.9)    
+                event.accept()
+                return True
+            elif key == QtCore.Qt.Key_C:
+                self.client.publish(f"{TARGET}/cancel", "")
+                event.accept()
+                return True
+            elif key == QtCore.Qt.Key_H:
+                self.client.publish(f"{TARGET}/command", "$H")
+                event.accept()
+                return True
+            elif key == QtCore.Qt.Key_S:
+                self.client.publish(f"{TARGET}/cancel", "")
+                self.cancel()
+                self.main_window.tile_graphics_view.stopAcquisition()
+                event.accept()
+                return True
+            elif key == QtCore.Qt.Key_P:
+                draw_data = self.camera.image
+                pos = self.pos
+                fname = f"image_{int(time.time())}.tif"
+                image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
+                image.save(fname)
+                event.accept()
+                return True
+            elif key == QtCore.Qt.Key_R:
+                self.scene.clear()
+                self.main_window.tile_graphics_view.addStageRect()
+                self.main_window.tile_graphics_view.addCurrentRect()
 
-        elif key == QtCore.Qt.Key_Left:
-            if self.state == "Idle":
-                cmd = f"$J=G91 G21 F{XY_FEED:.3f} X-{XY_STEP_SIZE:.3f}"
-                self.client.publish(f"{TARGET}/command", cmd)
-            event.accept()
-            return True
-        elif key == QtCore.Qt.Key_Right:
-            if self.state == "Idle":
-                cmd = f"$J=G91 G21 F{XY_FEED:.3f} X{XY_STEP_SIZE:.3f}"
-                self.client.publish(f"{TARGET}/command", cmd)
-            event.accept()
-            return True
-        elif key == QtCore.Qt.Key_Up:
-            if self.state == "Idle":
-                cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y-{XY_STEP_SIZE:.3f}"
-                self.client.publish(f"{TARGET}/command", cmd)
-            event.accept()
-            return True
-        elif key == QtCore.Qt.Key_Down:
-            if self.state == "Idle":
-                cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y{XY_STEP_SIZE:.3f}"
-                self.client.publish(f"{TARGET}/command", cmd)
-            event.accept()
-            return True
-        elif key == QtCore.Qt.Key_PageUp:
-            if self.state == "Idle":
-                cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z-{Z_STEP_SIZE:.3f}"
-                self.client.publish(f"{TARGET}/command", cmd)
-            event.accept()
-            return True
-        elif key == QtCore.Qt.Key_PageDown:
-            if self.state == "Idle":
-                cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z{Z_STEP_SIZE:.3f}"
-                self.client.publish(f"{TARGET}/command", cmd)
-            event.accept()
-            return True
-    
+            elif key == QtCore.Qt.Key_Left:
+                if self.state == "Idle":
+                    cmd = f"$J=G91 G21 F{XY_FEED:.3f} X-{XY_STEP_SIZE:.3f}"
+                    self.client.publish(f"{TARGET}/command", cmd)
+                event.accept()
+                return True
+            elif key == QtCore.Qt.Key_Right:
+                if self.state == "Idle":
+                    cmd = f"$J=G91 G21 F{XY_FEED:.3f} X{XY_STEP_SIZE:.3f}"
+                    self.client.publish(f"{TARGET}/command", cmd)
+                event.accept()
+                return True
+            elif key == QtCore.Qt.Key_Up:
+                if self.state == "Idle":
+                    cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y-{XY_STEP_SIZE:.3f}"
+                    self.client.publish(f"{TARGET}/command", cmd)
+                event.accept()
+                return True
+            elif key == QtCore.Qt.Key_Down:
+                if self.state == "Idle":
+                    cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y{XY_STEP_SIZE:.3f}"
+                    self.client.publish(f"{TARGET}/command", cmd)
+                event.accept()
+                return True
+            elif key == QtCore.Qt.Key_PageUp:
+                if self.state == "Idle":
+                    cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z-{Z_STEP_SIZE:.3f}"
+                    self.client.publish(f"{TARGET}/command", cmd)
+                event.accept()
+                return True
+            elif key == QtCore.Qt.Key_PageDown:
+                if self.state == "Idle":
+                    cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z{Z_STEP_SIZE:.3f}"
+                    self.client.publish(f"{TARGET}/command", cmd)
+                event.accept()
+                return True
+        
         return super().eventFilter(widget, event)
 
     def handleMouseEvent(self, widget, event):
@@ -185,7 +187,7 @@ class QApplication(QtWidgets.QApplication):
 
 
     def imageChanged(self, draw_data):
-        if self.state == 'Jog':
+        if self.state == 'Jog' or self.state == 'Run':
             self.main_window.tile_graphics_view.addImageIfMissing(draw_data, self.m_pos)
             
         image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_Grayscale8)

@@ -26,6 +26,9 @@
      <verstretch>0</verstretch>
     </sizepolicy>
    </property>
+   <property name="focusPolicy">
+    <enum>Qt::StrongFocus</enum>
+   </property>
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
      <widget class="TileGraphicsView" name="tile_graphics_view">
@@ -40,6 +43,9 @@
         <width>100</width>
         <height>200</height>
        </size>
+      </property>
+      <property name="focusPolicy">
+       <enum>Qt::NoFocus</enum>
       </property>
       <property name="dragMode">
        <enum>QGraphicsView::RubberBandDrag</enum>
