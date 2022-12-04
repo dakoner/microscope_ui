@@ -41,7 +41,6 @@ class Acquisition():
         self.y_max =  to.y()* PIXEL_SCALE
         self.z_min = self.zs[0]
         self.z_max = self.zs[-1]
-        self.app=QtWidgets.QApplication.instance()
 
         z = self.app.m_pos[2]
         num_z = len(self.zs)
