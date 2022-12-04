@@ -25,12 +25,42 @@ class QApplication(QtWidgets.QApplication):
         self.client = MqttClient(self)
         self.client.hostname = MQTT_HOST
         self.client.connectToHost()
+        self.client.messageSignal.connect(self.on_message)
+        self.client.connected.connect(self.on_connect)
 
         self.camera = ImageZMQCameraReader()
         self.camera.imageChanged.connect(self.imageChanged)
-        self.camera.stateChanged.connect(self.stateChanged)
-        self.camera.posChanged.connect(self.posChanged)
         self.camera.start()
+
+        self.state = 'None'
+        self.m_pos = [-1, -1, -1]
+
+    def on_message(self, topic, payload):
+        if topic == f"{TARGET}/m_pos":
+            pos = eval(payload)
+            if self.m_pos != pos:
+                self.m_pos = pos
+                self.main_window.x_value.display(pos[0])
+                self.main_window.y_value.display(pos[1])
+                self.main_window.z_value.display(pos[2])
+                self.main_window.tile_graphics_view.updateCurrentRect(pos)
+        elif topic == f"{TARGET}/state":
+            if self.state != payload:
+                self.state = payload
+                self.main_window.state_value.setText(self.state)
+            if self.state == 'Idle':
+                self.main_window.tile_graphics_view.doAcquisition()
+
+    def on_connect(self):
+        print("on_connect", TARGET)
+        self.connected = True
+        self.client.subscribe(f"{TARGET}/m_pos")
+        self.client.subscribe(f"{TARGET}/state")
+
+    def on_disconnect(self, client, userdata, flags):
+        print("disconnected")
+        self.connected = False
+        
 
     def eventFilter(self, widget, event):
         if widget == self.main_window.image_view and isinstance(event, QtGui.QKeyEvent):
@@ -52,33 +82,14 @@ class QApplication(QtWidgets.QApplication):
         self.client.publish(f"{TARGET}/cancel", "")
         
 
-    def stateChanged(self, state):
-        self.main_window.state_value.setText(state)
-        if state == 'Idle':
-            self.main_window.tile_graphics_view.doAcquisition()
-            
-
-    def posChanged(self, pos):
-        self.main_window.x_value.display(pos[0])
-        self.main_window.y_value.display(pos[1])
-        self.main_window.z_value.display(pos[2])
-        self.main_window.tile_graphics_view.updateCurrentRect(pos)
-
 
     def imageChanged(self, draw_data):
-        state = self.camera.state
-        pos = self.camera.pos
-        if state == 'Jog':
-            if self.main_window.tile_graphics_view.acquisition:
-                if self.main_window.tile_graphics_view.acquisition.grid != []:
-                    return
-            else:
-                self.main_window.tile_graphics_view.addImageIfMissing(draw_data, pos)
+        if self.state == 'Jog':
+            self.main_window.tile_graphics_view.addImageIfMissing(draw_data, self.m_pos)
             
-        if state != 'Home':
-            image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_Grayscale8)
-            pixmap = QtGui.QPixmap.fromImage(image)
-            self.main_window.image_view.setPixmap(pixmap)
+        image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_Grayscale8)
+        pixmap = QtGui.QPixmap.fromImage(image)
+        self.main_window.image_view.setPixmap(pixmap)
 
 
     def moveTo(self, position):

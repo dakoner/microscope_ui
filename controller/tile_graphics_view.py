@@ -57,20 +57,20 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
 
         self.currentRect = None
         
-        #self.fitInView(self.stageRect, QtCore.Qt.KeepAspectRatio)
 
-        self.scene.setSceneRect(self.scene.itemsBoundingRect())
-        self.setSceneRect(self.stageRect.rect())
-        self.fitInView(self.stageRect, QtCore.Qt.KeepAspectRatio)
+        #self.scene.setSceneRect(self.scene.itemsBoundingRect())
+        #self.setSceneRect(self.stageRect.rect())
+        #self.fitInView(self.stageRect, QtCore.Qt.KeepAspectRatio)
         #self.scale(0.025, 0.025)
         #self.centerOn(self.currentRect)
         self.acquisition = None
+        self.fitInView(self.stageRect, QtCore.Qt.KeepAspectRatio)
 
 
     def addStageRect(self):
         pen = QtGui.QPen()
         pen.setWidth(1)
-        color = QtGui.QColor()
+        color = QtGui.QColor(QtCore.Qt.black)
         brush = QtGui.QBrush(color)
         self.stageRect = self.scene.addRect(0, 0, 65/PIXEL_SCALE, 85/PIXEL_SCALE, pen=pen, brush=brush)
         self.stageRect.setZValue(0)
@@ -86,8 +86,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
     def updateCurrentRect(self, pos):
         if not self.currentRect:
             self.addCurrentRect()
-        else:
-            self.currentRect.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
+        self.currentRect.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
     
     def doAcquisition(self):
         if self.acquisition:
@@ -120,7 +119,6 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
 
 
     def addImageIfMissing(self, draw_data, pos):
-        print("addImageIfMissing")
         #if not self.acquisition or len(self.acquisition.grid) == 0:
         #    return
         ci = self.currentRect.collidingItems()
@@ -135,17 +133,15 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         qp3 = qp.subtracted(qp2)
         p = qp3.toFillPolygon()
         a = calculate_area(p)
-        if a > 250000:
+        if a > 550000:
             image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_Grayscale8)
             pixmap = QtGui.QPixmap.fromImage(image)
-            print("add image, past threshold")
             pm = self.scene.addPixmap(pixmap)
             pm.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
             pm.setZValue(1)
        
 
     def keyPressEvent(self, event):
-        print("tile graphics view key press event")
         key = event.key()  
         if key == QtCore.Qt.Key_Plus:
             self.scale(1.1, 1.1)

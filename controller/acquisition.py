@@ -47,22 +47,24 @@ class Acquisition():
         
     def generateGrid(self, from_, to):
         grid = []
-        self.zs = [-0.2,-0.1,0,0.1,0.2]
+        #self.zs = [-0.2,-0.1,0,0.1,0.2]
+        self.zs = [0]
         
         self.x_min = from_.x()* PIXEL_SCALE
         self.y_min =  from_.y()* PIXEL_SCALE
         self.x_max = to.x()* PIXEL_SCALE
         self.y_max =  to.y()* PIXEL_SCALE
+        print(self.x_min, self.y_min, self.x_max, self.y_max)
 
         app=QtWidgets.QApplication.instance()
 
-        z = app.camera.pos[2]
+        z = app.m_pos[2]
         num_z = len(self.zs)
         self.ys = np.arange(self.y_min, self.y_max, FOV_Y)
         #ys = [y_min, y_max]
         num_y = len(self.ys)
-        self.xs = np.arange(self.x_min, self.x_max, FOV_X)
-        #xs = [x_min, x_max]
+        #self.xs = np.arange(self.x_min, self.x_max, FOV_X)
+        self.xs = [self.x_min, self.x_max]
         num_x = len(self.xs)
         
         for i, deltaz in enumerate(self.zs):           
@@ -82,6 +84,8 @@ class Acquisition():
                     g = f"G90 G21 G1 F{XY_FEED:.3f} X{gx:.3f} Y{gy:.3f} Z{curr_z:.3f}"
                     grid.append(((i,j,k),(gx,gy,curr_z),g))
 
+        with open("visit.txt", "w") as f:
+            f.write("\n".join([arg[2] for arg in grid]))
         grid.append(None)
         return grid
 
@@ -92,12 +96,13 @@ class Acquisition():
         app.main_window.label_counter.setText(str(self.counter))
         
         app.client.publish(f"{TARGET}/command", cmd)
+        #app.client.publish(f"{TARGET}/command", "G4 P1")
 
     def snapPhoto(self):
         app=QtWidgets.QApplication.instance()
         camera = app.camera
         draw_data = camera.image
-        pos = camera.pos
+        pos = app.m_pos
         
         fname = os.path.join(self.prefix, f"image_{self.counter}_{self.index[0]}_{self.index[1]}_{self.index[2]}.tif")
         json.dump({
@@ -130,13 +135,13 @@ class Acquisition():
         app=QtWidgets.QApplication.instance()
         if len(self.grid):
             if self.grid == [None]:
-                self.snapPhoto()
+                #self.snapPhoto()
                 self.inner_counter = 0
                 self.counter += 1
                 app.main_window.label_counter.setText(str(self.counter))
                 self.startAcquisition()
             else:
-                self.snapPhoto()
+                #self.snapPhoto()
                 self.index, self.loc, cmd = self.grid.pop(0)
                 app.main_window.label_i.setText(f"{self.index[0]+1} of {len(self.zs)}")
                 app.main_window.label_j.setText(f"{self.index[1]+1} of {len(self.ys)}")

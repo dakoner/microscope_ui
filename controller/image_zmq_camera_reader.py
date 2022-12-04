@@ -11,8 +11,8 @@ from microscope_ui.config import IMAGEZMQ, PORT
 
 class ImageZMQCameraReader(QtCore.QThread):
     
-    stateChanged = QtCore.pyqtSignal(str)
-    posChanged = QtCore.pyqtSignal(list)
+    # stateChanged = QtCore.pyqtSignal(str)
+    # posChanged = QtCore.pyqtSignal(list)
     imageChanged = QtCore.pyqtSignal(np.ndarray)
 
     def __init__(self):
@@ -21,9 +21,9 @@ class ImageZMQCameraReader(QtCore.QThread):
         print("Connect to url", url)
         self.image_hub = imagezmq.ImageHub(url, REQ_REP=False)
 
-        self.m_state = None
-        self.m_pos = None
-        self.m_image = None
+        # self.m_state = None
+        # self.m_pos = None
+        # self.m_image = None
 
     def run(self):         
         message, jpg_buffer = self.image_hub.recv_jpg()
@@ -32,32 +32,32 @@ class ImageZMQCameraReader(QtCore.QThread):
         while True:
             message, jpg_buffer = self.image_hub.recv_jpg()
             image_data = simplejpeg.decode_jpeg( jpg_buffer, colorspace='GRAY')
-            m = json.loads(message)
+            # m = json.loads(message)
 
-            self.pos = m['m_pos']
-            self.state = m['state']
+            # self.pos = m['m_pos']
+            # self.state = m['state']
             self.image = image_data
 
-    @QtCore.pyqtProperty(str, notify=stateChanged)
-    def state(self):
-        return self.m_state
+    # @QtCore.pyqtProperty(str, notify=stateChanged)
+    # def state(self):
+    #     return self.m_state
 
-    @state.setter
-    def state(self, state):
-        if self.m_state == state: return
-        self.m_state = state
-        self.stateChanged.emit(state) 
+    # @state.setter
+    # def state(self, state):
+    #     if self.m_state == state: return
+    #     self.m_state = state
+    #     self.stateChanged.emit(state) 
 
 
-    @QtCore.pyqtProperty(str, notify=posChanged)
-    def pos(self):
-        return self.m_pos
+    # @QtCore.pyqtProperty(str, notify=posChanged)
+    # def pos(self):
+    #     return self.m_pos
 
-    @pos.setter
-    def pos(self, pos):
-        if self.m_pos == pos: return
-        self.m_pos = pos
-        self.posChanged.emit(pos)
+    # @pos.setter
+    # def pos(self, pos):
+    #     if self.m_pos == pos: return
+    #     self.m_pos = pos
+    #     self.posChanged.emit(pos)
 
 
     @QtCore.pyqtProperty(str, notify=imageChanged)
