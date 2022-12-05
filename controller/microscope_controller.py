@@ -28,7 +28,7 @@ class QApplication(QtWidgets.QApplication):
         #button_action.triggered.connect(self.onMyToolBarButtonClick)
 
         self.client = MqttClient(self)
-        self.client.hostname = "microcontroller"
+        self.client.hostname = MQTT_HOST
         self.client.connectToHost()
         self.client.messageSignal.connect(self.on_message)
         self.client.connected.connect(self.on_connect)
@@ -39,6 +39,8 @@ class QApplication(QtWidgets.QApplication):
 
         self.state = 'None'
         self.m_pos = [-1, -1, -1]
+
+        self.t0 = time.time()
 
     def on_message(self, topic, payload):
         if topic == f"{TARGET}/m_pos":
@@ -187,12 +189,24 @@ class QApplication(QtWidgets.QApplication):
 
 
     def imageChanged(self, draw_data):
+        t0 = time.time()
+        self.t0 = t0
         if self.state == 'Jog' or self.state == 'Run':
-            self.main_window.tile_graphics_view.addImageIfMissing(draw_data, self.m_pos)
+            f = draw_data.flatten()
+            val = f.sum()/len(f)
+            if val > 10:
+                self.main_window.tile_graphics_view.addImageIfMissing(draw_data, self.m_pos)
             
-        image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_Grayscale8)
-        pixmap = QtGui.QPixmap.fromImage(image)
-        self.main_window.image_view.setPixmap(pixmap)
+        if self.state != 'Home':
+            s = draw_data.shape
+            if s[2] == 1:
+                format = QtGui.QImage.Format_Grayscale8
+            elif s[2] == 3:
+                format = QtGui.QImage.Format_RGB888
+
+            image = QtGui.QImage(draw_data, s[1], s[0], format)
+            pixmap = QtGui.QPixmap.fromImage(image)
+            self.main_window.image_view.setPixmap(pixmap)
 
 
     def moveTo(self, position):

@@ -1,3 +1,4 @@
+import time
 from PyQt5 import QtCore
 import json
 import simplejpeg
@@ -27,11 +28,14 @@ class ImageZMQCameraReader(QtCore.QThread):
 
     def run(self):         
         message, jpg_buffer = self.image_hub.recv_jpg()
-        image_data = simplejpeg.decode_jpeg( jpg_buffer, colorspace='GRAY')
+        rt, colorspace = message
+        image_data = simplejpeg.decode_jpeg( jpg_buffer, colorspace=colorspace)
 
         while True:
             message, jpg_buffer = self.image_hub.recv_jpg()
-            image_data = simplejpeg.decode_jpeg( jpg_buffer, colorspace='GRAY')
+            t0 = time.time()
+            #print(t0-message)
+            image_data = simplejpeg.decode_jpeg( jpg_buffer, colorspace=colorspace)
             # m = json.loads(message)
 
             # self.pos = m['m_pos']

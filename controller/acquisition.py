@@ -27,7 +27,7 @@ class Acquisition():
         self.inner_counter = 0
         self.block = None
         
-        self.app.camera.imageChanged.connect(self.imageChanged)
+        #ppself.app.camera.imageChanged.connect(self.imageChanged)
         self.out = None
         self.fname = None
         self.vs = []
@@ -62,10 +62,10 @@ class Acquisition():
                 inner_grid = []
                 inner_grid.append(["MOVE_TO", (self.xs[0],gy,curr_z), (i,j,0)])
                 inner_grid.append(["WAIT"])
-                inner_grid.append(["START_VIDEO", (gy,curr_z), (i,j)])
+                #inner_grid.append(["START_VIDEO", (gy,curr_z), (i,j)])
                 inner_grid.append(["MOVE_TO", (self.xs[1],gy,curr_z), (i,j,1)])
                 inner_grid.append(["WAIT"])
-                inner_grid.append(["STOP_VIDEO"])
+                #inner_grid.append(["STOP_VIDEO"])
                 #for k, gx in enumerate(xs_):
                 #    inner_grid.append(["MOVE_TO", (gx,gy,curr_z), (i,j,k)])
                 #    inner_grid.append(["WAIT"])
@@ -168,36 +168,36 @@ class Acquisition():
     #             self.app.client.publish(f"{TARGET}/command", cmd)
 
 
-    def imageChanged(self, draw_data):
-        if self.fname:
-            val = draw_data.sum()/ (draw_data.shape[0]*draw_data.shape[1])
-            if val > 10:
-                d = np.repeat(draw_data, 3, axis=2)
-                self.data.append(d)
+    # def imageChanged(self, draw_data):
+    #     if self.fname:
+    #         # val = draw_data.sum()/ (draw_data.shape[0]*draw_data.shape[1])
+    #         # if val > 10:
+    #         #     d = np.repeat(draw_data, 3, axis=2)
+    #         #     self.data.append(d)
 
-    def startVideo(self, x, y, i, j):
-        self.fname = os.path.join(self.prefix, f"output.{i},{j}.mkv")
-        self.data = []
+    # def startVideo(self, x, y, i, j):
+    #     self.fname = os.path.join(self.prefix, f"output.{i},{j}.mkv")
+    #     self.data = []
 
-    def stopVideo(self):
-        class VideoSaver(QtCore.QThread):
-            def __init__(self, out, data):
-                super().__init__()
-                self.out = out
-                self.data = data
-            def run(self):
-                for frame in self.data:
-                    self.out.write(frame)
-                self.out.release()
-                print("done")
+    # def stopVideo(self):
+    #     class VideoSaver(QtCore.QThread):
+    #         def __init__(self, out, data):
+    #             super().__init__()
+    #             self.out = out
+    #             self.data = data
+    #         def run(self):
+    #             for frame in self.data:
+    #                 self.out.write(frame)
+    #             self.out.release()
+    #             print("done")
 
-        fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        self.out = cv2.VideoWriter(self.fname, fourcc, 60.0, (WIDTH, HEIGHT))
-        v = VideoSaver(self.out, self.data.copy())
-        self.vs.append(v)
-        v.start()
-        self.data = None
-        self.fname = None
+    #     fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    #     self.out = cv2.VideoWriter(self.fname, fourcc, 60.0, (WIDTH, HEIGHT))
+    #     v = VideoSaver(self.out, self.data.copy())
+    #     self.vs.append(v)
+    #     v.start()
+    #     self.data = None
+    #     self.fname = None
 
     def snapPhoto(self, x, y, z, i, j, k):
         camera = self.app.camera

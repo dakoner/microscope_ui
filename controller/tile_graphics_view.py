@@ -39,7 +39,6 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         #self.scale(0.025, 0.025)
         #self.centerOn(self.currentRect)
         self.acquisition = None
-        print(self.stageRect.rect())
         self.fitInView(0, 0, 1000, 1000, QtCore.Qt.KeepAspectRatio)
 
 
@@ -109,7 +108,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         qp3 = qp.subtracted(qp2)
         p = qp3.toFillPolygon()
         a = calculate_area(p)
-        if a > 1200000:
+        if a > 10:
             image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_Grayscale8)
             pixmap = QtGui.QPixmap.fromImage(image)
             pm = self.scene.addPixmap(pixmap)
