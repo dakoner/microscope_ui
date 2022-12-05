@@ -184,11 +184,14 @@ class QApplication(QtWidgets.QApplication):
         
 
 
-    def imageChanged(self, draw_data):
+    def imageChanged(self, draw_data, colorspace):
         if self.state == 'Jog':
             self.main_window.tile_graphics_view.addImageIfMissing(draw_data, self.m_pos)
-            
-        image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_Grayscale8)
+        if colorspace  == 'Gray':
+            format = QtGui.QImage.Format_Grayscale
+        elif colorspace == 'RGB':
+            format = QtGui.QImage.Format_RGB888
+        image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], format)
         pixmap = QtGui.QPixmap.fromImage(image)
         self.main_window.image_view.setPixmap(pixmap)
 

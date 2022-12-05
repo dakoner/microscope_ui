@@ -13,7 +13,7 @@ class ImageZMQCameraReader(QtCore.QThread):
     
     # stateChanged = QtCore.pyqtSignal(str)
     # posChanged = QtCore.pyqtSignal(list)
-    imageChanged = QtCore.pyqtSignal(np.ndarray)
+    imageChanged = QtCore.pyqtSignal(np.ndarray, str)
 
     def __init__(self):
         super().__init__()
@@ -27,11 +27,12 @@ class ImageZMQCameraReader(QtCore.QThread):
 
     def run(self):         
         message, jpg_buffer = self.image_hub.recv_jpg()
-        image_data = simplejpeg.decode_jpeg( jpg_buffer, colorspace='GRAY')
+        rt, self.colorspace = message
+        image_data = simplejpeg.decode_jpeg( jpg_buffer, colorspace=self.colorspace)
 
         while True:
             message, jpg_buffer = self.image_hub.recv_jpg()
-            image_data = simplejpeg.decode_jpeg( jpg_buffer, colorspace='GRAY')
+            image_data = simplejpeg.decode_jpeg( jpg_buffer, colorspace=self.colorspace)
             # m = json.loads(message)
 
             # self.pos = m['m_pos']
@@ -67,6 +68,6 @@ class ImageZMQCameraReader(QtCore.QThread):
     @image.setter
     def image(self, image):
         self.m_image = image
-        self.imageChanged.emit(image)
+        self.imageChanged.emit(image, self.colorspace)
 
     
