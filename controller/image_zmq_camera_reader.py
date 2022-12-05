@@ -1,3 +1,4 @@
+import time
 from PyQt5 import QtCore
 import json
 import simplejpeg
