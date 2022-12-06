@@ -2,24 +2,23 @@ import time
 import functools
 import sys
 import signal
+from video_sender.pyspin_camera import pyspin_camera_qobject
+from fluidnc_serial import serial_interface_qobject
+
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.uic import loadUi
-from image_zmq_camera_reader import ImageZMQCameraReader
 sys.path.append("..")
 from microscope_ui.config import PIXEL_SCALE, MQTT_HOST, TARGET, XY_FEED, XY_STEP_SIZE, Z_FEED, Z_STEP_SIZE, HEIGHT, WIDTH, FOV_X, FOV_Y
 from mqtt_qobject import MqttClient
-   
-class QApplication(QtWidgets.QApplication):
-    stateChanged = QtCore.pyqtSignal(str)
-    posChanged = QtCore.pyqtSignal(float, float, float)
-    outputChanged = QtCore.pyqtSignal(str)
 
+class QApplication(QtWidgets.QApplication):
     def __init__(self, *argv):
         super().__init__(*argv)
         self.main_window = QtWidgets.QMainWindow()
         loadUi("controller/microscope_controller.ui", self.main_window)
+        self.main_window.dumpObjectTree()
         self.main_window.setFocusPolicy(True)
-        self.main_window.showMaximized()
+        self.main_window.show()
 
         self.installEventFilter(self)
 
@@ -30,48 +29,35 @@ class QApplication(QtWidgets.QApplication):
         self.client = MqttClient(self)
         self.client.hostname = MQTT_HOST
         self.client.connectToHost()
-        self.client.messageSignal.connect(self.on_message)
-        self.client.connected.connect(self.on_connect)
 
-        self.camera = ImageZMQCameraReader()
-        self.camera.imageChanged.connect(self.imageChanged)
-        self.camera.start()
+        self.serial = serial_interface_qobject.SerialInterface('/dev/ttyUSB0', "dektop")
+        self.serial.posChanged.connect(self.onPosChange)
+        self.serial.stateChanged.connect(self.onStateChange)
+        self.serial.messageChanged.connect(self.onMessageChanged)
+
+        self.p = pyspin_camera_qobject.PySpinCamera()
+        self.p.imageChanged.connect(self.imageChanged)
+        self.p.begin()
+
 
         self.state = 'None'
         self.m_pos = [-1, -1, -1]
 
         self.t0 = time.time()
 
-    def on_message(self, topic, payload):
-        if topic == f"{TARGET}/m_pos":
-            pos = eval(payload)
-            if self.m_pos != pos:
-                self.m_pos = pos
-                self.main_window.x_value.display(pos[0])
-                self.main_window.y_value.display(pos[1])
-                self.main_window.z_value.display(pos[2])
-                self.main_window.tile_graphics_view.updateCurrentRect(pos)
-                self.posChanged.emit(*self.m_pos[:3])
-        elif topic == f"{TARGET}/state":
-            if self.state != payload:
-                self.state = payload
-                self.main_window.state_value.setText(self.state)
-                self.stateChanged.emit(self.state)
-        elif topic == f"{TARGET}/output":
-            self.outputChanged.emit(payload)
+    def onMessageChanged(self, message):
+        print("message:", message)
 
-    def on_connect(self):
-        print("on_connect", TARGET)
-        self.connected = True
-        self.client.subscribe(f"{TARGET}/m_pos")
-        self.client.subscribe(f"{TARGET}/state")
-        self.client.subscribe(f"{TARGET}/output")
+    def onPosChange(self, x, y, z):
+        self.m_pos = [x,y,z]
+        self.main_window.x_value.display(x)
+        self.main_window.y_value.display(y)
+        self.main_window.z_value.display(z)
+        self.main_window.tile_graphics_view.updateCurrentRect(x, y)
 
-    def on_disconnect(self, client, userdata, flags):
-        print("disconnected")
-        self.connected = False
-        
-
+    def onStateChange(self, state):
+        self.state = state
+        self.main_window.state_value.setText(state)
 
     def eventFilter(self, widget, event):
         if isinstance(event, QtGui.QKeyEvent):
@@ -93,15 +79,18 @@ class QApplication(QtWidgets.QApplication):
                 event.accept()
                 return True
             elif key == QtCore.Qt.Key_C:
-                self.client.publish(f"{TARGET}/cancel", "")
+                self.cancel()
+                #self.client.publish(f"{TARGET}/cancel", "")
                 event.accept()
                 return True
             elif key == QtCore.Qt.Key_H:
-                self.client.publish(f"{TARGET}/command", "$H")
+                self.cancel()
+                self.home()
+                #self.client.publish(f"{TARGET}/command", "$H")
                 event.accept()
                 return True
             elif key == QtCore.Qt.Key_S:
-                self.client.publish(f"{TARGET}/cancel", "")
+                #self.client.publish(f"{TARGET}/cancel", "")
                 self.cancel()
                 self.main_window.tile_graphics_view.stopAcquisition()
                 event.accept()
@@ -121,44 +110,46 @@ class QApplication(QtWidgets.QApplication):
 
             elif key == QtCore.Qt.Key_Left:
                 if self.state == "Idle":
-                    cmd = f"$J=G91 G21 F{XY_FEED:.3f} X-{XY_STEP_SIZE:.3f}"
-                    self.client.publish(f"{TARGET}/command", cmd)
+                    cmd = f"$J=G91 G21 F{XY_FEED:.3f} X-{XY_STEP_SIZE:.3f}\n"
+                    self.serial.write(cmd)
                 event.accept()
                 return True
             elif key == QtCore.Qt.Key_Right:
                 if self.state == "Idle":
-                    cmd = f"$J=G91 G21 F{XY_FEED:.3f} X{XY_STEP_SIZE:.3f}"
-                    self.client.publish(f"{TARGET}/command", cmd)
+                    cmd = f"$J=G91 G21 F{XY_FEED:.3f} X{XY_STEP_SIZE:.3f}\n"
+                    self.serial.write(cmd)
                 event.accept()
                 return True
             elif key == QtCore.Qt.Key_Up:
                 if self.state == "Idle":
-                    cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y-{XY_STEP_SIZE:.3f}"
-                    self.client.publish(f"{TARGET}/command", cmd)
+                    cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y-{XY_STEP_SIZE:.3f}\n"
+                    self.serial.write(cmd)
                 event.accept()
                 return True
             elif key == QtCore.Qt.Key_Down:
                 if self.state == "Idle":
-                    cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y{XY_STEP_SIZE:.3f}"
-                    self.client.publish(f"{TARGET}/command", cmd)
+                    cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y{XY_STEP_SIZE:.3f}\n"
+                    self.serial.write(cmd)
                 event.accept()
                 return True
             elif key == QtCore.Qt.Key_PageUp:
                 if self.state == "Idle":
                     cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z-{Z_STEP_SIZE:.3f}"
-                    self.client.publish(f"{TARGET}/command", cmd)
+                    self.serial.write(cmd)
                 event.accept()
                 return True
             elif key == QtCore.Qt.Key_PageDown:
                 if self.state == "Idle":
                     cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z{Z_STEP_SIZE:.3f}"
-                    self.client.publish(f"{TARGET}/command", cmd)
+                    self.serial.write(cmd)
                 event.accept()
                 return True
         
         return super().eventFilter(widget, event)
 
     def handleMouseEvent(self, widget, event):
+        print("handleMouseEvent", widget, event)
+        print(widget.objectName())
         if widget.parent() == self.main_window.tile_graphics_view:
             pt = self.main_window.tile_graphics_view.mapToScene(event.x(), event.y())
             self.main_window.statusbar.showMessage(f"Canvas: {pt.x():.3f}, {pt.y():.3f}, Stage: {pt.x()*PIXEL_SCALE:.3f}, {pt.y()*PIXEL_SCALE:.3f}")
@@ -183,8 +174,12 @@ class QApplication(QtWidgets.QApplication):
 
 
 
+    def home(self):
+        self.serial.write("$H\n")
+
     def cancel(self):
-        self.client.publish(f"{TARGET}/cancel", "")
+        pass
+        #self.client.publish(f"{TARGET}/cancel", "")
         
 
 
@@ -213,7 +208,8 @@ class QApplication(QtWidgets.QApplication):
         x = position.x()*PIXEL_SCALE
         y = position.y()*PIXEL_SCALE
         cmd = f"$J=G90 G21 F{XY_FEED:.3f} X{x:.3f} Y{y:.3f}"
-        self.client.publish(f"{TARGET}/command", cmd)
+        self.serial.write(cmd)
+        #self.client.publish(f"{TARGET}/command", cmd)
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL)

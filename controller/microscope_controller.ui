@@ -31,24 +31,21 @@
    </property>
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
-     <widget class="TileGraphicsView" name="tile_graphics_view">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
+     <widget class="QLabel" name="image_view">
       <property name="minimumSize">
        <size>
-        <width>100</width>
-        <height>200</height>
+        <width>1440</width>
+        <height>1080</height>
        </size>
       </property>
-      <property name="focusPolicy">
-       <enum>Qt::NoFocus</enum>
+      <property name="maximumSize">
+       <size>
+        <width>1440</width>
+        <height>16777215</height>
+       </size>
       </property>
-      <property name="dragMode">
-       <enum>QGraphicsView::RubberBandDrag</enum>
+      <property name="text">
+       <string>TextLabel</string>
       </property>
      </widget>
     </item>
@@ -169,9 +166,9 @@
    <widget class="QWidget" name="dockWidgetContents">
     <layout class="QHBoxLayout" name="horizontalLayout_3">
      <item>
-      <widget class="QLabel" name="image_view">
-       <property name="text">
-        <string>TextLabel</string>
+      <widget class="TileGraphicsView" name="tile_graphics_view">
+       <property name="mouseTracking">
+        <bool>false</bool>
        </property>
       </widget>
      </item>

@@ -22,7 +22,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         #self.graphicsView.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
         self.setMouseTracking(True)
         self.rubberBandChanged.connect(self.onRubberBandChanged)
-        self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
+        #self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
 
 
         self.scene = QtWidgets.QGraphicsScene()
@@ -58,10 +58,10 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         self.currentRect = self.scene.addRect(rect, pen=pen, brush=brush)
         self.currentRect.setZValue(5)
 
-    def updateCurrentRect(self, pos):
+    def updateCurrentRect(self, x, y):
         if not self.currentRect:
             self.addCurrentRect()
-        self.currentRect.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
+        self.currentRect.setPos(x/PIXEL_SCALE, y/PIXEL_SCALE)
     
     def doAcquisition(self):
         if self.acquisition:
@@ -74,6 +74,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
     #     self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
 
     def onRubberBandChanged(self, rect, from_ , to):
+        print("rubberband")
         if from_.isNull() and to.isNull():    
             pen = QtGui.QPen(QtCore.Qt.red)
             pen.setWidth(50)
