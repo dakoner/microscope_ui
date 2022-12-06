@@ -2,12 +2,15 @@
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
+  <property name="enabled">
+   <bool>true</bool>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1011</width>
-    <height>659</height>
+    <width>800</width>
+    <height>600</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -22,7 +25,7 @@
   <widget class="QWidget" name="centralwidget">
    <property name="sizePolicy">
     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-     <horstretch>1</horstretch>
+     <horstretch>0</horstretch>
      <verstretch>0</verstretch>
     </sizepolicy>
    </property>
@@ -31,18 +34,15 @@
    </property>
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
-     <widget class="QLabel" name="image_view">
+     <widget class="ImageView" name="image_view">
       <property name="minimumSize">
        <size>
-        <width>1440</width>
-        <height>1080</height>
+        <width>100</width>
+        <height>100</height>
        </size>
       </property>
-      <property name="maximumSize">
-       <size>
-        <width>1440</width>
-        <height>16777215</height>
-       </size>
+      <property name="focusPolicy">
+       <enum>Qt::ClickFocus</enum>
       </property>
       <property name="text">
        <string>TextLabel</string>
@@ -56,7 +56,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1011</width>
+     <width>800</width>
      <height>18</height>
     </rect>
    </property>
@@ -159,16 +159,28 @@
    </attribute>
    <addaction name="stopAction"/>
   </widget>
-  <widget class="QDockWidget" name="dockWidget">
+  <widget class="QDockWidget" name="tileDockWidget">
+   <property name="mouseTracking">
+    <bool>true</bool>
+   </property>
    <attribute name="dockWidgetArea">
     <number>2</number>
    </attribute>
-   <widget class="QWidget" name="dockWidgetContents">
+   <widget class="QWidget" name="tileDockWidgetContents">
+    <property name="mouseTracking">
+     <bool>true</bool>
+    </property>
     <layout class="QHBoxLayout" name="horizontalLayout_3">
      <item>
       <widget class="TileGraphicsView" name="tile_graphics_view">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="mouseTracking">
-        <bool>false</bool>
+        <bool>true</bool>
        </property>
       </widget>
      </item>
@@ -288,6 +300,11 @@
    <class>TileGraphicsView</class>
    <extends>QGraphicsView</extends>
    <header>microscope_ui.controller.tile_graphics_view</header>
+  </customwidget>
+  <customwidget>
+   <class>ImageView</class>
+   <extends>QLabel</extends>
+   <header>microscope_ui.controller.microscope_controller</header>
   </customwidget>
  </customwidgets>
  <resources/>

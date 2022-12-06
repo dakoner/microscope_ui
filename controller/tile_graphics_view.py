@@ -15,17 +15,38 @@ def calculate_area(qpolygon):
         area += d
     return abs(area) / 2
 
+class TileGraphicsScene(QtWidgets.QGraphicsScene):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setObjectName("TileGraphicsScene")
+
+    def mouseMoveEvent(self, event):
+        print("tile scene moved")
+        app = QtWidgets.QApplication.instance()
+        pos = event.pos()
+        app.main_window.statusbar.showMessage(f"Canvas: {pos.x():.3f}, {pos.y():.3f}, Stage: {pos.x()*PIXEL_SCALE:.3f}, {pos.y()*PIXEL_SCALE:.3f}")
+    
+    def mousePressEvent(self, event):
+        print("tile scene pressed")
+        app = QtWidgets.QApplication.instance()
+        print(event.pos())
+        #self.press = QtCore.QPointF(event.pos())
+
+    def mouseReleaseEvent(self, event):
+        if abs((event.scenePos() - event.buttonDownScenePos(QtCore.Qt.MouseButton.LeftButton)).manhattanLength()) == 0.0:
+            app = QtWidgets.QApplication.instance()
+            if app.main_window.state_value.text() == 'Jog':
+                app.cancel()
+            app.main_window.moveTo(event.scenePos() )
+
 class TileGraphicsView(QtWidgets.QGraphicsView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setFocusPolicy(False)
-        #self.graphicsView.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
-        self.setMouseTracking(True)
         self.rubberBandChanged.connect(self.onRubberBandChanged)
-        #self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
+        self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
 
 
-        self.scene = QtWidgets.QGraphicsScene()
+        self.scene = TileGraphicsScene()
         self.setScene(self.scene)
 
         self.addStageRect()
@@ -42,6 +63,9 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         self.fitInView(0, 0, 1000, 1000, QtCore.Qt.KeepAspectRatio)
 
 
+    # def keyPressEvent(self, event):
+    #     print("tile keypress")
+    #     return super().keyPressEvent(event)
     def addStageRect(self):
         pen = QtGui.QPen()
         pen.setWidth(1)
@@ -93,6 +117,13 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         else:
             self.lastRubberBand = from_, to
 
+    def mouseMoved(self, event):
+        print("tile view moved")
+
+    def mousePressed(self, event):
+        print("tile view pressed")
+    def mouseReleased(self, event):
+        print("tile view released")
 
     def addImageIfMissing(self, draw_data, pos):
         #if not self.acquisition or len(self.acquisition.grid) == 0:
