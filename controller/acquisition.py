@@ -31,6 +31,7 @@ class Acquisition():
         self.out = None
         self.fname = None
         self.vs = []
+
     # def __del__(self):
     #     print("deleteme")
         #self.tile_config.close()
@@ -47,7 +48,7 @@ class Acquisition():
         self.z_min = self.zs[0]
         self.z_max = self.zs[-1]
 
-        z = self.app.m_pos[2]
+        z = self.app.main_window.m_pos[2]
         num_z = len(self.zs)
         self.ys = np.arange(self.y_min, self.y_max, FOV_Y)
         #ys = [y_min, y_max]
@@ -96,8 +97,8 @@ class Acquisition():
 
     def startAcquisition(self):
         self.grid = self.orig_grid[:]
-        self.app.stateChanged.connect(self.acq)
-        self.app.outputChanged.connect(self.output)
+        self.app.main_window.serial.stateChanged.connect(self.acq)
+        self.app.main_window.serial.messageChanged.connect(self.output)
 
         self.doCmd()
         # print("cmd=", cmd)
@@ -117,17 +118,17 @@ class Acquisition():
         if subcmd[0] == "MOVE_TO":
             x, y, z = subcmd[1]
             i, j, k = subcmd[2]
-            pos = self.app.m_pos
+            pos = self.app.main_window.m_pos
             if pos[0] == x and pos[1] == y and pos[2] == z:
                 print("already at position")
             else:
-                g = f"G90 G21 G1 F{XY_FEED:.3f} X{x:.3f} Y{y:.3f} Z{z:.3f}"
-                self.app.client.publish(f"{TARGET}/command", g)
+                g = f"G90 G21 G1 F{XY_FEED:.3f} X{x:.3f} Y{y:.3f} Z{z:.3f}\n"
+                self.app.main_window.serial.write(g)
                 self.app.main_window.label_i.setText(f"{i} of {len(self.zs)}")
                 self.app.main_window.label_j.setText(f"{j} of {len(self.ys)}")
                 self.app.main_window.label_k.setText(f"{k} of {len(self.xs)}")
         elif subcmd[0] == 'WAIT':
-            self.app.client.publish(f"{TARGET}/command", "G4 P0.1")
+            self.app.main_window.serial.write("G4 P0.1\n")
         elif subcmd[0] == 'PHOTO':
             x, y, z = subcmd[1]
             i, j, k = subcmd[2]
@@ -202,7 +203,7 @@ class Acquisition():
     def snapPhoto(self, x, y, z, i, j, k):
         camera = self.app.camera
         draw_data = camera.image
-        pos = self.app.m_pos
+        pos = self.app.main_window.m_pos
         
         image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_Grayscale8)
         # #a = QtGui.QImage(image.width(), image.height(), QtGui.QImage.Format_ARGB32)

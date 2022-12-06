@@ -57,7 +57,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>18</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -182,6 +182,9 @@
        <property name="mouseTracking">
         <bool>true</bool>
        </property>
+       <property name="dragMode">
+        <enum>QGraphicsView::RubberBandDrag</enum>
+       </property>
       </widget>
      </item>
     </layout>
@@ -304,7 +307,7 @@
   <customwidget>
    <class>ImageView</class>
    <extends>QLabel</extends>
-   <header>microscope_ui.controller.microscope_controller</header>
+   <header>microscope_ui.controller.image_view</header>
   </customwidget>
  </customwidgets>
  <resources/>
