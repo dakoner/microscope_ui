@@ -1,7 +1,7 @@
-IMAGEZMQ='microcontroller'
-TARGET="microcontroller"
+IMAGEZMQ='dektop'
+TARGET="dektop"
 PORT=5000
-MQTT_HOST='microcontroller'
+MQTT_HOST='dektop'
 # Based on .15mm calibration slide, 800x600 image
 #PIXEL_SCALE=0.00095547487
 # Based on .15mm calibration slide, 1280x720 image
