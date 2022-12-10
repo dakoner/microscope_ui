@@ -13,6 +13,7 @@ class ImageView(QtWidgets.QLabel):
         super().__init__(*args, **kwargs)
         
     def keyPressEvent(self, event):
+        print("key press")
         app = QtWidgets.QApplication.instance()
         main_window = app.main_window
         state = main_window.state
@@ -25,6 +26,12 @@ class ImageView(QtWidgets.QLabel):
         elif key == QtCore.Qt.Key_H:
             main_window.cancel()
             main_window.home()
+        elif key == QtCore.Qt.Key_U:
+            print('unlock')
+            main_window.unlock()
+        elif key == QtCore.Qt.Key_R:
+            print('reset')
+            main_window.reset()
         elif key == QtCore.Qt.Key_S:
             main_window.cancel()
             tile_graphics_view.stopAcquisition()

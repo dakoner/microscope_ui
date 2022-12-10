@@ -21,10 +21,11 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
         self.setObjectName("TileGraphicsScene")
 
     def mouseMoveEvent(self, event):
-        #print("tile scene moved")
+        print("tile scene moved")
         app = QtWidgets.QApplication.instance()
-        pos = event.pos()
+        pos = event.scenePos()
         app.main_window.statusbar.showMessage(f"Canvas: {pos.x():.3f}, {pos.y():.3f}, Stage: {pos.x()*PIXEL_SCALE:.3f}, {pos.y()*PIXEL_SCALE:.3f}")
+        print("y")
     
     # def mousePressEvent(self, event):
     #     #print("tile scene pressed")
@@ -41,6 +42,7 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
                     app.main_window.cancel()
                 app.main_window.moveTo(event.scenePos())
         else:
+            print(abs((event.scenePos() - event.buttonDownScenePos(QtCore.Qt.MouseButton.LeftButton)).manhattanLength()))
             print("rubber")
         
 
@@ -49,17 +51,15 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         super().__init__(*args, **kwargs)
         self.rubberBandChanged.connect(self.onRubberBandChanged)
 
-
         self.scene = TileGraphicsScene()
         self.setScene(self.scene)
         self.addStageRect()
+        print("Scene rect:", self.scene.sceneRect(), self.scene.itemsBoundingRect())
+        #self.fitInView(self.scene.itemsBoundingRect(), QtCore.Qt.KeepAspectRatio)
+        #self.centerOn(self.scene.itemsBoundingRect().width()/2, self.scene.itemsBoundingRect().height()/2)
 
         self.currentRect = None
-        
-
-        
         self.acquisition = None
-
 
 
     def keyPressEvent(self, event):
@@ -72,7 +72,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
     def addStageRect(self):
         pen = QtGui.QPen(QtCore.Qt.red)
         pen.setWidth(100)
-        brush = QtGui.QBrush()
+        brush = QtGui.QBrush(QtCore.Qt.blue)
         self.stageRect = self.scene.addRect(0, 0, 65/PIXEL_SCALE, 85/PIXEL_SCALE, pen=pen, brush=brush)
         self.stageRect.setZValue(0)
 
@@ -118,17 +118,12 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
             self.acquisition.startAcquisition()
         else:
             self.lastRubberBand = from_, to
+
     def reset(self):
         self.scene.clear()
         #self.addStageRect()
         #self.adddCurrentRect()
-    # def mouseMoved(self, event):
-    #     print("tile view moved")
-
-    # def mousePressed(self, event):
-    #     print("tile view pressed")
-    # def mouseReleased(self, event):
-    #     print("tile view released")
+    
 
     def addImageIfMissing(self, draw_data, pos):
         #if not self.acquisition or len(self.acquisition.grid) == 0:

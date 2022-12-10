@@ -18,7 +18,6 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__(*args, **kwargs)
         loadUi("controller/microscope_controller.ui", self)
         
-        self.dumpObjectTree()
 
         #self.toolBar.actionTriggered.connect(self.test)
         #button_action.triggered.connect(self.onMyToolBarButtonClick)
@@ -59,7 +58,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
             image = QtGui.QImage(draw_data, s[1], s[0], format)
             pixmap = QtGui.QPixmap.fromImage(image)
-            self.image_view.setFixedSize(s[0], s[1])
+            #self.image_view.setFixedSize(s[0], s[1])
             self.image_view.setPixmap(pixmap)
 
     def onMessageChanged(self, message):
@@ -77,7 +76,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.state = state
         self.state_value.setText(state)
 
+    def reset(self):
+        self.serial.reset()
 
+    def unlock(self):
+        self.serial.write("$X\n")
 
     def home(self):
         self.serial.write("$H\n")
@@ -98,7 +101,7 @@ class QApplication(QtWidgets.QApplication):
     def __init__(self, *argv):
         super().__init__(*argv)
         self.main_window = MainWindow()
-        self.main_window.show()
+        self.main_window.show()#showMaximized()
 
     #     self.installEventFilter(self)
 
