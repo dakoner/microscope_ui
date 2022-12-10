@@ -3,6 +3,7 @@ import functools
 import sys
 import signal
 from video_sender.pyspin_camera import pyspin_camera_qobject
+from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
 from fluidnc_serial import serial_interface_qobject
 
 from PyQt5 import QtGui, QtCore, QtWidgets
@@ -31,8 +32,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.serial.stateChanged.connect(self.onStateChange)
         self.serial.messageChanged.connect(self.onMessageChanged)
 
+
+        self.microscope_esp32_controller_serial =microscope_serial_qobject.SerialInterface('/dev/ttyUSB1')
+        self.microscope_esp32_controller_serial.write("P1000 64\n")
+
         self.p = pyspin_camera_qobject.PySpinCamera()
         self.p.imageChanged.connect(self.imageChanged)
+        
+        self.p.AcquisitionMode = 'Continuous'
+        self.p.ExposureAuto = 'Off'
+        self.p.ExposureMode = 'Timed'
+        self.p.ExposureTime = 12
+        self.p.TriggerMode = 'Off'
+        self.p.TriggerSelector = 'FrameStart'
+        self.p.TriggerActivation = 'RisingEdge'
+        self.p.StreamBufferHandlingMode = 'NewestOnly'
+
         self.p.begin()
 
         self.state = 'None'
@@ -75,6 +90,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def onStateChange(self, state):
         self.state = state
         self.state_value.setText(state)
+
+    def trigger(self):
+        self.microscope_esp32_controller_serial.write("\nX3 0\n")
 
     def reset(self):
         self.serial.reset()
