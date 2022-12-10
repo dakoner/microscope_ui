@@ -34,27 +34,37 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
         self.microscope_esp32_controller_serial =microscope_serial_qobject.SerialInterface('/dev/ttyUSB1')
-        self.microscope_esp32_controller_serial.write("P1000 64\n")
+        self.microscope_esp32_controller_serial.write("P2000000 6\n")
 
         self.p = pyspin_camera_qobject.PySpinCamera()
         self.p.imageChanged.connect(self.imageChanged)
-        
-        self.p.AcquisitionMode = 'Continuous'
-        self.p.ExposureAuto = 'Off'
-        self.p.ExposureMode = 'Timed'
-        self.p.ExposureTime = 12
-        self.p.TriggerMode = 'Off'
-        self.p.TriggerSelector = 'FrameStart'
-        self.p.TriggerActivation = 'RisingEdge'
-        self.p.StreamBufferHandlingMode = 'NewestOnly'
+        self.setContinuous()
 
+        self.p.startWorker()
         self.p.begin()
 
         self.state = 'None'
         self.m_pos = [-1, -1, -1]
 
         self.t0 = time.time()
-        
+
+    def setContinuous(self):
+        self.p.AcquisitionMode = 'Continuous'
+        self.p.ExposureAuto = 'Off'
+        self.p.ExposureMode = 'Timed'
+        self.p.ExposureTime = 251
+        self.p.TriggerMode = 'Off'
+
+    def setTrigger(self):
+        #self.p.AcquisitionMode = 'SingleFrame'
+        self.p.ExposureAuto = 'Off'
+        self.p.ExposureMode = 'TriggerWidth'
+        #self.p.TriggerMode = 'On'
+        self.p.TriggerSource = "Line3"
+        self.p.TriggerSelector = 'FrameStart'
+        self.p.TriggerActivation = 'RisingEdge'
+        self.p.StreamBufferHandlingMode = 'NewestOnly'
+
     def imageChanged(self, draw_data):
         t0 = time.time()
         self.t0 = t0
@@ -92,7 +102,24 @@ class MainWindow(QtWidgets.QMainWindow):
         self.state_value.setText(state)
 
     def trigger(self):
-        self.microscope_esp32_controller_serial.write("\nX3 0\n")
+        self.p.stopWorker()
+        self.setTrigger()
+        time.sleep(1)
+        self.microscope_esp32_controller_serial.write("\nX251 0\n")
+        time.sleep(1)
+        print("get single image")
+        image_result = self.p.camera.GetNextImage()
+        if image_result.IsIncomplete():
+            print('Image incomplete with image status %d ...' % image_result.GetImageStatus())
+        else:
+            print("got image")
+            d = image_result.GetNDArray()
+            print(d)
+        time.sleep(1)
+        # print("setcont")
+        self.p.startWorker()
+        self.setContinuous()
+        
 
     def reset(self):
         self.serial.reset()

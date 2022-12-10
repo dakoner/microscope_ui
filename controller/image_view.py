@@ -27,7 +27,6 @@ class ImageView(QtWidgets.QLabel):
             main_window.cancel()
             main_window.home()
         elif key == QtCore.Qt.Key_X:
-            print('trigger')
             main_window.trigger()
         elif key == QtCore.Qt.Key_U:
             main_window.unlock()
