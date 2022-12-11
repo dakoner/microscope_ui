@@ -36,10 +36,9 @@ class ImageView(QtWidgets.QLabel):
             main_window.cancel()
             tile_graphics_view.stopAcquisition()
         elif key == QtCore.Qt.Key_P:
-            draw_data = self.camera.image
             fname = f"image_{int(time.time())}.tif"
-            image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
-            image.save(fname)
+            main_window.curr_image.save(fname)
+            print("saved", fname)
         elif key == QtCore.Qt.Key_R:
             tile_graphics_view.reset()
             tile_graphics_view.addCurrentRect()
