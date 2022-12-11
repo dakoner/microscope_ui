@@ -35,6 +35,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.microscope_esp32_controller_serial =microscope_serial_qobject.SerialInterface('/dev/ttyUSB1')
         self.microscope_esp32_controller_serial.write("P2000000 6\n")
+        self.serial.messageChanged.connect(self.onMessage2Changed)
 
         self.camera = pyspin_camera_qobject.PySpinCamera()
         self.camera.imageChanged.connect(self.imageChanged)
@@ -47,6 +48,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.m_pos = [-1, -1, -1]
 
         self.t0 = time.time()
+    def onMessage2Changed(self, *args):
+        print('message2 changed', args)
 
     def setContinuous(self):
         self.camera.AcquisitionMode = 'Continuous'
@@ -54,6 +57,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.camera.ExposureMode = 'Timed'
         self.camera.ExposureTime = 251
         self.camera.TriggerMode = 'Off'
+        self.camera.StreamBufferHandlingMode = 'NewestOnly'
 
     def setTrigger(self):
         #self.camera.AcquisitionMode = 'SingleFrame'
@@ -71,9 +75,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.state == 'Jog' or self.state == 'Run':
             f = draw_data.flatten()
             val = f.sum()/len(f)
-            if val > 10:
-                if self.tile_graphics_view.acquisition is None:
-                    self.tile_graphics_view.addImageIfMissing(draw_data, self.m_pos)
+            if self.tile_graphics_view.acquisition is None:
+                self.tile_graphics_view.addImageIfMissing(draw_data, self.m_pos)
             
         if self.state != 'Home':
             s = draw_data.shape
@@ -91,7 +94,7 @@ class MainWindow(QtWidgets.QMainWindow):
         pass
         #print("message:", message)
 
-    def onPosChange(self, x, y, z):
+    def onPosChange(self, x, y, z, t):
         self.m_pos = [x,y,z]
         self.x_value.display(x)
         self.y_value.display(y)
