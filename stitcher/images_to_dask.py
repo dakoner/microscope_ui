@@ -10,10 +10,10 @@ sys.path.append("..")
 from microscope_ui.config import FOV_X_PIXELS, FOV_Y_PIXELS, PIXEL_SCALE, HEIGHT, WIDTH
 
 def main():
-    #g = glob.glob("movie/*")
-    #g.sort()
-    #prefix = g[-1]
-    prefix="movie/1669690354.4376109"
+    g = glob.glob("movie/*")
+    g.sort()
+    prefix = g[-1]
+    #prefix="movie/1669690354.4376109"
     #print(prefix)
     d=json.load(open(f"{prefix}/scan_config.json"))
     r=pd.read_json(f"{prefix}/tile_config.json", lines=True)
@@ -22,7 +22,7 @@ def main():
     unique_j = r.j.unique()
     unique_k = r.k.unique()
     r.set_index(['counter', 'j', 'k'], inplace=True)
-
+    print(r)
                      #C   T                    Z                                            Y       X
     data = np.zeros((1, len(unique_counter), len(unique_i), len(unique_j), len(unique_k), HEIGHT, WIDTH), dtype=np.uint8)
 
