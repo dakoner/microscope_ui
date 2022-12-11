@@ -36,12 +36,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.microscope_esp32_controller_serial =microscope_serial_qobject.SerialInterface('/dev/ttyUSB1')
         self.microscope_esp32_controller_serial.write("P2000000 6\n")
 
-        self.p = pyspin_camera_qobject.PySpinCamera()
-        self.p.imageChanged.connect(self.imageChanged)
+        self.camera = pyspin_camera_qobject.PySpinCamera()
+        self.camera.imageChanged.connect(self.imageChanged)
         self.setContinuous()
 
-        self.p.startWorker()
-        self.p.begin()
+        self.camera.startWorker()
+        self.camera.begin()
 
         self.state = 'None'
         self.m_pos = [-1, -1, -1]
@@ -49,21 +49,21 @@ class MainWindow(QtWidgets.QMainWindow):
         self.t0 = time.time()
 
     def setContinuous(self):
-        self.p.AcquisitionMode = 'Continuous'
-        self.p.ExposureAuto = 'Off'
-        self.p.ExposureMode = 'Timed'
-        self.p.ExposureTime = 251
-        self.p.TriggerMode = 'Off'
+        self.camera.AcquisitionMode = 'Continuous'
+        self.camera.ExposureAuto = 'Off'
+        self.camera.ExposureMode = 'Timed'
+        self.camera.ExposureTime = 251
+        self.camera.TriggerMode = 'Off'
 
     def setTrigger(self):
-        #self.p.AcquisitionMode = 'SingleFrame'
-        self.p.ExposureAuto = 'Off'
-        self.p.ExposureMode = 'TriggerWidth'
-        #self.p.TriggerMode = 'On'
-        self.p.TriggerSource = "Line3"
-        self.p.TriggerSelector = 'FrameStart'
-        self.p.TriggerActivation = 'RisingEdge'
-        self.p.StreamBufferHandlingMode = 'NewestOnly'
+        #self.camera.AcquisitionMode = 'SingleFrame'
+        self.camera.ExposureAuto = 'Off'
+        self.camera.ExposureMode = 'TriggerWidth'
+        #self.camera.TriggerMode = 'On'
+        self.camera.TriggerSource = "Line3"
+        self.camera.TriggerSelector = 'FrameStart'
+        self.camera.TriggerActivation = 'RisingEdge'
+        self.camera.StreamBufferHandlingMode = 'NewestOnly'
 
     def imageChanged(self, draw_data):
         t0 = time.time()
@@ -72,7 +72,8 @@ class MainWindow(QtWidgets.QMainWindow):
             f = draw_data.flatten()
             val = f.sum()/len(f)
             if val > 10:
-                self.tile_graphics_view.addImageIfMissing(draw_data, self.m_pos)
+                if self.tile_graphics_view.acquisition is None:
+                    self.tile_graphics_view.addImageIfMissing(draw_data, self.m_pos)
             
         if self.state != 'Home':
             s = draw_data.shape
@@ -102,22 +103,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.state_value.setText(state)
 
     def trigger(self):
-        self.p.stopWorker()
+        self.camera.stopWorker()
         self.setTrigger()
         time.sleep(1)
         self.microscope_esp32_controller_serial.write("\nX251 0\n")
         time.sleep(1)
-        print("get single image")
-        image_result = self.p.camera.GetNextImage()
+        image_result = self.camera.camera.GetNextImage()
         if image_result.IsIncomplete():
             print('Image incomplete with image status %d ...' % image_result.GetImageStatus())
         else:
-            print("got image")
             d = image_result.GetNDArray()
             print(d)
         time.sleep(1)
         # print("setcont")
-        self.p.startWorker()
+        self.camera.startWorker()
         self.setContinuous()
         
 

@@ -1,3 +1,4 @@
+import tifffile
 import cv2
 import json
 import os
@@ -57,23 +58,17 @@ class Acquisition():
         self.xs = [self.x_min, self.x_max]
         num_x = len(self.xs)
 
+
         for i, deltaz in enumerate(self.zs):           
             curr_z = z + deltaz
             for j, gy in enumerate(self.ys):
                 inner_grid = []
                 inner_grid.append(["MOVE_TO", (self.xs[0],gy,curr_z), (i,j,0)])
                 inner_grid.append(["WAIT"])
-                #inner_grid.append(["START_VIDEO", (gy,curr_z), (i,j)])
+                inner_grid.append(["START_TRIGGER"])
                 inner_grid.append(["MOVE_TO", (self.xs[1],gy,curr_z), (i,j,1)])
                 inner_grid.append(["WAIT"])
-                #inner_grid.append(["STOP_VIDEO"])
-                #for k, gx in enumerate(xs_):
-                #    inner_grid.append(["MOVE_TO", (gx,gy,curr_z), (i,j,k)])
-                #    inner_grid.append(["WAIT"])
-                #    inner_grid.append(["PHOTO", (gx,gy,curr_z), (i,j,k)])
-                #    inner_grid.append(["MOVE_TO", (gx,gy,curr_z), (i,j,k)])
-                #    inner_grid.append(["WAIT"])
-                #    inner_grid.append(["PHOTO", (gx,gy,curr_z), (i,j,k)])
+                inner_grid.append(["END_TRIGGER"])
                 grid.append(inner_grid)
 
         grid.append(["DONE"])
@@ -106,6 +101,7 @@ class Acquisition():
         
 
     def doCmd(self):
+        print("self.block: ", self.block)
         if self.block is None or self.block == []:
             self.block = self.grid.pop(0)
        
@@ -129,30 +125,73 @@ class Acquisition():
                 self.app.main_window.label_k.setText(f"{k} of {len(self.xs)}")
         elif subcmd[0] == 'WAIT':
             self.app.main_window.serial.write("G4 P0.1\n")
-        elif subcmd[0] == 'PHOTO':
-            x, y, z = subcmd[1]
-            i, j, k = subcmd[2]
-            self.snapPhoto(x, y, z, i, j, k)
+        elif subcmd[0] == 'START_TRIGGER':
+            self.startTrigger()
+            print("started trigger, doing next command")
             self.doCmd()
-        elif subcmd[0] == 'START_VIDEO':
-            x, y = subcmd[1]
-            i, j = subcmd[2]
-            self.startVideo(x, y, i, j)
-            self.doCmd()
-        elif subcmd[0] == 'STOP_VIDEO':
-
-            self.stopVideo()
+        elif subcmd[0] == 'END_TRIGGER':
+            self.endTrigger()
             self.doCmd()
         else:
             print("Unknown subcmd", subcmd)
                 
     def output(self, output):
+        print("output", output)
         if output == 'ok' and self.cur[0] == 'WAIT':
+            print('go to next')
             self.doCmd()
 
     def acq(self, state):
+        print("acq", state)
         if state == 'Idle' and self.cur[0] == 'MOVE_TO':
+            print("go to next")
             self.doCmd()
+
+    def startTrigger(self):
+        class ImageThread(QtCore.QThread):
+            def __init__(self, parent):
+                super().__init__()
+                self.counter = 0
+                self.finished = False
+                self.parent = parent
+                self.app = parent.app
+
+            def run(self):
+                while not self.finished:
+                    self.app.main_window.microscope_esp32_controller_serial.write("\nX251 0\n")
+                    image_result = self.app.main_window.camera.camera.GetNextImage()
+                    if image_result.IsIncomplete():
+                        print('Image incomplete with image status %d ...' % image_result.GetImageStatus())
+                    else:
+                        d = image_result.GetNDArray()
+                        print("Got image", d.shape)
+                        tifffile.imwrite("test.%d.png" % self.counter, d)
+                        #self.parent.doCmd()
+                        self.counter += 1
+                    time.sleep(0.1)
+
+        self.app.main_window.camera.stopWorker()
+        self.app.main_window.setTrigger()
+        self.image_thread = ImageThread(self)
+        self.image_thread.start()
+        time.sleep(1)
+        print("start trigger done")
+        #self.microscope_esp32_controller_serial.write("\nX251 0\n")
+        #time.sleep(1)
+        #image_result = self.camera.camera.GetNextImage()
+        #if image_result.IsIncomplete():
+        #    print('Image incomplete with image status %d ...' % image_result.GetImageStatus())
+        #else:
+        #    d = image_result.GetNDArray()
+        #    print(d)
+        #time.sleep(1)
+        # print("setcont")
+
+    def endTrigger(self):
+        self.image_thread.finished = True
+        time.sleep(1)
+        self.app.main_window.camera.startWorker()
+        self.app.main_window.setContinuous()
 
     # def doAcquisition(self):
     #     if len(self.grid):
@@ -200,32 +239,32 @@ class Acquisition():
     #     self.data = None
     #     self.fname = None
 
-    def snapPhoto(self, x, y, z, i, j, k):
-        camera = self.app.camera
-        draw_data = camera.image
-        pos = self.app.main_window.m_pos
+    # def snapPhoto(self, x, y, z, i, j, k):
+    #     camera = self.app.camera
+    #     draw_data = camera.image
+    #     pos = self.app.main_window.m_pos
         
-        image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_Grayscale8)
-        # #a = QtGui.QImage(image.width(), image.height(), QtGui.QImage.Format_ARGB32)
-        # #a.fill(QtGui.QColor(255, 255, 255, 255))
-        # #image.setAlphaChannel(a)
-        fname = os.path.join(self.prefix, f"image_{self.counter}_{i}_{j}_{k}.tif")
-        image.save(fname)
+    #     image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_Grayscale8)
+    #     # #a = QtGui.QImage(image.width(), image.height(), QtGui.QImage.Format_ARGB32)
+    #     # #a.fill(QtGui.QColor(255, 255, 255, 255))
+    #     # #image.setAlphaChannel(a)
+    #     fname = os.path.join(self.prefix, f"image_{self.counter}_{i}_{j}_{k}.tif")
+    #     image.save(fname)
 
-        pixmap = QtGui.QPixmap.fromImage(image)
-        pm = self.app.main_window.tile_graphics_view.scene.addPixmap(pixmap)
-        pm.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
-        pm.setZValue(1)
+    #     pixmap = QtGui.QPixmap.fromImage(image)
+    #     pm = self.app.main_window.tile_graphics_view.scene.addPixmap(pixmap)
+    #     pm.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
+    #     pm.setZValue(1)
 
-        json.dump({
-            "fname": os.path.basename(fname),
-            "counter": self.counter,
-            "i": i,
-            "j": j,
-            "k": k,
-            "x": x,
-            "y": y,
-            "z": z,
-        }, self.tile_config)
-        self.tile_config.write("\n")
-        self.tile_config.flush()
+    #     json.dump({
+    #         "fname": os.path.basename(fname),
+    #         "counter": self.counter,
+    #         "i": i,
+    #         "j": j,
+    #         "k": k,
+    #         "x": x,
+    #         "y": y,
+    #         "z": z,
+    #     }, self.tile_config)
+    #     self.tile_config.write("\n")
+    #     self.tile_config.flush()

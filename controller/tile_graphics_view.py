@@ -55,7 +55,8 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         self.setScene(self.scene)
         self.addStageRect()
         print("Scene rect:", self.scene.sceneRect(), self.scene.itemsBoundingRect())
-        #self.fitInView(self.scene.itemsBoundingRect(), QtCore.Qt.KeepAspectRatio)
+        self.fitInView(self.scene.itemsBoundingRect(), QtCore.Qt.KeepAspectRatio)
+        self.scale(10, 10)
         #self.centerOn(self.scene.itemsBoundingRect().width()/2, self.scene.itemsBoundingRect().height()/2)
 
         self.currentRect = None
