@@ -40,9 +40,10 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
                 if app.main_window.state_value.text() == 'Jog':
                     print('cancel jog')
                     app.main_window.cancel()
+                x = event.scenePos().x() - (WIDTH)
+                y = event.scenePos().y() - (HEIGHT)
                 app.main_window.moveTo(event.scenePos())
         else:
-            print(abs((event.scenePos() - event.buttonDownScenePos(QtCore.Qt.MouseButton.LeftButton)).manhattanLength()))
             print("rubber")
         
 
@@ -56,7 +57,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         self.addStageRect()
         print("Scene rect:", self.scene.sceneRect(), self.scene.itemsBoundingRect())
         self.fitInView(self.scene.itemsBoundingRect(), QtCore.Qt.KeepAspectRatio)
-        self.scale(10, 10)
+        self.scale(50, 50)
         #self.centerOn(self.scene.itemsBoundingRect().width()/2, self.scene.itemsBoundingRect().height()/2)
 
         self.currentRect = None
@@ -141,7 +142,8 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         qp3 = qp.subtracted(qp2)
         p = qp3.toFillPolygon()
         a = calculate_area(p)
-        if a > 10000:
+        print(a)
+        if a > 2000000:
             image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_Grayscale8)
             pixmap = QtGui.QPixmap.fromImage(image)
             print("add pixmap")
