@@ -58,7 +58,7 @@ class ImageThread(QtCore.QThread):
                 self.parent.tile_config.write("\n")
                 self.parent.tile_config.flush()
                 counter += 1
-            time.sleep(0.3)
+            time.sleep(0.6)
 
         self.app.main_window.microscope_esp32_controller_serial.write("P2000000 6\n")
         for fname, d in self.results:
