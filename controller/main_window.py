@@ -4,7 +4,8 @@ from PyQt5.uic import loadUi
 from mqtt_qobject import MqttClient
 from fluidnc_serial import serial_interface_qobject
 
-from video_sender.pyspin_camera import pyspin_camera_qobject
+#from video_sender.pyspin_camera import pyspin_camera_qobject
+from video_sender.gige_camera import gige_camera_qobject
 from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
 from microscope_ui.config import PIXEL_SCALE, MQTT_HOST, XY_FEED
 
@@ -28,15 +29,23 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
         self.microscope_esp32_controller_serial =microscope_serial_qobject.SerialInterface('/dev/ttyUSB1')
-        self.microscope_esp32_controller_serial.write("P2000000 6\n")
-        self.serial.messageChanged.connect(self.onMessage2Changed)
+        self.microscope_esp32_controller_serial.reset()
+        time.sleep(1)
 
-        self.camera = pyspin_camera_qobject.PySpinCamera()
-        self.camera.imageChanged.connect(self.imageChanged)
-        self.setContinuous()
+        self.microscope_esp32_controller_serial.write("P2000000 22\n")
+        self.microscope_esp32_controller_serial.messageChanged.connect(self.onMessage2Changed)
 
-        self.camera.startWorker()
-        self.camera.begin()
+        # self.camera = pyspin_camera_qobject.PySpinCamera()
+        # self.camera.imageChanged.connect(self.imageChanged)
+        # self.setContinuous()
+
+        # self.camera.startWorker()
+        # self.camera.begin()
+
+        
+        self.g = gige_camera_qobject.GigECamera()
+        self.g.imageChanged.connect(self.imageChanged)
+        self.g.begin()
 
         self.state = 'None'
         self.m_pos = [-1, -1, -1]
