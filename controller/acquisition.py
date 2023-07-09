@@ -214,7 +214,7 @@ class Acquisition():
             self.doCmd()
 
     def startTrigger(self, i, j, k):
-        self.app.main_window.camera.stopWorker()
+        #self.app.main_window.camera.stopWorker()
         self.app.main_window.setTrigger()
         self.image_thread = ImageThread(self, i, j, k)
         self.image_thread.start()
@@ -223,5 +223,5 @@ class Acquisition():
     def endTrigger(self):
         self.image_thread.finished = True
         time.sleep(1)
-        self.app.main_window.camera.startWorker()
+        #self.app.main_window.camera.startWorker()
         self.app.main_window.setContinuous()

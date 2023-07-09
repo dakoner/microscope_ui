@@ -6,7 +6,7 @@ from fluidnc_serial import serial_interface_qobject
 
 #from video_sender.pyspin_camera import pyspin_camera_qobject
 from video_sender.gige_camera import gige_camera_qobject
-from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
+#from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
 from microscope_ui.config import PIXEL_SCALE, MQTT_HOST, XY_FEED
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -28,24 +28,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self.serial.messageChanged.connect(self.onMessageChanged)
 
 
-        self.microscope_esp32_controller_serial =microscope_serial_qobject.SerialInterface('/dev/ttyUSB1')
-        self.microscope_esp32_controller_serial.reset()
-        time.sleep(1)
+        # self.microscope_esp32_controller_serial =microscope_serial_qobject.SerialInterface('/dev/ttyUSB1')
+        # self.microscope_esp32_controller_serial.reset()
+        # time.sleep(1)
 
-        self.microscope_esp32_controller_serial.write("P2000000 22\n")
-        self.microscope_esp32_controller_serial.messageChanged.connect(self.onMessage2Changed)
+        # self.microscope_esp32_controller_serial.write("P 2000000 325\n")
+        # self.microscope_esp32_controller_serial.messageChanged.connect(self.onMessage2Changed)
 
-        # self.camera = pyspin_camera_qobject.PySpinCamera()
-        # self.camera.imageChanged.connect(self.imageChanged)
-        # self.setContinuous()
+        #self.camera = pyspin_camera_qobject.PySpinCamera()
+        self.camera = gige_camera_qobject.GigECamera()
+        self.camera.imageChanged.connect(self.imageChanged)
+        self.setContinuous()
+        #self.setTrigger()
 
-        # self.camera.startWorker()
-        # self.camera.begin()
+#        self.camera.startWorker()
+        self.camera.begin()
+        self.camera.camera_play()
 
-        
-        self.g = gige_camera_qobject.GigECamera()
-        self.g.imageChanged.connect(self.imageChanged)
-        self.g.begin()
 
         self.state = 'None'
         self.m_pos = [-1, -1, -1]
@@ -59,15 +58,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.camera.ExposureAuto = 'Off'
         self.camera.ExposureMode = 'Timed'
         self.camera.ExposureTime = 251
-        self.camera.TriggerMode = 'Off'
+        #self.camera.TriggerMode = 'Off'
         self.camera.StreamBufferHandlingMode = 'NewestOnly'
 
     def setTrigger(self):
         #self.camera.AcquisitionMode = 'SingleFrame'
         self.camera.ExposureAuto = 'Off'
-        self.camera.ExposureMode = 'TriggerWidth'
-        #self.camera.TriggerMode = 'On'
-        self.camera.TriggerSource = "Line3"
+        self.camera.ExposureMode = 'Timed'
+        self.camera.TriggerMode = 'Off'
+        self.camera.ExposureTime = 251
+        self.camera.TriggerSource = "Line0"
         self.camera.TriggerSelector = 'FrameStart'
         self.camera.TriggerActivation = 'RisingEdge'
         self.camera.StreamBufferHandlingMode = 'NewestOnly'
@@ -90,7 +90,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
             image = QtGui.QImage(draw_data, s[1], s[0], format)
             pixmap = QtGui.QPixmap.fromImage(image)
-            #self.image_view.setFixedSize(s[0], s[1])
+            #self.image_view.setFixedSize(1440/2, 1080/2)
             self.image_view.setPixmap(pixmap)
 
     def onMessageChanged(self, message):
@@ -109,6 +109,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.state_value.setText(state)
 
     def trigger(self):
+        raise RuntimeError
         self.camera.stopWorker()
         self.setTrigger()
         time.sleep(1)
@@ -123,7 +124,7 @@ class MainWindow(QtWidgets.QMainWindow):
         time.sleep(1)
         # print("setcont")
         self.camera.startWorker()
-        self.setContinuous()
+        #self.setContinuous()
         
 
     def reset(self):

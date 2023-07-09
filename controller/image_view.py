@@ -1,6 +1,6 @@
 import time
 import sys
-from video_sender.pyspin_camera import pyspin_camera_qobject
+#from video_sender.pyspin_camera import pyspin_camera_qobject
 from fluidnc_serial import serial_interface_qobject
 
 from PyQt5 import QtGui, QtCore, QtWidgets
@@ -13,7 +13,6 @@ class ImageView(QtWidgets.QLabel):
         super().__init__(*args, **kwargs)
         
     def keyPressEvent(self, event):
-        print("key press")
         app = QtWidgets.QApplication.instance()
         main_window = app.main_window
         state = main_window.state
