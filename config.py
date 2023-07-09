@@ -9,8 +9,8 @@ MQTT_HOST='dektop'
 # Based on .15mm calibration slide, 1440x1080 image from FLIR camera
 PIXEL_SCALE=0.00084745762
     
-WIDTH=1440
-HEIGHT=1080
+WIDTH=1280
+HEIGHT=720
 FPS=30
 
 FOV_X_PIXELS = WIDTH
