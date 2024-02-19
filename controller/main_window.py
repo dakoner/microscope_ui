@@ -6,7 +6,7 @@ from fluidnc_serial import serial_interface_qobject
 
 #from video_sender.pyspin_camera import pyspin_camera_qobject
 from video_sender.gige_camera import gige_camera_qobject
-#from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
+from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
 from microscope_ui.config import PIXEL_SCALE, MQTT_HOST, XY_FEED
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -33,6 +33,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # time.sleep(1)
 
         # self.microscope_esp32_controller_serial.write("P 2000000 325\n")
+        # self.microscope_esp32_controller_serial.write("L1\n")
         # self.microscope_esp32_controller_serial.messageChanged.connect(self.onMessage2Changed)
 
         #self.camera = pyspin_camera_qobject.PySpinCamera()
@@ -56,8 +57,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def setContinuous(self):
         self.camera.AcquisitionMode = 'Continuous'
         self.camera.ExposureAuto = 'Off'
+        #self.camera.ExposureAuto = 'On'
         self.camera.ExposureMode = 'Timed'
-        self.camera.ExposureTime = 251
+        self.camera.ExposureTime = 5
+        #self.camera.AeTarget = 120
+        #self.camera.AeState = True
         #self.camera.TriggerMode = 'Off'
         self.camera.StreamBufferHandlingMode = 'NewestOnly'
 
@@ -79,6 +83,7 @@ class MainWindow(QtWidgets.QMainWindow):
             f = draw_data.flatten()
             val = f.sum()/len(f)
             if self.tile_graphics_view.acquisition is None:
+                print("addimageifmissing")
                 self.tile_graphics_view.addImageIfMissing(draw_data, self.m_pos)
             
         if self.state != 'Home':
