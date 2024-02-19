@@ -25,44 +25,49 @@ class ImageThread(QtCore.QThread):
 
         camera_time_0 = None
         time_0 = None
-        while not self.finished:
-            self.app.main_window.microscope_esp32_controller_serial.write("\nX3 0\n")
-            image_result = self.app.main_window.camera.camera.GetNextImage()
-            if image_result.IsIncomplete():
-                print('Image incomplete with image status %d ...' % image_result.GetImageStatus())
-            else:
-                x, y, z = self.parent.m_pos
-                camera_timestamp = image_result.GetTimeStamp()
-                if not camera_time_0:
-                    camera_time_0 = camera_timestamp
-                if not time_0:
-                    time_0 = self.parent.m_pos_t
-                print("image result at", camera_timestamp-time_0, x, y, z)
-                d = image_result.GetNDArray()
-                image_result.Release()
-                fname = f"{self.parent.prefix}/test.{self.i}_{self.j}.{counter}.tif"
-                self.results.append((fname, d))
+        # while not self.finished:
+        #     print("Take image")
+        #     #self.app.main_window.microscope_esp32_controller_serial.write("\nX3 0\n")
+        #     #image_result = 
+        #     # #image_result = self.app.main_window.camera.camera.GetNextImage()
+        #     # if image_result.IsIncomplete():
+        #     #     print('Image incomplete with image status %d ...' % image_result.GetImageStatus())
+        #     # else:
+        #     if True:
+        #         x, y, z = self.parent.m_pos
+        #         camera_timestamp = time.time()
+        #         #camera_timestamp = image_result.GetTimeStamp()
+        #         if not camera_time_0:
+        #             camera_time_0 = camera_timestamp
+        #         if not time_0:
+        #             time_0 = self.parent.m_pos_t
+        #         print("image result at", camera_timestamp-time_0, x, y, z)
+        #         d = np.zeros( (768,1024,3), np.uint8)
+        #         # d = image_result.GetNDArray()
+        #         # image_result.Release()
+        #         fname = f"{self.parent.prefix}/test.{self.i}_{self.j}.{counter}.tif"
+        #         self.results.append((fname, d))
 
-                json.dump({
-                    "fname": os.path.basename(fname),
-                    "counter": counter,
-                    "camera_timestamp": camera_timestamp-camera_time_0,
-                    "timestamp": self.parent.m_pos_t-time_0,
-                    "i": self.i,
-                    "j": self.j,
-                    "k": self.k,
-                    "x": x,
-                    "y": y,
-                    "z": z,
-                }, self.parent.tile_config)
-                self.parent.tile_config.write("\n")
-                self.parent.tile_config.flush()
-                counter += 1
-            time.sleep(0.6)
+        #         json.dump({
+        #             "fname": os.path.basename(fname),
+        #             "counter": counter,
+        #             "camera_timestamp": camera_timestamp-camera_time_0,
+        #             "timestamp": self.parent.m_pos_t-time_0,
+        #             "i": self.i,
+        #             "j": self.j,
+        #             "k": self.k,
+        #             "x": x,
+        #             "y": y,
+        #             "z": z,
+        #         }, self.parent.tile_config)
+        #         self.parent.tile_config.write("\n")
+        #         self.parent.tile_config.flush()
+        #         counter += 1
+        #     time.sleep(0.6)
 
-        self.app.main_window.microscope_esp32_controller_serial.write("P2000000 6\n")
-        for fname, d in self.results:
-            tifffile.imwrite(fname, d)
+        #self.app.main_window.microscope_esp32_controller_serial.write("P2000000 6\n")
+        # for fname, d in self.results:
+        #     tifffile.imwrite(fname, d)
 
 
 class Acquisition():
@@ -114,14 +119,16 @@ class Acquisition():
         for i, deltaz in enumerate(self.zs):           
             curr_z = z + deltaz
             for j, gy in enumerate(self.ys):
-                inner_grid = []
-                inner_grid.append(["MOVE_TO", (self.xs[0],gy,curr_z), (i,j,0), 100])
-                inner_grid.append(["WAIT"])
-                inner_grid.append(["START_TRIGGER", (i, j, 0)])
-                inner_grid.append(["MOVE_TO", (self.xs[1],gy,curr_z), (i,j,1), 50])
-                inner_grid.append(["WAIT"])
-                inner_grid.append(["END_TRIGGER"])
-                grid.append(inner_grid)
+                for k, gx in enumerate(self.xs):
+                    grid.append([["MOVE_TO", (gx,gy,curr_z), (i,j,0), 100], ["WAIT"], ["PHOTO"]])
+                # inner_grid = []
+                # inner_grid.append(["MOVE_TO", (self.xs[0],gy,curr_z), (i,j,0), 100])
+                # inner_grid.append(["WAIT"])
+                # inner_grid.append(["START_TRIGGER", (i, j, 0)])
+                # inner_grid.append(["MOVE_TO", (self.xs[1],gy,curr_z), (i,j,1), 50])
+                # inner_grid.append(["WAIT"])
+                # inner_grid.append(["END_TRIGGER"])
+                # grid.append(inner_grid)
 
         grid.append([["DONE"]])
 
@@ -161,15 +168,15 @@ class Acquisition():
         self.m_pos_ts.append( (self.m_pos, t))
 
     def doCmd(self):
-        #print("self.block: ", self.block)
         if self.block is None or self.block == []:
             self.block = self.grid.pop(0)
+        print("self.block: ", self.block)
        
 
         subcmd = self.block.pop(0)
     
         self.cur = subcmd
-        #print(subcmd[0])
+        print("Subcmd", subcmd[0])
         
         if subcmd[0] == "MOVE_TO":
             x, y, z = subcmd[1]
@@ -186,6 +193,8 @@ class Acquisition():
                 self.app.main_window.label_k.setText(f"{k} of {len(self.xs)}")
         elif subcmd[0] == 'WAIT':
             self.app.main_window.serial.write("G4 P1\n")
+        elif subcmd[0] == 'PHOTO':
+            self.app.main_window.camera.snapshot()
         elif subcmd[0] == 'START_TRIGGER':
             i, j, k = subcmd[1]
             self.startTrigger(i, j, k)
