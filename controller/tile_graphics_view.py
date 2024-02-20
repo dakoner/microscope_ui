@@ -20,12 +20,13 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
         super().__init__(*args, **kwargs)
         self.setObjectName("TileGraphicsScene")
 
-    def mouseMoveEvent(self, event):
-        print("tile scene moved")
-        app = QtWidgets.QApplication.instance()
-        pos = event.scenePos()
-        app.main_window.statusbar.showMessage(f"Canvas: {pos.x():.3f}, {pos.y():.3f}, Stage: {pos.x()*PIXEL_SCALE:.3f}, {pos.y()*PIXEL_SCALE:.3f}")
-        print("y")
+   
+    # def mouseMoveEvent(self, event):
+    #     print("tile scene moved")
+    #     app = QtWidgets.QApplication.instance()
+    #     pos = event.scenePos()
+    #     app.main_window.statusbar.showMessage(f"Canvas: {pos.x():.3f}, {pos.y():.3f}, Stage: {pos.x()*PIXEL_SCALE:.3f}, {pos.y()*PIXEL_SCALE:.3f}")
+    #     print("y")
     
     # def mousePressEvent(self, event):
     #     #print("tile scene pressed")
@@ -33,7 +34,7 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
     #     #self.press = QtCore.QPointF(event.pos())
 
     def mouseReleaseEvent(self, event):
-        if event.modifiers() & QtCore.Qt.KeyboardModifier.ControlModifier:
+        if True: #event.modifiers():# & QtCore.Qt.KeyboardModifier.ControlModifier:
             print('control pressed')
             if abs((event.scenePos() - event.buttonDownScenePos(QtCore.Qt.MouseButton.LeftButton)).manhattanLength()) == 0.0:
                 app = QtWidgets.QApplication.instance()
@@ -44,7 +45,7 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
                 y = event.scenePos().y() - (HEIGHT)
                 app.main_window.moveTo(event.scenePos())
         else:
-            print("rubber")
+            print("rubber", event.buttons(), event.modifiers())
         
 
 class TileGraphicsView(QtWidgets.QGraphicsView):
@@ -65,11 +66,13 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
 
 
     def keyPressEvent(self, event):
-        key = event.key()
-        if key == QtCore.Qt.Key_Plus:
-            self.scale(1.1, 1.1)
-        elif key == QtCore.Qt.Key_Minus:
-            self.scale(0.9, 0.9)   
+        print("keyPressEvent")
+        event.ignore()
+    #     key = event.key()
+    #     if key == QtCore.Qt.Key_Plus:
+    #         self.scale(1.1, 1.1)
+    #     elif key == QtCore.Qt.Key_Minus:
+    #         self.scale(0.9, 0.9)   
 
     def addStageRect(self):
         pen = QtGui.QPen(QtCore.Qt.red)
@@ -142,11 +145,9 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         qp3 = qp.subtracted(qp2)
         p = qp3.toFillPolygon()
         a = calculate_area(p)
-        print(a)
         if a > 1000000:
             image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_Grayscale8)
             pixmap = QtGui.QPixmap.fromImage(image)
-            print("add pixmap")
             pm = self.scene.addPixmap(pixmap)
             pm.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
             pm.setZValue(1)

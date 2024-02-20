@@ -1,5 +1,5 @@
 import time
-from PyQt5 import QtGui, QtWidgets
+from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.uic import loadUi
 from mqtt_qobject import MqttClient
 from fluidnc_serial import serial_interface_qobject
@@ -8,13 +8,15 @@ from fluidnc_serial import serial_interface_qobject
 from video_sender.gige_camera import gige_camera_qobject
 from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
 from microscope_ui.config import PIXEL_SCALE, MQTT_HOST, XY_FEED
+import event_filter
+import sys
+sys.path.append("..")
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         loadUi("controller/microscope_controller.ui", self)
         
-
         #self.toolBar.actionTriggered.connect(self.test)
         #button_action.triggered.connect(self.onMyToolBarButtonClick)
 
@@ -51,6 +53,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.m_pos = [-1, -1, -1]
 
         self.t0 = time.time()
+
+
+        self.event_filter = event_filter.EventFilter(self)
+        self.installEventFilter(self.event_filter) #keyboard control
+
+
     def onMessage2Changed(self, *args):
         print('message2 changed', args)
 
@@ -59,7 +67,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.camera.ExposureAuto = 'Off'
         #self.camera.ExposureAuto = 'On'
         self.camera.ExposureMode = 'Timed'
-        self.camera.ExposureTime = 5
+        self.camera.ExposureTime = 1
         #self.camera.AeTarget = 120
         #self.camera.AeState = True
         #self.camera.TriggerMode = 'Off'
@@ -83,7 +91,6 @@ class MainWindow(QtWidgets.QMainWindow):
             f = draw_data.flatten()
             val = f.sum()/len(f)
             if self.tile_graphics_view.acquisition is None:
-                print("addimageifmissing")
                 self.tile_graphics_view.addImageIfMissing(draw_data, self.m_pos)
             
         if self.state != 'Home':
@@ -152,3 +159,4 @@ class MainWindow(QtWidgets.QMainWindow):
         print("move to stage coord", x, y)
         cmd = f"$J=G90 G21 F{XY_FEED:.3f} X{x:.3f} Y{y:.3f}\n"
         self.serial.write(cmd)
+
