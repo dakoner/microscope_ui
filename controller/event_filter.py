@@ -1,5 +1,5 @@
 from PyQt5 import QtCore
-from microscope_ui.config import PIXEL_SCALE, MQTT_HOST, XY_FEED, XY_STEP_SIZE
+from microscope_ui.config import PIXEL_SCALE, MQTT_HOST, XY_FEED, XY_STEP_SIZE, Z_FEED, Z_STEP_SIZE
 
 class EventFilter(QtCore.QObject):
     def __init__(self, main_window, *args, **kwargs):
@@ -8,7 +8,6 @@ class EventFilter(QtCore.QObject):
 
     def eventFilter(self, obj, event):
         if (event.type() == QtCore.QEvent.KeyPress):
-            print("event filter handle keypress")
             key = event.key()
 
             state = self.main_window.state

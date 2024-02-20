@@ -153,10 +153,8 @@ class MainWindow(QtWidgets.QMainWindow):
         #self.client.publish(f"{TARGET}/cancel", "")
 
     def moveTo(self, position):
-        print("move to", position)
         x = position.x()*PIXEL_SCALE
         y = position.y()*PIXEL_SCALE
-        print("move to stage coord", x, y)
         cmd = f"$J=G90 G21 F{XY_FEED:.3f} X{x:.3f} Y{y:.3f}\n"
         self.serial.write(cmd)
 

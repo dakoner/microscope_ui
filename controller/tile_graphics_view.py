@@ -34,18 +34,15 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
     #     #self.press = QtCore.QPointF(event.pos())
 
     def mouseReleaseEvent(self, event):
-        if True: #event.modifiers():# & QtCore.Qt.KeyboardModifier.ControlModifier:
-            print('control pressed')
-            if abs((event.scenePos() - event.buttonDownScenePos(QtCore.Qt.MouseButton.LeftButton)).manhattanLength()) == 0.0:
-                app = QtWidgets.QApplication.instance()
-                if app.main_window.state_value.text() == 'Jog':
-                    print('cancel jog')
-                    app.main_window.cancel()
-                x = event.scenePos().x() - (WIDTH)
-                y = event.scenePos().y() - (HEIGHT)
-                app.main_window.moveTo(event.scenePos())
-        else:
-            print("rubber", event.buttons(), event.modifiers())
+        if abs((event.scenePos() - event.buttonDownScenePos(QtCore.Qt.MouseButton.LeftButton)).manhattanLength()) == 0.0:
+            app = QtWidgets.QApplication.instance()
+            if app.main_window.state_value.text() == 'Jog':
+                print('cancel jog')
+                app.main_window.cancel()
+            x = event.scenePos().x() - (WIDTH)
+            y = event.scenePos().y() - (HEIGHT)
+            app.main_window.moveTo(event.scenePos())
+        event.accept()
         
 
 class TileGraphicsView(QtWidgets.QGraphicsView):
