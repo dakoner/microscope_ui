@@ -322,11 +322,6 @@
    <extends>QGraphicsView</extends>
    <header>microscope_ui.controller.tile_graphics_view</header>
   </customwidget>
-  <customwidget>
-   <class>ImageView</class>
-   <extends>QLabel</extends>
-   <header>microscope_ui.controller.image_view</header>
-  </customwidget>
  </customwidgets>
  <resources/>
  <connections/>
