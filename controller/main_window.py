@@ -4,8 +4,7 @@ from PyQt5.uic import loadUi
 from mqtt_qobject import MqttClient
 from fluidnc_serial import serial_interface_qobject
 
-#from video_sender.pyspin_camera import pyspin_camera_qobject
-from video_sender.gige_camera import gige_camera_qobject
+import gige_camera_qobject
 from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
 from microscope_ui.config import PIXEL_SCALE, MQTT_HOST, XY_FEED
 import event_filter
@@ -41,7 +40,7 @@ class MainWindow(QtWidgets.QMainWindow):
         #self.camera = pyspin_camera_qobject.PySpinCamera()
         self.camera = gige_camera_qobject.GigECamera()
         self.camera.imageChanged.connect(self.imageChanged)
-        self.setContinuous()
+        #self.setContinuous()
         #self.setTrigger()
 
 #        self.camera.startWorker()
@@ -59,30 +58,99 @@ class MainWindow(QtWidgets.QMainWindow):
         self.installEventFilter(self.event_filter) #keyboard control
 
 
+        #self.buttonGroup.buttonClicked.connect(self.triggerButtonGroupClicked)
+        self.swToggleRadioButton.toggled.connect(self.enableSoftwareTrigger)
+        self.swTogglePushButton.pressed.connect(self.softwareTrigger)
+        self.hwToggleRadioButton.toggled.connect(lambda value: self.groupBox_2.setEnabled(value))
+        self.radioButton_23.toggled.connect(self.enableAuto)
+
+
+
+        self.AeTargetSlider.valueChanged.connect(self.AeTargetChanged)
+        self.AeTargetLabel.setText(str(self.camera.AeTarget))
+        self.AeTargetSlider.setMinimum(self.camera.cap.sExposeDesc.uiTargetMin)
+        self.AeTargetSlider.setMaximum(self.camera.cap.sExposeDesc.uiTargetMax)
+
+
+        self.exposureTimeSlider.valueChanged.connect(self.ExposureTimeChanged)
+        self.exposureTimeLabel.setText(str(self.camera.ExposureTime))
+        self.exposureTimeSlider.setMinimum(self.camera.cap.sExposeDesc.uiExposeTimeMin)
+        self.exposureTimeSlider.setMaximum(self.camera.cap.sExposeDesc.uiExposeTimeMax)
+
+        self.analogGainSlider.valueChanged.connect(self.AnalogGainChanged)
+        self.analogGainLabel.setText(str(self.camera.AnalogGain))
+        self.analogGainSlider.setMinimum(self.camera.cap.sExposeDesc.uiAnalogGainMin)
+        self.analogGainSlider.setMaximum(self.camera.cap.sExposeDesc.uiAnalogGainMax)
+
+
+        self.camera.AeTargetChanged.connect(lambda value: self.AeTargetSlider.setValue(value))
+        self.camera.ExposureTimeChanged.connect(lambda value: self.exposureTimeSlider.setValue(value))
+        self.camera.AnalogGainChanged.connect(lambda value: self.analogGainSlider.setValue(value))
+
+
+    def enableSoftwareTrigger(self, value):
+        print("toggle radio for sw:", value)
+        self.swTogglePushButton.setEnabled(value)
+
+    def softwareTrigger(self, *args):
+        print("software trigger", args)
+        print(self.camera.cameraSoftTrigger())
+
+    def triggerButtonGroupClicked(self, button):
+        print("trigger button group clicked")
+        if button == self.swToggleRadioButton:
+            self.camera.TriggerMode = 1
+        elif button == self.hwToggleRadioButton:
+            self.camera.TriggerMode = 2
+        elif button == self.continuousRadioButton:
+            self.camera.TriggerMode = 0
+        else:
+            print("uknown button")
+
+
+    def AnalogGainChanged(self, analog_gain):
+        print("AnalogGainChanged", analog_gain)
+        self.camera.AnalogGain = analog_gain
+
+    def enableAuto(self, value):
+        print("enableAuto", value)
+        self.groupBox_6.setEnabled(value)
+        self.groupBox_5.setEnabled(not value)
+        self.camera.AeState = not value
+
+    def AeTargetChanged(self, target):
+        print("AeTargetChanged", target)
+        self.camera.AeTarget = target
+
+    def ExposureTimeChanged(self, exposure):
+        print("ExposureTimeChanged: ", exposure)
+        self.camera.ExposureTime = exposure
+
+
     def onMessage2Changed(self, *args):
         print('message2 changed', args)
 
-    def setContinuous(self):
-        self.camera.AcquisitionMode = 'Continuous'
-        self.camera.ExposureAuto = 'Off'
-        #self.camera.ExposureAuto = 'On'
-        self.camera.ExposureMode = 'Timed'
-        self.camera.ExposureTime = 1
-        #self.camera.AeTarget = 120
-        #self.camera.AeState = True
-        #self.camera.TriggerMode = 'Off'
-        self.camera.StreamBufferHandlingMode = 'NewestOnly'
+    # def setContinuous(self):
+    #     self.camera.AcquisitionMode = 'Continuous'
+    #     self.camera.ExposureAuto = 'Off'
+    #     #self.camera.ExposureAuto = 'On'
+    #     self.camera.ExposureMode = 'Timed'
+    #     self.camera.ExposureTime = 1
+    #     #self.camera.AeTarget = 120
+    #     #self.camera.AeState = True
+    #     #self.camera.TriggerMode = 'Off'
+    #     self.camera.StreamBufferHandlingMode = 'NewestOnly'
 
-    def setTrigger(self):
-        #self.camera.AcquisitionMode = 'SingleFrame'
-        self.camera.ExposureAuto = 'Off'
-        self.camera.ExposureMode = 'Timed'
-        self.camera.TriggerMode = 'Off'
-        self.camera.ExposureTime = 251
-        self.camera.TriggerSource = "Line0"
-        self.camera.TriggerSelector = 'FrameStart'
-        self.camera.TriggerActivation = 'RisingEdge'
-        self.camera.StreamBufferHandlingMode = 'NewestOnly'
+    # def setTrigger(self):
+    #     #self.camera.AcquisitionMode = 'SingleFrame'
+    #     self.camera.ExposureAuto = 'Off'
+    #     self.camera.ExposureMode = 'Timed'
+    #     self.camera.TriggerMode = 'Off'
+    #     self.camera.ExposureTime = 251
+    #     self.camera.TriggerSource = "Line0"
+    #     self.camera.TriggerSelector = 'FrameStart'
+    #     self.camera.TriggerActivation = 'RisingEdge'
+    #     self.camera.StreamBufferHandlingMode = 'NewestOnly'
 
     def imageChanged(self, draw_data):
         t0 = time.time()
