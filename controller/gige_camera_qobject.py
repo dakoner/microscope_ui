@@ -175,7 +175,7 @@ class GigECamera(QtCore.QObject):
         self.imageChanged.emit(frame)
 
     def snapshot(self):
-        pRawData, FrameHead = mvsdk.CameraGetImageBuffer(self.hCamera, 2000)
+        pRawData, FrameHead = mvsdk.CameraGetImageBuffer(self.hCamera, 200)
         pFrameBuffer = self.pFrameBuffer
 
         mvsdk.CameraImageProcess(self.hCamera, pRawData, pFrameBuffer, FrameHead)
@@ -184,12 +184,8 @@ class GigECamera(QtCore.QObject):
         frame_data = (mvsdk.c_ubyte * FrameHead.uBytes).from_address(pFrameBuffer)
         frame = np.frombuffer(frame_data, dtype=np.uint8)
         frame = frame.reshape((FrameHead.iHeight, FrameHead.iWidth, 1 if FrameHead.uiMediaType == mvsdk.CAMERA_MEDIA_TYPE_MONO8 else 3) )
-        #img = Image.fromarray(frame, "RGB")
-        # t = str(time.time())
-        # filename = f"photo/test.{t}.jpg"
-        # img.save(filename)
         self.snapshotCompleted.emit(frame)
-
+        
     def begin(self):
         self.cap = mvsdk.CameraGetCapability(self.hCamera)
 
@@ -197,8 +193,8 @@ class GigECamera(QtCore.QObject):
         if monoCamera:
             mvsdk.CameraSetIspOutFormat(self.hCamera, mvsdk.CAMERA_MEDIA_TYPE_MONO8)
 
-        FrameBufferSize = self.cap.sResolutionRange.iWidthMax * self.cap.sResolutionRange.iHeightMax * (1 if monoCamera else 3)
-        self.pFrameBuffer = mvsdk.CameraAlignMalloc(FrameBufferSize, 16)
+        self.FrameBufferSize = self.cap.sResolutionRange.iWidthMax * self.cap.sResolutionRange.iHeightMax * (1 if monoCamera else 3)
+        self.pFrameBuffer = mvsdk.CameraAlignMalloc(self.FrameBufferSize, 16)
 
         print("td", mvsdk.CameraGetTriggerDelayTime(self.hCamera))
         mvsdk.CameraSetStrobeMode(self.hCamera, 1)
@@ -230,11 +226,17 @@ class GigECamera(QtCore.QObject):
         self.AeState = mvsdk.CameraGetAeState(self.hCamera)
         self.AeState = True
         self.AeTarget = mvsdk.CameraGetAeTarget(self.hCamera)
+        self.enableCallback()
 
+    def enableCallback(self):
         mvsdk.CameraSetCallbackFunction(self.hCamera, self.callback, 0)
+    def disableCallback(self):
+        mvsdk.CameraSetCallbackFunction(self.hCamera, None, 0)
 
 
     def end(self):
+        self.disableCallback()
+        
         mvsdk.CameraUnInit(self.hCamera)
         mvsdk.CameraAlignFree(self.pFrameBuffer) 
 
