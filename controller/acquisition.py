@@ -26,49 +26,49 @@ class ImageThread(QtCore.QThread):
 
         camera_time_0 = None
         time_0 = None
-        # while not self.finished:
-        #     print("Take image")
-        #     #self.app.main_window.microscope_esp32_controller_serial.write("\nX3 0\n")
-        #     #image_result = 
-        #     # #image_result = self.app.main_window.camera.camera.GetNextImage()
-        #     # if image_result.IsIncomplete():
-        #     #     print('Image incomplete with image status %d ...' % image_result.GetImageStatus())
-        #     # else:
-        #     if True:
-        #         x, y, z = self.parent.m_pos
-        #         camera_timestamp = time.time()
-        #         #camera_timestamp = image_result.GetTimeStamp()
-        #         if not camera_time_0:
-        #             camera_time_0 = camera_timestamp
-        #         if not time_0:
-        #             time_0 = self.parent.m_pos_t
-        #         print("image result at", camera_timestamp-time_0, x, y, z)
-        #         d = np.zeros( (768,1024,3), np.uint8)
-        #         # d = image_result.GetNDArray()
-        #         # image_result.Release()
-        #         fname = f"{self.parent.prefix}/test.{self.i}_{self.j}.{counter}.tif"
-        #         self.results.append((fname, d))
+        while not self.finished:
+            print("Take image")
+            #self.app.main_window.microscope_esp32_controller_serial.write("\nX3 0\n")
+            #image_result = 
+            # #image_result = self.app.main_window.camera.camera.GetNextImage()
+            # if image_result.IsIncomplete():
+            #     print('Image incomplete with image status %d ...' % image_result.GetImageStatus())
+            # else:
+            if True:
+                x, y, z = self.parent.m_pos
+                camera_timestamp = time.time()
+                #camera_timestamp = image_result.GetTimeStamp()
+                if not camera_time_0:
+                    camera_time_0 = camera_timestamp
+                if not time_0:
+                    time_0 = self.parent.m_pos_t
+                print("image result at", camera_timestamp-time_0, x, y, z)
+                d = np.zeros( (768,1024,3), np.uint8)
+                # d = image_result.GetNDArray()
+                # image_result.Release()
+                fname = f"{self.parent.prefix}/test.{self.i}_{self.j}.{counter}.tif"
+                self.results.append((fname, d))
 
-        #         json.dump({
-        #             "fname": os.path.basename(fname),
-        #             "counter": counter,
-        #             "camera_timestamp": camera_timestamp-camera_time_0,
-        #             "timestamp": self.parent.m_pos_t-time_0,
-        #             "i": self.i,
-        #             "j": self.j,
-        #             "k": self.k,
-        #             "x": x,
-        #             "y": y,
-        #             "z": z,
-        #         }, self.parent.tile_config)
-        #         self.parent.tile_config.write("\n")
-        #         self.parent.tile_config.flush()
-        #         counter += 1
-        #     time.sleep(0.6)
+                json.dump({
+                    "fname": os.path.basename(fname),
+                    "counter": counter,
+                    "camera_timestamp": camera_timestamp-camera_time_0,
+                    "timestamp": self.parent.m_pos_t-time_0,
+                    "i": self.i,
+                    "j": self.j,
+                    "k": self.k,
+                    "x": x,
+                    "y": y,
+                    "z": z,
+                }, self.parent.tile_config)
+                self.parent.tile_config.write("\n")
+                self.parent.tile_config.flush()
+                counter += 1
+            time.sleep(0.6)
 
-        #self.app.main_window.microscope_esp32_controller_serial.write("P2000000 6\n")
-        # for fname, d in self.results:
-        #     tifffile.imwrite(fname, d)
+        self.app.main_window.microscope_esp32_controller_serial.write("P2000000 6\n")
+        for fname, d in self.results:
+            tifffile.imwrite(fname, d)
 
 
 class Acquisition():
@@ -82,11 +82,11 @@ class Acquisition():
 
         self.start_time = time.time()
 
-        self.prefix = os.path.join("movie", str(self.start_time))
-        os.makedirs(self.prefix)
+        # self.prefix = os.path.join("movie", str(self.start_time))
+        # os.makedirs(self.prefix)
         self.prefix = os.path.join("photo", str(self.start_time))
         os.makedirs(self.prefix)
-        
+
         self.orig_grid = self.generateGrid(*self.lastRubberBand)
         
         self.tile_config = open(os.path.join(self.prefix, "tile_config.json"), "w")
@@ -103,10 +103,33 @@ class Acquisition():
         
     def snapshotCompleted(self, frame):
         self.app.main_window.tile_graphics_view.addImage(frame, self.app.main_window.m_pos)
+        format = QtGui.QImage.Format_RGB888
+        s = frame.shape
+        image = QtGui.QImage(frame, s[1], s[0], format)
+        image = image.mirrored(horizontal=False, vertical=True)
+        pixmap = QtGui.QPixmap.fromImage(image)
+        #self.image_view.setFixedSize(1440/2, 1080/2)
+        self.app.main_window.image_view.setPixmap(pixmap)
         t = str(time.time())
-        filename = f"photo/test.{t}.jpg"
+        filename = f"{self.prefix}/test.{t}.jpg"
         img = Image.fromarray(frame, "RGB")
         img.save(filename)
+
+        x, y, z = self.app.main_window.m_pos
+        json.dump({
+            "fname": os.path.basename(filename),
+            #"counter": counter,
+            #"camera_timestamp": camera_timestamp-camera_time_0,
+            #"timestamp": self.app.main_window.m_pos_t-self.time_0,
+            # "i": self.i,
+            # "j": self.j,
+            # "k": self.k,
+            "x": x,
+            "y": y,
+            "z": z,
+        }, self.tile_config)
+        self.tile_config.write("\n")
+        self.tile_config.flush()
 
         self.doCmd()
 
@@ -140,7 +163,7 @@ class Acquisition():
             curr_z = z + deltaz
             for j, gy in enumerate(self.ys):
                 for k, gx in enumerate(self.xs):
-                    grid.append([["MOVE_TO", (gx,gy,curr_z), (i,j,0), 100], ["WAIT"], ["PHOTO"]])
+                    grid.append([["MOVE_TO", (gx,gy,curr_z), (k,j,0), 100], ["WAIT"], ["PHOTO"]])
                 # inner_grid = []
                 # inner_grid.append(["MOVE_TO", (self.xs[0],gy,curr_z), (i,j,0), 100])
                 # inner_grid.append(["WAIT"])
@@ -176,6 +199,8 @@ class Acquisition():
         self.app.main_window.serial.messageChanged.connect(self.output)
         self.m_pos_ts = []
         self.app.main_window.serial.posChanged.connect(self.pos)
+        self.app.main_window.camera.disableCallback()
+        self.time_0 = time.time()
 
         self.doCmd()
         # print("cmd=", cmd)
@@ -201,7 +226,7 @@ class Acquisition():
         
         if subcmd[0] == "MOVE_TO":
             x, y, z = subcmd[1]
-            i, j, k = subcmd[2]
+            k, j, i = subcmd[2]
             f = subcmd[3]
             pos = self.app.main_window.m_pos
             if pos[0] == x and pos[1] == y and pos[2] == z:
@@ -209,9 +234,9 @@ class Acquisition():
             else:
                 g = f"G90 G21 G1 F{f} X{x:.3f} Y{y:.3f} Z{z:.3f}\n"
                 self.app.main_window.serial.write(g)
-                self.app.main_window.label_i.setText(f"{i} of {len(self.zs)}")
-                self.app.main_window.label_j.setText(f"{j} of {len(self.ys)}")
-                self.app.main_window.label_k.setText(f"{k} of {len(self.xs)}")
+                self.app.main_window.label_k.setText(f"col {k+1} of {len(self.xs)}")
+                self.app.main_window.label_j.setText(f"row {j+1} of {len(self.ys)}")
+                self.app.main_window.label_i.setText(f"dep {i+1} of {len(self.zs)}")
         elif subcmd[0] == 'WAIT':
             self.app.main_window.serial.write("G4 P1\n")
         elif subcmd[0] == 'PHOTO':
@@ -225,9 +250,12 @@ class Acquisition():
         #     self.endTrigger()
         #     self.doCmd()
         elif subcmd[0] == 'DONE':
+            self.app.main_window.tile_graphics_view.stopAcquisition()
+            self.app.main_window.camera.enableCallback()
+
             self.tile_config.close()
-            with open(os.path.join(self.prefix, "stage_config.json"), "w") as stage_config:
-                json.dump(self.m_pos_ts, stage_config)
+            # with open(os.path.join(self.prefix, "stage_config.json"), "w") as stage_config:
+            #     json.dump(self.m_pos_ts, stage_config)
         else:
             print("Unknown subcmd", subcmd)
                 
