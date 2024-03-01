@@ -92,9 +92,9 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         self.currentRect.setPos(x/PIXEL_SCALE, y/PIXEL_SCALE)
         self.centerOn(self.currentRect)
     
-    def doAcquisition(self):
-        if self.acquisition:
-            self.acquisition.doAcquisition()
+    # def doAcquisition(self):
+    #     if self.acquisition:
+    #         self.acquisition.doAcquisition()
 
     def stopAcquisition(self):
         self.acquisition = None
@@ -146,6 +146,8 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
             self.addImage(draw_data, pos)
     def addImage(self, draw_data, pos):
             image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
+            image = image.mirrored(horizontal=False, vertical=True)
+
             pixmap = QtGui.QPixmap.fromImage(image)
             pm = self.scene.addPixmap(pixmap)
             pm.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
