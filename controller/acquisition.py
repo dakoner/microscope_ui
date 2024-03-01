@@ -5,6 +5,7 @@ import os
 import time
 import numpy as np
 import sys
+from PIL import Image
 sys.path.append('..')
 from microscope_ui.config import PIXEL_SCALE, TARGET, HEIGHT, WIDTH, FOV_X, FOV_Y, FOV_X_PIXELS, FOV_Y_PIXELS, XY_FEED, Z_FEED
 from PyQt5 import QtWidgets, QtGui, QtCore
@@ -83,18 +84,32 @@ class Acquisition():
 
         self.prefix = os.path.join("movie", str(self.start_time))
         os.makedirs(self.prefix)
+        self.prefix = os.path.join("photo", str(self.start_time))
+        os.makedirs(self.prefix)
+        
         self.orig_grid = self.generateGrid(*self.lastRubberBand)
         
         self.tile_config = open(os.path.join(self.prefix, "tile_config.json"), "w")
         self.inner_counter = 0
         self.block = None
         
-        #ppself.app.camera.imageChanged.connect(self.imageChanged)
+        self.app.main_window.camera.snapshotCompleted.connect(self.snapshotCompleted)
+
+        #self.app.main_window.camera.imageChanged.connect(self.imageChanged)
         self.out = None
         self.fname = None
         self.vs = []
 
         
+    def snapshotCompleted(self, frame):
+        self.app.main_window.tile_graphics_view.addImage(frame, self.app.main_window.m_pos)
+        t = str(time.time())
+        filename = f"photo/test.{t}.jpg"
+        img = Image.fromarray(frame, "RGB")
+        img.save(filename)
+
+        self.doCmd()
+
     def generateGrid(self, from_, to):
         grid = []
         #self.zs = [-0.2,-0.1,0,0.1,0.2]
@@ -106,16 +121,21 @@ class Acquisition():
         self.y_max =  to.y()* PIXEL_SCALE
         self.z_min = self.zs[0]
         self.z_max = self.zs[-1]
-
+        # print("x min to max", self.x_min, self.x_max)
+        # print("y min to max", self.y_min, self.y_max)
+        # print("fov_x", FOV_X)
+        # print("fov_y", FOV_Y)
         z = self.app.main_window.m_pos[2]
         num_z = len(self.zs)
         self.ys = np.arange(self.y_min, self.y_max, FOV_Y)
         #ys = [y_min, y_max]
         num_y = len(self.ys)
         self.xs = np.arange(self.x_min, self.x_max, FOV_X)
-        self.xs = [self.x_min, self.x_max]
+        #self.xs = [self.x_min, self.x_max]
         num_x = len(self.xs)
 
+        # print(self.xs)
+        # print(self.ys)
         for i, deltaz in enumerate(self.zs):           
             curr_z = z + deltaz
             for j, gy in enumerate(self.ys):
@@ -147,6 +167,7 @@ class Acquisition():
                     "fov_x_pixels": FOV_X_PIXELS,
                     "fov_y_pixels": FOV_Y_PIXELS,
                 }, scan_config)
+        # print("grid:", grid)
         return grid
 
     def startAcquisition(self):
@@ -170,13 +191,13 @@ class Acquisition():
     def doCmd(self):
         if self.block is None or self.block == []:
             self.block = self.grid.pop(0)
-        print("self.block: ", self.block)
+        #print("self.block: ", self.block)
        
 
         subcmd = self.block.pop(0)
     
         self.cur = subcmd
-        print("Subcmd", subcmd[0])
+        #print("Subcmd", subcmd[0])
         
         if subcmd[0] == "MOVE_TO":
             x, y, z = subcmd[1]
@@ -195,14 +216,14 @@ class Acquisition():
             self.app.main_window.serial.write("G4 P1\n")
         elif subcmd[0] == 'PHOTO':
             self.app.main_window.camera.snapshot()
-        elif subcmd[0] == 'START_TRIGGER':
-            i, j, k = subcmd[1]
-            self.startTrigger(i, j, k)
-            print("started trigger, doing next command")
-            self.doCmd()
-        elif subcmd[0] == 'END_TRIGGER':
-            self.endTrigger()
-            self.doCmd()
+        # elif subcmd[0] == 'START_TRIGGER':
+        #     i, j, k = subcmd[1]
+        #     self.startTrigger(i, j, k)
+        #     print("started trigger, doing next command")
+        #     self.doCmd()
+        # elif subcmd[0] == 'END_TRIGGER':
+        #     self.endTrigger()
+        #     self.doCmd()
         elif subcmd[0] == 'DONE':
             self.tile_config.close()
             with open(os.path.join(self.prefix, "stage_config.json"), "w") as stage_config:
@@ -211,26 +232,26 @@ class Acquisition():
             print("Unknown subcmd", subcmd)
                 
     def output(self, output):
-        print("output", output)
+        #print("output", output)
         if output == 'ok' and self.cur[0] == 'WAIT':
-            print('go to next')
+            #print('go to next')
             self.doCmd()
 
     def acq(self, state):
-        print("acq", state)
+        #print("acq", state)
         if state == 'Idle' and self.cur[0] == 'MOVE_TO':
-            print("go to next")
+            #print("go to next")
             self.doCmd()
 
-    def startTrigger(self, i, j, k):
-        #self.app.main_window.camera.stopWorker()
-        self.app.main_window.setTrigger()
-        self.image_thread = ImageThread(self, i, j, k)
-        self.image_thread.start()
-        time.sleep(1)
+    # def startTrigger(self, i, j, k):
+    #     #self.app.main_window.camera.stopWorker()
+    #     self.app.main_window.setTrigger()
+    #     self.image_thread = ImageThread(self, i, j, k)
+    #     self.image_thread.start()
+    #     time.sleep(1)
 
-    def endTrigger(self):
-        self.image_thread.finished = True
-        time.sleep(1)
-        #self.app.main_window.camera.startWorker()
-        self.app.main_window.setContinuous()
+    # def endTrigger(self):
+    #     self.image_thread.finished = True
+    #     time.sleep(1)
+    #     #self.app.main_window.camera.startWorker()
+    #     self.app.main_window.setContinuous()

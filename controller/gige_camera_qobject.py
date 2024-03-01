@@ -5,7 +5,6 @@ import numpy as np
 import pdb
 from PyQt5 import QtCore
 import mvsdk
-from PIL import Image
 
 class GigECamera(QtCore.QObject):
     imageChanged = QtCore.pyqtSignal(np.ndarray)
@@ -20,7 +19,7 @@ class GigECamera(QtCore.QObject):
     AeStateChanged = QtCore.pyqtSignal(float)
     AeTargetChanged = QtCore.pyqtSignal(float)
 
-    snapshotCompleted = QtCore.pyqtSignal()
+    snapshotCompleted = QtCore.pyqtSignal(np.ndarray)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -176,8 +175,7 @@ class GigECamera(QtCore.QObject):
         self.imageChanged.emit(frame)
 
     def snapshot(self):
-        print("snapshot")
-        pRawData, FrameHead = mvsdk.CameraGetImageBuffer(self.hCamera, 200)
+        pRawData, FrameHead = mvsdk.CameraGetImageBuffer(self.hCamera, 2000)
         pFrameBuffer = self.pFrameBuffer
 
         mvsdk.CameraImageProcess(self.hCamera, pRawData, pFrameBuffer, FrameHead)
@@ -186,12 +184,11 @@ class GigECamera(QtCore.QObject):
         frame_data = (mvsdk.c_ubyte * FrameHead.uBytes).from_address(pFrameBuffer)
         frame = np.frombuffer(frame_data, dtype=np.uint8)
         frame = frame.reshape((FrameHead.iHeight, FrameHead.iWidth, 1 if FrameHead.uiMediaType == mvsdk.CAMERA_MEDIA_TYPE_MONO8 else 3) )
-        print(frame.shape)
-        img = Image.fromarray(frame, "RGB")
-        t = str(time.time())
-        filename = f"photo/test.{t}.jpg"
-        img.save(filename)
-        self.snapshotCompleted.emit()
+        #img = Image.fromarray(frame, "RGB")
+        # t = str(time.time())
+        # filename = f"photo/test.{t}.jpg"
+        # img.save(filename)
+        self.snapshotCompleted.emit(frame)
 
     def begin(self):
         self.cap = mvsdk.CameraGetCapability(self.hCamera)

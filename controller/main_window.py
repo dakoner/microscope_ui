@@ -169,6 +169,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 format = QtGui.QImage.Format_RGB888
 
             image = QtGui.QImage(draw_data, s[1], s[0], format)
+            image = image.mirrored(horizontal=True, vertical=False)
             pixmap = QtGui.QPixmap.fromImage(image)
             #self.image_view.setFixedSize(1440/2, 1080/2)
             self.image_view.setPixmap(pixmap)

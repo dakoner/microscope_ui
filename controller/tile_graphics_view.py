@@ -143,7 +143,9 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         p = qp3.toFillPolygon()
         a = calculate_area(p)
         if a > 1000000:
-            image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_Grayscale8)
+            self.addImage(draw_data, pos)
+    def addImage(self, draw_data, pos):
+            image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
             pixmap = QtGui.QPixmap.fromImage(image)
             pm = self.scene.addPixmap(pixmap)
             pm.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
