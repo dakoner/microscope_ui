@@ -156,11 +156,9 @@ class MainWindow(QtWidgets.QMainWindow):
         t0 = time.time()
         self.t0 = t0
         if self.state == 'Jog' or self.state == 'Run':
-            f = draw_data.flatten()
-            val = f.sum()/len(f)
             if self.tile_graphics_view.acquisition is None:
                 self.tile_graphics_view.addImageIfMissing(draw_data, self.m_pos)
-            
+                #return
         if self.state != 'Home':
             s = draw_data.shape
             if s[2] == 1:
@@ -169,7 +167,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 format = QtGui.QImage.Format_RGB888
 
             image = QtGui.QImage(draw_data, s[1], s[0], format)
-            image = image.mirrored(horizontal=True, vertical=False)
+            image = image.mirrored(horizontal=False, vertical=True)
             pixmap = QtGui.QPixmap.fromImage(image)
             #self.image_view.setFixedSize(1440/2, 1080/2)
             self.image_view.setPixmap(pixmap)
