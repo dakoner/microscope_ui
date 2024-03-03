@@ -107,26 +107,25 @@ class Acquisition():
         s = frame.shape
         image = QtGui.QImage(frame, s[1], s[0], format)
         image = image.mirrored(horizontal=False, vertical=True)
+        t = str(time.time())
+        filename = f"{self.prefix}/test.{t}.jpg"
+        image.save(filename)
         pixmap = QtGui.QPixmap.fromImage(image)
         #self.image_view.setFixedSize(1440/2, 1080/2)
         self.app.main_window.image_view.setPixmap(pixmap)
-        t = str(time.time())
-        filename = f"{self.prefix}/test.{t}.jpg"
-        img = Image.fromarray(frame, "RGB")
-        img.save(filename)
+ 
 
-        x, y, z = self.app.main_window.m_pos
         json.dump({
             "fname": os.path.basename(filename),
             #"counter": counter,
             #"camera_timestamp": camera_timestamp-camera_time_0,
-            #"timestamp": self.app.main_window.m_pos_t-self.time_0,
-            # "i": self.i,
-            # "j": self.j,
-            # "k": self.k,
-            "x": x,
-            "y": y,
-            "z": z,
+            "timestamp": t,
+            "i": self.i,
+            "j": self.j,
+            "k": self.k,
+            "x": self.x,
+            "y": self.y,
+            "z": self.z,
         }, self.tile_config)
         self.tile_config.write("\n")
         self.tile_config.flush()
@@ -163,7 +162,9 @@ class Acquisition():
             curr_z = z + deltaz
             for j, gy in enumerate(self.ys):
                 for k, gx in enumerate(self.xs):
-                    grid.append([["MOVE_TO", (gx,gy,curr_z), (k,j,0), 100], ["WAIT"], ["PHOTO"]])
+                    grid.append([["MOVE_TO", (gx,gy,curr_z), (k,j,0), 100], 
+                                 ["WAIT"], 
+                                 ["PHOTO"]])
                 # inner_grid = []
                 # inner_grid.append(["MOVE_TO", (self.xs[0],gy,curr_z), (i,j,0), 100])
                 # inner_grid.append(["WAIT"])
@@ -225,18 +226,18 @@ class Acquisition():
         #print("Subcmd", subcmd[0])
         
         if subcmd[0] == "MOVE_TO":
-            x, y, z = subcmd[1]
-            k, j, i = subcmd[2]
+            self.x, self.y, self.z = subcmd[1]
+            self.k, self.j, self.i = subcmd[2]
             f = subcmd[3]
             pos = self.app.main_window.m_pos
-            if pos[0] == x and pos[1] == y and pos[2] == z:
+            if pos[0] == self.x and pos[1] == self.y and pos[2] == self.z:
                 print("already at position")
             else:
-                g = f"G90 G21 G1 F{f} X{x:.3f} Y{y:.3f} Z{z:.3f}\n"
+                g = f"G90 G21 G1 F{f} X{self.x:.3f} Y{self.y:.3f} Z{self.z:.3f}\n"
                 self.app.main_window.serial.write(g)
-                self.app.main_window.label_k.setText(f"col {k+1} of {len(self.xs)}")
-                self.app.main_window.label_j.setText(f"row {j+1} of {len(self.ys)}")
-                self.app.main_window.label_i.setText(f"dep {i+1} of {len(self.zs)}")
+                self.app.main_window.label_k.setText(f"col {self.k+1} of {len(self.xs)}")
+                self.app.main_window.label_j.setText(f"row {self.j+1} of {len(self.ys)}")
+                self.app.main_window.label_i.setText(f"dep {self.i+1} of {len(self.zs)}")
         elif subcmd[0] == 'WAIT':
             self.app.main_window.serial.write("G4 P1\n")
         elif subcmd[0] == 'PHOTO':
