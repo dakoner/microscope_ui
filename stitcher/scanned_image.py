@@ -9,6 +9,7 @@ import signal
 from PyQt5 import QtGui, QtCore, QtWidgets
 sys.path.append("..")
 from microscope_ui.config import HEIGHT, WIDTH, FOV_X_PIXELS, FOV_Y_PIXELS, PIXEL_SCALE
+from PIL import Image
 
 class ScannedImage(QtWidgets.QGraphicsView):
     def __init__(self, *args, **kwargs):
@@ -35,7 +36,7 @@ class ScannedImage(QtWidgets.QGraphicsView):
     def addImage(self, pos, image):
         width = image.shape[1]
         height = image.shape[0]
-        image = QtGui.QImage(image, width, height, QtGui.QImage.Format_Grayscale8)
+        image = QtGui.QImage(image, width, height, QtGui.QImage.Format_RGB888)
 
         # r = self.scene.addRect(pos.x(), pos.y(), width, height)
         # r.setZValue(2)
@@ -79,7 +80,7 @@ class ScannedImage(QtWidgets.QGraphicsView):
         pm.setPos(pos)
         pm.setZValue(1)
         # self.scene.addRect(p)
-
+        return pm
     def save(self, prefix, t, z):
         r = self.scene.itemsBoundingRect()
         width = round(r.width())
@@ -105,31 +106,79 @@ class ScannedImage(QtWidgets.QGraphicsView):
 
 
 class QApplication(QtWidgets.QApplication):
+    def doit(self):
+
+        prefix = "photo/1709509613.6593895"
+        d=json.load(open(f"{prefix}/scan_config.json"))
+        r=pd.read_json(f"{prefix}/tile_config.json", lines=True)
+        self.tiles =[]
+        for row in r.itertuples():
+            fname = os.path.join(prefix, row.fname)
+            if os.path.exists(fname):
+                self.tiles.append( (fname, row.x, row.y))
+
+    def doit2(self):
+        self.items = {}
+        for fname, x, y in self.tiles:
+                                
+            data = np.asarray(Image.open(fname))
+            x0 = x / PIXEL_SCALE
+            y0 = y / PIXEL_SCALE
+            pm = self.scanned_image.addImage(QtCore.QPoint(x0, y0), data)    
+            self.items[pm] = x, y
+
+        self.scanned_image.scene.setSceneRect(self.scanned_image.scene.itemsBoundingRect())
+
     def __init__(self, *argv):
         super().__init__(*argv)
         self.main_window = QtWidgets.QMainWindow()
         self.main_window.show()
 
+
+        self.dock = QtWidgets.QDockWidget()
+ 
+        self.dock_widget = QtWidgets.QWidget()
+        self.dock_layout = QtWidgets.QVBoxLayout()
+
+        self.dock_widget.setLayout(self.dock_layout)
+
+        self.x_button = QtWidgets.QDoubleSpinBox()
+        self.x_button.setRange(0.80,1.4)
+        self.x_button.setSingleStep(0.001)
+        self.x_button.setValue(1.0)
+        self.x_button.setDecimals(3)
+        self.x_button.valueChanged.connect(self.updatePositions)
+        self.dock_layout.addWidget(self.x_button)
+
+
+        self.y_button = QtWidgets.QDoubleSpinBox()
+        self.y_button.setRange(0.80,1.4)
+        self.y_button.setSingleStep(0.001)
+        self.y_button.setValue(1.0)
+        self.y_button.setDecimals(3)
+        self.y_button.valueChanged.connect(self.updatePositions)
+        self.dock_layout.addWidget(self.y_button)
+ 
+        # setting widget to the dock
+        self.dock.setWidget(self.dock_widget)
+        #self.dock.setGeometry(100, 0, 200, 30)
+ 
+
         self.scanned_image = ScannedImage()
 
         self.main_window.setCentralWidget(self.scanned_image)
+        self.main_window.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock)
+        self.doit()
+        self.doit2()
 
-        g = glob.glob("movie/*")
-        g.sort()
-        prefix = g[-1]
-        d=json.load(open(f"{prefix}/scan_config.json"))
-        r=pd.read_json(f"{prefix}/tile_config.json", lines=True)
-        for row in r.itertuples():
-            fname = os.path.join(prefix, row.fname)
-            if os.path.exists(fname):
-                data = tifffile.imread(fname)
-                x0 = row.x / PIXEL_SCALE
-                y0 = row.y / PIXEL_SCALE*2
-                print(x0, y0)
-                self.scanned_image.addImage(QtCore.QPoint(x0, y0), data)
-
-
-        self.scanned_image.scene.setSceneRect(self.scanned_image.scene.itemsBoundingRect())
+    def updatePositions(self, arg):
+        print(self.x_button.value(), self.y_button.value())
+        for item in self.scanned_image.scene.items():
+            if type(item) == QtWidgets.QGraphicsPixmapItem:
+                x, y = self.items[item]
+                pos_x = x / PIXEL_SCALE * self.x_button.value()
+                pos_y = y / PIXEL_SCALE * self.y_button.value()
+                item.setPos(pos_x, pos_y)
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL)
