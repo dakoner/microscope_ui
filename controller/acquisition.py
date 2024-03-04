@@ -54,6 +54,7 @@ class ImageThread(QtCore.QThread):
                     "counter": counter,
                     "camera_timestamp": camera_timestamp-camera_time_0,
                     "timestamp": self.parent.m_pos_t-time_0,
+                    "counter": self.counter,
                     "i": self.i,
                     "j": self.j,
                     "k": self.k,
@@ -63,7 +64,7 @@ class ImageThread(QtCore.QThread):
                 }, self.parent.tile_config)
                 self.parent.tile_config.write("\n")
                 self.parent.tile_config.flush()
-                counter += 1
+                self.counter += 1
             time.sleep(0.6)
 
         self.app.main_window.microscope_esp32_controller_serial.write("P2000000 6\n")
@@ -117,7 +118,7 @@ class Acquisition():
 
         json.dump({
             "fname": os.path.basename(filename),
-            #"counter": counter,
+            "counter": self.counter,
             #"camera_timestamp": camera_timestamp-camera_time_0,
             "timestamp": t,
             "i": self.i,
@@ -127,6 +128,7 @@ class Acquisition():
             "y": self.y,
             "z": self.z,
         }, self.tile_config)
+        self.counter += 1
         self.tile_config.write("\n")
         self.tile_config.flush()
 
@@ -202,6 +204,7 @@ class Acquisition():
         self.app.main_window.serial.posChanged.connect(self.pos)
         self.app.main_window.camera.disableCallback()
         self.time_0 = time.time()
+        self.counter = 0
 
         self.doCmd()
         # print("cmd=", cmd)
