@@ -5,7 +5,7 @@ import functools
 sys.path.append("..")
 from microscope_ui.config import PIXEL_SCALE, WIDTH, HEIGHT
 
-from acquisition import Acquisition
+from movie_acquisition import Acquisition
 def calculate_area(qpolygon):
     area = 0
     for i in range(qpolygon.size()):
@@ -128,6 +128,9 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
     
 
     def addImageIfMissing(self, draw_data, pos):
+        # if self.acquisition:
+        #     print("Not adding image during acquisition")
+        #     return
         #if not self.acquisition or len(self.acquisition.grid) == 0:
         #    return
         ci = self.currentRect.collidingItems()
@@ -144,7 +147,9 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         a = calculate_area(p)
         if a > 1000000:
             self.addImage(draw_data, pos)
+            
     def addImage(self, draw_data, pos):
+            #print('addImage')
             image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
             image = image.mirrored(horizontal=False, vertical=True)
 
