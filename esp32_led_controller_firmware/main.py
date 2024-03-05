@@ -36,13 +36,7 @@ class Program():
         else:
            self.led.on()
            print("falling")
-        #self.tim0.init(period=1000, mode=Timer.ONE_SHOT, callback=self.cb)
-        # if not pin.value():
-        #     self.rmt = esp32.RMT(0, pin=self.led, clock_div=64) # 1 time unit = 3 us
-        #     self.rmt.write_pulses((32767,), 1)  # Send HIGH for 32767 * 100ns = 3ms
-        # else:
-        #     self.rmt.deinit()
-
+        
 
     def loop(self):
         while True:
@@ -84,16 +78,16 @@ class Program():
                 #     self.led.on()
                 #     utime.sleep_us(delay)
                 #     self.led.off()
-                # elif line.startswith('C'):
-                #     s = line.split(' ')
-                #     self.trigger.off()
-                #     utime.sleep_ms(10)
-                #     delay = int(s[1])
-                #     print("trigger camera for", delay)
-                #     self.trigger.on()
-                #     #utime.sleep_us(delay)
-                #     utime.sleep_ms(delay)
-                #     self.trigger.off()
+                elif line.startswith('C'):
+                    s = line.split(' ')
+                    self.trigger.off()
+                    utime.sleep_ms(10)
+                    delay = int(s[1])
+                    print("trigger camera for", delay)
+                    self.trigger.on()
+                    #utime.sleep_us(delay)
+                    utime.sleep_ms(delay)
+                    self.trigger.off()
                 # elif line.startswith('N'):
                 #     s = line.split(' ')
                 #     b = bool(int(s[1]))
