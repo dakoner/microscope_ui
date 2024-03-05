@@ -170,6 +170,9 @@
              <property name="text">
               <string>HW-Toggle</string>
              </property>
+             <attribute name="buttonGroup">
+              <string notr="true">buttonGroup</string>
+             </attribute>
             </widget>
            </item>
            <item row="1" column="0">
@@ -177,6 +180,9 @@
              <property name="text">
               <string>SW-Toggle</string>
              </property>
+             <attribute name="buttonGroup">
+              <string notr="true">buttonGroup</string>
+             </attribute>
             </widget>
            </item>
            <item row="0" column="0">
@@ -197,6 +203,9 @@
              <property name="text">
               <string>SW-Toggle</string>
              </property>
+             <attribute name="buttonGroup">
+              <string notr="true">buttonGroup</string>
+             </attribute>
             </widget>
            </item>
            <item row="2" column="1">
@@ -628,4 +637,7 @@
  </customwidgets>
  <resources/>
  <connections/>
+ <buttongroups>
+  <buttongroup name="buttonGroup"/>
+ </buttongroups>
 </ui>

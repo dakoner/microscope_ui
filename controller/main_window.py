@@ -1,3 +1,5 @@
+import numpy as np
+#import cv2
 import time
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.uic import loadUi
@@ -58,10 +60,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.installEventFilter(self.event_filter) #keyboard control
 
 
-        #self.buttonGroup.buttonClicked.connect(self.triggerButtonGroupClicked)
+        self.buttonGroup.buttonClicked.connect(self.triggerButtonGroupClicked)
         self.swToggleRadioButton.toggled.connect(self.enableSoftwareTrigger)
         self.swTogglePushButton.pressed.connect(self.softwareTrigger)
-        self.hwToggleRadioButton.toggled.connect(lambda value: self.groupBox_2.setEnabled(value))
+        self.hwToggleRadioButton.toggled.connect(self.enableHardwareTrigger)
         self.radioButton_23.toggled.connect(self.enableAuto)
 
 
@@ -91,13 +93,18 @@ class MainWindow(QtWidgets.QMainWindow):
     def enableSoftwareTrigger(self, value):
         print("toggle radio for sw:", value)
         self.swTogglePushButton.setEnabled(value)
+ 
+    def enableHardwareTrigger(self, value):
+        print("toggle radio for sw:", value)
+        self.hwTogglePushButton.setEnabled(value)
+        #lambda value: self.groupBox_2.setEnabled(value))
 
     def softwareTrigger(self, *args):
         print("software trigger", args)
         print(self.camera.cameraSoftTrigger())
 
     def triggerButtonGroupClicked(self, button):
-        print("trigger button group clicked")
+        print("trigger button group clicked", button)
         if button == self.swToggleRadioButton:
             self.camera.TriggerMode = 1
         elif button == self.hwToggleRadioButton:
@@ -156,8 +163,7 @@ class MainWindow(QtWidgets.QMainWindow):
         t0 = time.time()
         self.t0 = t0
         if self.state == 'Jog' or self.state == 'Run':
-            if self.tile_graphics_view.acquisition is None:
-                self.tile_graphics_view.addImageIfMissing(draw_data, self.m_pos)
+            self.tile_graphics_view.addImageIfMissing(draw_data, self.m_pos)
                 #return
         if self.state != 'Home':
             s = draw_data.shape
@@ -171,6 +177,7 @@ class MainWindow(QtWidgets.QMainWindow):
             pixmap = QtGui.QPixmap.fromImage(image)
             #self.image_view.setFixedSize(1440/2, 1080/2)
             self.image_view.setPixmap(pixmap)
+
 
     def onMessageChanged(self, message):
         pass
