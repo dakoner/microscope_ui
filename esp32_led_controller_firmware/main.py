@@ -15,16 +15,13 @@ class Program():
         self.rmt = None
 
         # # # Camera trigger
-        # self.trigger = Pin(TRIGGER_PIN, Pin.OUT, Pin.PULL_DOWN)
-        # self.trigger.off()
+        self.trigger = Pin(TRIGGER_PIN, Pin.OUT, Pin.PULL_DOWN)
+        self.trigger.off()
 
         # # # Camera strobe
         self.strobe = Pin(STROBE_PIN, Pin.IN)
         self.strobe.irq(trigger=Pin.IRQ_RISING|Pin.IRQ_FALLING, handler=self.handle)
 
-
-        #self.tim0 = Timer(0)
-        #self.tim0.init(period=5000, mode=Timer.ONE_SHOT, callback=lambda t:print(0))
         self.led = Pin(LED_PIN)
         self.led.init(mode=Pin.OUT)
         self.led.off()
@@ -62,6 +59,12 @@ class Program():
                     else:
                         print("led off")
                         self.led.off()
+                elif line.startswith('P'):
+                    s = line.split(' ')
+                    freq = int(s[1])
+                    duty = int(s[2])
+                    pwm = PWM(self.led, freq=freq, duty=duty)
+                    print(pwm)
                 # elif line.startswith('Q'):
                 #     rmt = esp32.RMT(0, pin=Pin(LED_PIN), clock_div=1) # 1 time unit = 3 us
                 #     rmt.write_pulses((10,), 1)
@@ -72,12 +75,6 @@ class Program():
                 #     s = line.split(' ')
                 #     v = int(s[1])
                 #     dac.write(v)
-                # elif line.startswith('P'):
-                #     s = line.split(' ')
-                #     freq = int(s[1])
-                #     duty = int(s[2])
-                #     pwm = PWM(self.led, freq=freq, duty=duty)
-                #     print(pwm)
                 # elif line.startswith('S'):
                 #     self.led.init(mode=Pin.OUT)
                 #     s = line.split(' ')
@@ -112,5 +109,5 @@ class Program():
                 print(str(e))
 
 p = Program()
-print("b")
+print("Version 0.2")
 p.loop()
