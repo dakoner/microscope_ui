@@ -1,6 +1,5 @@
 import ffmpeg
 import tifffile
-import cv2
 import json
 import os
 import time
