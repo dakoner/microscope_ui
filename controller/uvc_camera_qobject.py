@@ -4,7 +4,7 @@ import numpy as np
 import pdb
 from PyQt5 import QtCore
 import cv2
-
+from microscope_ui.config import WIDTH, HEIGHT, FPS
 
 class Worker(QtCore.QThread):
     imageChanged = QtCore.pyqtSignal(np.ndarray, int, int, int)
@@ -49,31 +49,31 @@ class UVCCamera(QtCore.QObject):
         super().__init__(parent)
         self.cap = cv2.VideoCapture(device, 0)
         self.cap.set(cv2.CAP_PROP_FOURCC,cv2.VideoWriter_fourcc('M','J','P','G'))
-        FPS=30
+        #FPS=30
         self.cap.set(cv2.CAP_PROP_FPS, FPS)
-        WIDTH=1280
+        #WIDTH=1280
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
-        HEIGHT=1024
+        #HEIGHT=1024
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
         
         self.worker = None
 
     def callback(self, d, w, h, s):
+        self.currentFrame = d
         self.imageChanged.emit(d, w, h, s)
 
     def snapshot(self):
-        ret = self.cap.grab()
-        if ret:
-            ret, img = self.cap.retrieve()
-            if ret:
-                self.snapshotCompleted.emit(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        self.snapshotCompleted.emit(self.currentFrame)
+        
 
 
     def enableCallback(self):
-        self.worker.resume()
+        print("enableCallback")
+        #self.worker.resume()
 
     def disableCallback(self):
-        self.worker.pause()
+        print("disableCallback")
+        #self.worker.pause()
 
     def begin(self):
         self.worker = Worker(self.cap)
