@@ -24,10 +24,11 @@ class EventFilter(QtCore.QObject):
                 self.main_window.trigger()
             elif key == QtCore.Qt.Key_U:
                 self.main_window.unlock()
-            elif key == QtCore.Qt.Key_R:
+            elif key == QtCore.Qt.Key_E:
                 self.main_window.reset()
             elif key == QtCore.Qt.Key_P:
-                self.main_window.camera.snapshot()
+                r = self.main_window.camera.snapshot()
+                print(r)
             elif key == QtCore.Qt.Key_S:
                 self.main_window.cancel()
                 tile_graphics_view.stopAcquisition()
