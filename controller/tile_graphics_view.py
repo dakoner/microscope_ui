@@ -5,7 +5,8 @@ import functools
 sys.path.append("..")
 from microscope_ui.config import PIXEL_SCALE, WIDTH, HEIGHT
 
-from movie_acquisition import Acquisition
+#from movie_acquisition import Acquisition
+from photo_acquisition import Acquisition
 def calculate_area(qpolygon):
     area = 0
     for i in range(qpolygon.size()):
@@ -56,6 +57,8 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         print("Scene rect:", self.scene.sceneRect(), self.scene.itemsBoundingRect())
         self.fitInView(self.scene.itemsBoundingRect(), QtCore.Qt.KeepAspectRatio)
         self.scale(50, 50)
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         #self.centerOn(self.scene.itemsBoundingRect().width()/2, self.scene.itemsBoundingRect().height()/2)
 
         self.currentRect = None
@@ -73,14 +76,15 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
 
     def addStageRect(self):
         pen = QtGui.QPen(QtCore.Qt.red)
-        pen.setWidth(100)
+        pen.setWidth(10)
         brush = QtGui.QBrush(QtCore.Qt.blue)
-        self.stageRect = self.scene.addRect(0, 0, 65/PIXEL_SCALE, 85/PIXEL_SCALE, pen=pen, brush=brush)
+        #print(0, 0, 45/PIXEL_SCALE, 45/PIXEL_SCALE)
+        self.stageRect = self.scene.addRect(0, 0, 45/PIXEL_SCALE, 45/PIXEL_SCALE, pen=pen, brush=brush)
         self.stageRect.setZValue(0)
 
     def addCurrentRect(self):
         pen = QtGui.QPen(QtCore.Qt.green)
-        pen.setWidth(200)
+        pen.setWidth(10)
         brush = QtGui.QBrush()
         rect = QtCore.QRectF(0, 0, WIDTH, HEIGHT)
         self.currentRect = self.scene.addRect(rect, pen=pen, brush=brush)
@@ -99,13 +103,15 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
     def stopAcquisition(self):
         self.acquisition = None
 
-    # def resizeEvent(self, *args):
-    #     self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
+    def resizeEvent(self, *args):
+        self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
+        return super().resizeEvent(*args)
+
 
     def onRubberBandChanged(self, rect, from_ , to):
         if from_.isNull() and to.isNull():    
             pen = QtGui.QPen(QtCore.Qt.red)
-            pen.setWidth(50)
+            pen.setWidth(10)
             color = QtGui.QColor(QtCore.Qt.black)
             color.setAlpha(0)
             brush = QtGui.QBrush(color)
@@ -128,9 +134,9 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
     
 
     def addImageIfMissing(self, draw_data, pos):
-        # if self.acquisition:
-        #     print("Not adding image during acquisition")
-        #     return
+        if self.acquisition:
+            print("Not adding image during acquisition")
+            return
         #if not self.acquisition or len(self.acquisition.grid) == 0:
         #    return
         ci = self.currentRect.collidingItems()
@@ -145,13 +151,14 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         qp3 = qp.subtracted(qp2)
         p = qp3.toFillPolygon()
         a = calculate_area(p)
-        if a > 1000000:
+        if a > 1200000:
+            #print("Adding")
             self.addImage(draw_data, pos)
             
     def addImage(self, draw_data, pos):
             #print('addImage')
             image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
-            image = image.mirrored(horizontal=False, vertical=True)
+            image = image.mirrored(horizontal=False, vertical=False)
 
             pixmap = QtGui.QPixmap.fromImage(image)
             pm = self.scene.addPixmap(pixmap)
