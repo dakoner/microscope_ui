@@ -107,11 +107,11 @@ class Acquisition():
         format = QtGui.QImage.Format_RGB888
         s = frame.shape
         image = QtGui.QImage(frame, s[1], s[0], format)
-        image = image.mirrored(horizontal=False, vertical=True)
         t = str(time.time())
         filename = f"{self.prefix}/test.{t}.jpg"
         image.save(filename)
         pixmap = QtGui.QPixmap.fromImage(image)
+        image = image.mirrored(horizontal=False, vertical=True)
         #self.image_view.setFixedSize(1440/2, 1080/2)
         self.app.main_window.image_view.setPixmap(pixmap)
  
@@ -151,10 +151,10 @@ class Acquisition():
         # print("fov_y", FOV_Y)
         z = self.app.main_window.m_pos[2]
         num_z = len(self.zs)
-        self.ys = np.arange(self.y_min, self.y_max, FOV_Y)
+        self.ys = np.arange(self.y_min, self.y_max, FOV_Y*(2/3))
         #ys = [y_min, y_max]
         num_y = len(self.ys)
-        self.xs = np.arange(self.x_min, self.x_max, FOV_X)
+        self.xs = np.arange(self.x_min, self.x_max, FOV_X*(2/3))
         #self.xs = [self.x_min, self.x_max]
         num_x = len(self.xs)
 
@@ -163,8 +163,9 @@ class Acquisition():
         for i, deltaz in enumerate(self.zs):           
             curr_z = z + deltaz
             for j, gy in enumerate(self.ys):
+                grid.append([["MOVE_TO", (self.xs[0],gy,curr_z), (0,j,0), 1000], ["HOME_X"], ["WAIT"]])
                 for k, gx in enumerate(self.xs):
-                    grid.append([["MOVE_TO", (gx,gy,curr_z), (k,j,0), 100], 
+                    grid.append([["MOVE_TO", (gx,gy,curr_z), (k,j,0), 1000], 
                                  ["WAIT"], 
                                  ["PHOTO"]])
                 # inner_grid = []
@@ -193,7 +194,7 @@ class Acquisition():
                     "fov_x_pixels": FOV_X_PIXELS,
                     "fov_y_pixels": FOV_Y_PIXELS,
                 }, scan_config)
-        # print("grid:", grid)
+        print("grid:", grid)
         return grid
 
     def startAcquisition(self):
@@ -218,17 +219,24 @@ class Acquisition():
         self.m_pos_ts.append( (self.m_pos, t))
 
     def doCmd(self):
+        print("doCmd", self.block)
         if self.block is None or self.block == []:
             self.block = self.grid.pop(0)
         #print("self.block: ", self.block)
        
 
         subcmd = self.block.pop(0)
+
     
         self.cur = subcmd
-        #print("Subcmd", subcmd[0])
-        
-        if subcmd[0] == "MOVE_TO":
+        print("Subcmd", subcmd[0])
+        if subcmd[0] == 'HOME_X':
+            g = f"$HX\n"
+            self.app.main_window.serial.write(g)
+        if subcmd[0] == 'HOME_Y':
+            g = f"$HY\n"
+            self.app.main_window.serial.write(g)    
+        elif subcmd[0] == "MOVE_TO":
             self.x, self.y, self.z = subcmd[1]
             self.k, self.j, self.i = subcmd[2]
             f = subcmd[3]
@@ -256,7 +264,7 @@ class Acquisition():
         elif subcmd[0] == 'DONE':
             self.app.main_window.tile_graphics_view.stopAcquisition()
             self.app.main_window.camera.enableCallback()
-
+            print("DONE")
             self.tile_config.close()
             # with open(os.path.join(self.prefix, "stage_config.json"), "w") as stage_config:
             #     json.dump(self.m_pos_ts, stage_config)
@@ -264,14 +272,14 @@ class Acquisition():
             print("Unknown subcmd", subcmd)
                 
     def output(self, output):
-        #print("output", output)
+        print("output", output)
         if output == 'ok' and self.cur[0] == 'WAIT':
             #print('go to next')
             self.doCmd()
 
     def acq(self, state):
-        #print("acq", state)
-        if state == 'Idle' and self.cur[0] == 'MOVE_TO':
+        print("acq", state)
+        if state == 'Idle' and self.cur[0] in ('MOVE_TO', 'HOME_X', 'HOME_Y'):
             #print("go to next")
             self.doCmd()
 
