@@ -55,7 +55,9 @@ class UVCCamera(QtCore.QObject):
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
         #HEIGHT=1024
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
-        
+        self.cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
+
+        self.cap.set(cv2.CAP_PROP_EXPOSURE, 2000)
         self.worker = None
 
     def callback(self, d, w, h, s):
