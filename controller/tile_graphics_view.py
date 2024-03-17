@@ -56,7 +56,6 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         self.addStageRect()
         print("Scene rect:", self.scene.sceneRect(), self.scene.itemsBoundingRect())
         self.fitInView(self.scene.itemsBoundingRect(), QtCore.Qt.KeepAspectRatio)
-        self.scale(50, 50)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         #self.centerOn(self.scene.itemsBoundingRect().width()/2, self.scene.itemsBoundingRect().height()/2)
@@ -79,7 +78,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         pen.setWidth(10)
         brush = QtGui.QBrush(QtCore.Qt.blue)
         #print(0, 0, 45/PIXEL_SCALE, 45/PIXEL_SCALE)
-        self.stageRect = self.scene.addRect(0, 0, 45/PIXEL_SCALE, 45/PIXEL_SCALE, pen=pen, brush=brush)
+        self.stageRect = self.scene.addRect(0, 0, 45/PIXEL_SCALE, 43/PIXEL_SCALE, pen=pen, brush=brush)
         self.stageRect.setZValue(0)
 
     def addCurrentRect(self):
@@ -151,8 +150,8 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         qp3 = qp.subtracted(qp2)
         p = qp3.toFillPolygon()
         a = calculate_area(p)
-        if a > 1200000:
-            #print("Adding")
+        if a > 500000:
+            print("Adding")
             self.addImage(draw_data, pos)
             
     def addImage(self, draw_data, pos):
