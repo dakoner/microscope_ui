@@ -162,23 +162,22 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.state == 'Jog' or self.state == 'Run':
             self.tile_graphics_view.addImageIfMissing(draw_data, self.m_pos)
                 #return
-        if self.state != 'Home':
-            s = draw_data.shape
-            if s[2] == 1:
-                format = QtGui.QImage.Format_Grayscale8
-            elif s[2] == 3:
-                format = QtGui.QImage.Format_RGB888
+        s = draw_data.shape
+        if s[2] == 1:
+            format = QtGui.QImage.Format_Grayscale8
+        elif s[2] == 3:
+            format = QtGui.QImage.Format_RGB888
 
-            image = QtGui.QImage(draw_data, s[1], s[0], format)
-            image = image.mirrored(horizontal=False, vertical=False)
-            pixmap = QtGui.QPixmap.fromImage(image)
-            #self.image_view.setFixedSize(1440/2, 1080/2)
-            self.image_view.setPixmap(pixmap)
+        image = QtGui.QImage(draw_data, s[1], s[0], format)
+        image = image.mirrored(horizontal=False, vertical=False)
+        pixmap = QtGui.QPixmap.fromImage(image)
+        #self.image_view.setFixedSize(1440/2, 1080/2)
+        self.image_view.setFixedSize(s[1], s[0])
+        self.image_view.setPixmap(pixmap)
 
 
     def onMessageChanged(self, message):
-        pass
-        #print("message:", message)
+        self.textEdit.append(message)
 
     def onPosChange(self, x, y, z, t):
         self.m_pos = [x,y,z]
