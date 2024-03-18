@@ -37,6 +37,8 @@ class ScannedImage(QtWidgets.QGraphicsView):
         width = image.shape[1]
         height = image.shape[0]
         image = QtGui.QImage(image, width, height, QtGui.QImage.Format_RGB888)
+        #image = image.mirrored(horizontal=False, vertical=True)
+
 
         # r = self.scene.addRect(pos.x(), pos.y(), width, height)
         # r.setZValue(2)
@@ -77,6 +79,7 @@ class ScannedImage(QtWidgets.QGraphicsView):
 
 
         pm = self.scene.addPixmap(pixmap)
+        pm.setFlags(QtWidgets.QGraphicsItem.ItemIsMovable)
         pm.setPos(pos)
         pm.setZValue(1)
         # self.scene.addRect(p)
@@ -108,15 +111,20 @@ class ScannedImage(QtWidgets.QGraphicsView):
 class QApplication(QtWidgets.QApplication):
     def doit(self):
 
-        prefix = "photo/1709509613.6593895"
+        import glob
+        g = glob.glob("photo/*")
+        print(g)
+        prefix = sorted(g, key=lambda x: float(x.split("/")[1]))[-1]
+        print(prefix)
         d=json.load(open(f"{prefix}/scan_config.json"))
         r=pd.read_json(f"{prefix}/tile_config.json", lines=True)
+        print(len(r))
         self.tiles =[]
         for row in r.itertuples():
             fname = os.path.join(prefix, row.fname)
             if os.path.exists(fname):
                 self.tiles.append( (fname, row.x, row.y))
-
+        print(len(self.tiles))
     def doit2(self):
         self.items = {}
         for fname, x, y in self.tiles:
@@ -124,10 +132,21 @@ class QApplication(QtWidgets.QApplication):
             data = np.asarray(Image.open(fname))
             x0 = x / PIXEL_SCALE
             y0 = y / PIXEL_SCALE
-            pm = self.scanned_image.addImage(QtCore.QPoint(x0, y0), data)    
+
+            pm = self.scanned_image.addImage(QtCore.QPoint(int(x0), int(y0)), data)    
             self.items[pm] = x, y
 
         self.scanned_image.scene.setSceneRect(self.scanned_image.scene.itemsBoundingRect())
+        self.scanned_image.scene.clearSelection()                                        
+        # image = QtGui.QImage(self.scanned_image.scene.sceneRect().size().toSize(), QtGui.QImage.Format_RGB888);  
+        # image.fill(QtCore.Qt.transparent);                                            
+
+        # painter = QtGui.QPainter (image);
+        
+        # painter.begin(image)
+        # self.scanned_image.scene.render(painter);
+        # image.save("file_name.png")
+        # painter.end()
 
     def __init__(self, *argv):
         super().__init__(*argv)
