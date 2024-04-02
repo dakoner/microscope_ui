@@ -11,7 +11,7 @@ axes:
   shared_stepper_disable_pin: NO_PIN
   x:
     steps_per_mm: 3200
-    max_rate_mm_per_min: 500
+    max_rate_mm_per_min: 100
     acceleration_mm_per_sec2: 2
     max_travel_mm: 45.000
     soft_limits: true
@@ -34,8 +34,8 @@ axes:
       tmc_2130:
         cs_pin: i2so.3
         r_sense_ohms: 0.110
-        run_amps: 0.25
-        hold_amps: 0.25
+        run_amps: 1.25
+        hold_amps: 1.25
         microsteps: 16
         stallguard: 0
         stallguard_debug: false
@@ -50,7 +50,7 @@ axes:
         disable_pin: I2SO.0
 
   y:
-    steps_per_mm: 3200
+    steps_per_mm: 800
     max_rate_mm_per_min: 500
     acceleration_mm_per_sec2: 2
     max_travel_mm: 45.000
