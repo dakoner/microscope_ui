@@ -5,13 +5,13 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.uic import loadUi
 import serial_interface_qobject
 
-#import gige_camera_qobject
+import gige_camera_qobject
 import uvc_camera_qobject
+#import pyspin_camera_qobject
 #from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
 from microscope_ui.config import PIXEL_SCALE, MQTT_HOST, XY_FEED
 import event_filter
 import sys
-#sys.path.append("..")
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
@@ -36,8 +36,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.microscope_esp32_controller_serial.messageChanged.connect(self.onMessage2Changed)
 
         #self.camera = pyspin_camera_qobject.PySpinCamera()
-        self.camera = uvc_camera_qobject.UVCCamera("/dev/video0")
-        #self.camera = gige_camera_qobject.GigECamera()
+        #self.camera = uvc_camera_qobject.UVCCamera("/dev/video1")
+        self.camera = gige_camera_qobject.GigECamera()
         self.camera.imageChanged.connect(self.imageChanged)
         #self.setContinuous()
         #self.setTrigger()
@@ -169,7 +169,8 @@ class MainWindow(QtWidgets.QMainWindow):
             format = QtGui.QImage.Format_RGB888
 
         image = QtGui.QImage(draw_data, s[1], s[0], format)
-        image = image.mirrored(horizontal=False, vertical=False)
+        image = image.mirrored(horizontal=True, vertical=False)
+        self.curr_image = image
         pixmap = QtGui.QPixmap.fromImage(image)
         #self.image_view.setFixedSize(1440/2, 1080/2)
         self.image_view.setFixedSize(s[1], s[0])
