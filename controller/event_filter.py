@@ -26,16 +26,15 @@ class EventFilter(QtCore.QObject):
                 self.main_window.unlock()
             elif key == QtCore.Qt.Key_E:
                 self.main_window.reset()
-            elif key == QtCore.Qt.Key_P:
-                r = self.main_window.camera.snapshot()
-                print(r)
+            # elif key == QtCore.Qt.Key_P:
+            #     r = self.main_window.camera.snapshot()
+            #     print(r)
             elif key == QtCore.Qt.Key_S:
                 self.main_window.cancel()
                 tile_graphics_view.stopAcquisition()
             elif key == QtCore.Qt.Key_P:
                 fname = f"image_{int(time.time())}.tif"
                 self.main_window.curr_image.save(fname)
-                print("saved", fname)
             elif key == QtCore.Qt.Key_R:
                 tile_graphics_view.reset()
                 tile_graphics_view.addCurrentRect()
