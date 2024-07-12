@@ -10,9 +10,10 @@ def main():
     #g.sort()
     #prefix = g[-1]
     #d=json.load(open(f"{prefix}/scan_config.json"))
-    import glob
-    g = glob.glob("photo/*")
-    prefix = sorted(g, key=lambda x: float(x.split("/")[1]))[-1]
+    #import glob
+    #g = glob.glob("photo/*")
+    prefix = "photo\\test2"
+    #prefix = sorted(g, key=lambda x: float(x.split("/")[1]))[-1]
     r=pd.read_json(f"{prefix}/tile_config.json", lines=True)
     r.set_index(['i', 'j', 'k'])
 

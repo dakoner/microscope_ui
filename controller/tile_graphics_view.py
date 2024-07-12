@@ -128,8 +128,8 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
 
     def reset(self):
         self.scene.clear()
-        #self.addStageRect()
-        #self.adddCurrentRect()
+        self.addStageRect()
+        self.adddCurrentRect()
     
 
     def addImageIfMissing(self, draw_data, pos):

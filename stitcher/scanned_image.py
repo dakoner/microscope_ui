@@ -17,9 +17,9 @@ class ScannedImage(QtWidgets.QGraphicsView):
         self.scene = QtWidgets.QGraphicsScene()
         self.setScene(self.scene)
 
-        self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
-        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        # self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
+        # self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        # self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
     def resizeEvent(self, event):
         # fitInView interferes with scale()
@@ -37,7 +37,7 @@ class ScannedImage(QtWidgets.QGraphicsView):
         width = image.shape[1]
         height = image.shape[0]
         image = QtGui.QImage(image, width, height, QtGui.QImage.Format_RGB888)
-        #image = image.mirrored(horizontal=False, vertical=True)
+        #image = image.mirrored(horizontal=False, vertical=False)
 
 
         # r = self.scene.addRect(pos.x(), pos.y(), width, height)
@@ -89,6 +89,7 @@ class ScannedImage(QtWidgets.QGraphicsView):
         width = round(r.width())
         height = round(r.height())
         image = QtGui.QImage(width, height, QtGui.QImage.Format_ARGB32)
+        image = image.mirrored(horizontal=True, vertical=False)
         p = QtGui.QPainter(image)
         self.scene.render(p)  
         p.end()
@@ -113,8 +114,8 @@ class QApplication(QtWidgets.QApplication):
 
         import glob
         g = glob.glob("photo/*")
-        print(g)
-        prefix = sorted(g, key=lambda x: float(x.split("/")[1]))[-1]
+        prefix = sorted(g, key=lambda x: float(x.split(os.sep)[1]))[-1]
+
         print(prefix)
         d=json.load(open(f"{prefix}/scan_config.json"))
         r=pd.read_json(f"{prefix}/tile_config.json", lines=True)
@@ -151,7 +152,7 @@ class QApplication(QtWidgets.QApplication):
     def __init__(self, *argv):
         super().__init__(*argv)
         self.main_window = QtWidgets.QMainWindow()
-        self.main_window.show()
+        self.main_window.show()#Maximized()
 
 
         self.dock = QtWidgets.QDockWidget()

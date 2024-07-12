@@ -61,7 +61,7 @@ axes:
         disable_pin: i2so.0
 
   y:
-    steps_per_mm: 3200
+    steps_per_mm: 2560
     max_rate_mm_per_min: 500
     acceleration_mm_per_sec2: 2
     max_travel_mm: 39
