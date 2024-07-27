@@ -1,4 +1,6 @@
 import sys
+#sys.path.append("..")
+#import mvsdk
 import signal
 from PyQt5 import QtWidgets
 from main_window import MainWindow
