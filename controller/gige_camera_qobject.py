@@ -212,8 +212,9 @@ class GigECamera(QtCore.QObject):
         print("tc", mvsdk.CameraGetTriggerCount(self.hCamera))
 
 
-        self.ExposureTime = mvsdk.CameraGetExposureTime(self.hCamera)
-        print("ex", mvsdk.CameraGetExtTrigSignalType(self.hCamera))
+        self.ExposureTime = 10
+        print("ex", mvsdk.CameraGetExposureTime(self.hCamera))
+        print("extrig", mvsdk.CameraGetExtTrigSignalType(self.hCamera))
         #self.ExposureTime = 0
         self.Gamma = mvsdk.CameraGetGamma(self.hCamera)
         self.Contrast = mvsdk.CameraGetContrast(self.hCamera)

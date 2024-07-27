@@ -21,15 +21,15 @@ class MainWindow(QtWidgets.QMainWindow):
         #self.toolBar.actionTriggered.connect(self.test)
         #button_action.triggered.connect(self.onMyToolBarButtonClick)
 
-        self.serial = serial_interface_qobject.SerialInterface('/dev/ttyUSB0', "dektop")
+        self.serial = serial_interface_qobject.SerialInterface('/dev/ttyUSB1', "dektop")
         self.serial.posChanged.connect(self.onPosChange)
         self.serial.stateChanged.connect(self.onStateChange)
         self.serial.messageChanged.connect(self.onMessageChanged)
 
 
-        # self.microscope_esp32_controller_serial =microscope_serial_qobject.SerialInterface('/dev/ttyUSB1')
-        # self.microscope_esp32_controller_serial.reset()
-        # time.sleep(1)
+        #self.microscope_esp32_controller_serial =microscope_serial_qobject.SerialInterface('/dev/ttyUSB0')
+        #self.microscope_esp32_controller_serial.reset()
+        #time.sleep(1)
 
         # self.microscope_esp32_controller_serial.write("P 2000000 325\n")
         # self.microscope_esp32_controller_serial.write("L1\n")
@@ -44,7 +44,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
 #        self.camera.startWorker()
         self.camera.begin()
-        #self.camera.camera_play()
+        self.camera.camera_play()
 
 
         self.state = 'None'
@@ -65,26 +65,26 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 
-        # self.AeTargetSlider.valueChanged.connect(self.AeTargetChanged)
-        # self.AeTargetLabel.setText(str(self.camera.AeTarget))
-        # self.AeTargetSlider.setMinimum(self.camera.cap.sExposeDesc.uiTargetMin)
-        # self.AeTargetSlider.setMaximum(self.camera.cap.sExposeDesc.uiTargetMax)
+        self.AeTargetSlider.valueChanged.connect(self.AeTargetChanged)
+        self.AeTargetLabel.setText(str(self.camera.AeTarget))
+        self.AeTargetSlider.setMinimum(self.camera.cap.sExposeDesc.uiTargetMin)
+        self.AeTargetSlider.setMaximum(self.camera.cap.sExposeDesc.uiTargetMax)
+        self.camera.AeTargetChanged.connect(self.AeTargetChangedCallback)
 
 
-        # self.exposureTimeSlider.valueChanged.connect(self.ExposureTimeChanged)
-        # self.exposureTimeLabel.setText(str(self.camera.ExposureTime))
-        # self.exposureTimeSlider.setMinimum(self.camera.cap.sExposeDesc.uiExposeTimeMin)
-        # self.exposureTimeSlider.setMaximum(self.camera.cap.sExposeDesc.uiExposeTimeMax)
+        self.exposureTimeSlider.valueChanged.connect(self.ExposureTimeChanged)
+        print(self.camera.ExposureTime)
+        self.exposureTimeLabel.setText(str(self.camera.ExposureTime))
+        print(self.camera.cap.sExposeDesc.uiExposeTimeMin, self.camera.cap.sExposeDesc.uiExposeTimeMax)
+        self.exposureTimeSlider.setMinimum(self.camera.cap.sExposeDesc.uiExposeTimeMin)
+        self.exposureTimeSlider.setMaximum(self.camera.cap.sExposeDesc.uiExposeTimeMax)
+        self.camera.ExposureTimeChanged.connect(self.ExposureTimeChangedCallback)
 
-        # self.analogGainSlider.valueChanged.connect(self.AnalogGainChanged)
-        # self.analogGainLabel.setText(str(self.camera.AnalogGain))
-        # self.analogGainSlider.setMinimum(self.camera.cap.sExposeDesc.uiAnalogGainMin)
-        # self.analogGainSlider.setMaximum(self.camera.cap.sExposeDesc.uiAnalogGainMax)
-
-
-        # self.camera.AeTargetChanged.connect(lambda value: self.AeTargetSlider.setValue(int(value)))
-        # self.camera.ExposureTimeChanged.connect(lambda value: self.exposureTimeSlider.setValue(int(value)))
-        # self.camera.AnalogGainChanged.connect(lambda value: self.analogGainSlider.setValue(int(value)))
+        self.analogGainSlider.valueChanged.connect(self.AnalogGainChanged)
+        self.analogGainLabel.setText(str(self.camera.AnalogGain))
+        self.analogGainSlider.setMinimum(self.camera.cap.sExposeDesc.uiAnalogGainMin)
+        self.analogGainSlider.setMaximum(self.camera.cap.sExposeDesc.uiAnalogGainMax)
+        self.camera.AnalogGainChanged.connect(self.AnalogGainChangedCallback)
 
 
     def enableSoftwareTrigger(self, value):
@@ -116,6 +116,11 @@ class MainWindow(QtWidgets.QMainWindow):
         print("AnalogGainChanged", analog_gain)
         self.camera.AnalogGain = analog_gain
 
+    def AnalogGainChangedCallback(self, analog_gain):
+        print("AnalogGainChangedCallback", analog_gain)
+        self.analogGainSlider.setValue(int(analog_gain))
+        self.analogGainLabel.setText(str(int(analog_gain)))
+
     def enableAuto(self, value):
         print("enableAuto", value)
         self.groupBox_6.setEnabled(value)
@@ -126,10 +131,21 @@ class MainWindow(QtWidgets.QMainWindow):
         print("AeTargetChanged", target)
         self.camera.AeTarget = target
 
+    def AeTargetChangedCallback(self, value):
+        print("AeTargetChangedCallback", value)
+        self.AeTargetSlider.setValue(int(value))
+        self.AeTargetLabel.setText(str(int(value)))
+
     def ExposureTimeChanged(self, exposure):
         print("ExposureTimeChanged: ", exposure)
         self.camera.ExposureTime = exposure
 
+
+    def ExposureTimeChangedCallback(self, exposure):
+        print("ExposureTimeChangedCallback: ", exposure)
+        self.camera.ExposureTime = exposure
+        self.exposureTimeSlider.setValue(int(exposure))
+        self.exposureTimeLabel.setText(str(int(exposure)))
 
     def onMessage2Changed(self, *args):
         print('message2 changed', args)
@@ -172,8 +188,8 @@ class MainWindow(QtWidgets.QMainWindow):
         image = image.mirrored(horizontal=True, vertical=False)
         self.curr_image = image
         pixmap = QtGui.QPixmap.fromImage(image)
-        #self.image_view.setFixedSize(1440/2, 1080/2)
-        self.image_view.setFixedSize(s[1], s[0])
+        self.image_view.setFixedSize(1440//2, 1080//2)
+        #self.image_view.setFixedSize(s[1], s[0])
         self.image_view.setPixmap(pixmap)
 
 
