@@ -1,5 +1,5 @@
 import tifffile
-import cv2
+#import cv2
 import json
 import os
 import time
@@ -107,11 +107,11 @@ class Acquisition():
         format = QtGui.QImage.Format_RGB888
         s = frame.shape
         image = QtGui.QImage(frame, s[1], s[0], format)
+        image = image.mirrored(horizontal=True, vertical=False)
         t = str(time.time())
         filename = f"{self.prefix}/test.{t}.jpg"
         image.save(filename)
         pixmap = QtGui.QPixmap.fromImage(image)
-        image = image.mirrored(horizontal=False, vertical=True)
         #self.image_view.setFixedSize(1440/2, 1080/2)
         self.app.main_window.image_view.setPixmap(pixmap)
  
@@ -163,7 +163,7 @@ class Acquisition():
         for i, deltaz in enumerate(self.zs):           
             curr_z = z + deltaz
             for j, gy in enumerate(self.ys):
-                grid.append([["MOVE_TO", (self.xs[0],gy,curr_z), (0,j,0), 1000], ["HOME_X"], ["WAIT"]])
+                #grid.append([["MOVE_TO", (self.xs[0],gy,curr_z), (0,j,0), 1000], ["HOME_X"], ["WAIT"]])
                 for k, gx in enumerate(self.xs):
                     grid.append([["MOVE_TO", (gx,gy,curr_z), (k,j,0), 1000], 
                                  ["WAIT"], 
@@ -233,7 +233,7 @@ class Acquisition():
         if subcmd[0] == 'HOME_X':
             g = f"$HX\n"
             self.app.main_window.serial.write(g)
-        if subcmd[0] == 'HOME_Y':
+        elif subcmd[0] == 'HOME_Y':
             g = f"$HY\n"
             self.app.main_window.serial.write(g)    
         elif subcmd[0] == "MOVE_TO":
