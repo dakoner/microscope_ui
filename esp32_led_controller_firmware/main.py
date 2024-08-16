@@ -6,7 +6,7 @@ import esp32
 from machine import Pin, PWM
 from machine import Timer
 
-TRIGGER_PIN=21
+TRIGGER_PIN=23
 STROBE_PIN=22
 LED_PIN=23
 class Program():
@@ -14,13 +14,13 @@ class Program():
         self.pwm = None
         self.rmt = None
 
-        # # # Camera trigger
-        self.trigger = Pin(TRIGGER_PIN, Pin.OUT, Pin.PULL_DOWN)
-        self.trigger.off()
+        # # # # Camera trigger
+        # self.trigger = Pin(TRIGGER_PIN, Pin.OUT, Pin.PULL_DOWN)
+        # self.trigger.off()
 
-        # # # Camera strobe
-        self.strobe = Pin(STROBE_PIN, Pin.IN)
-        self.strobe.irq(trigger=Pin.IRQ_RISING|Pin.IRQ_FALLING, handler=self.handle)
+        # # # # Camera strobe
+        # self.strobe = Pin(STROBE_PIN, Pin.IN)
+        # self.strobe.irq(trigger=Pin.IRQ_RISING|Pin.IRQ_FALLING, handler=self.handle)
 
         self.led = Pin(LED_PIN)
         self.led.init(mode=Pin.OUT)
