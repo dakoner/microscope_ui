@@ -7,7 +7,7 @@ import numpy as np
 import sys
 from PIL import Image
 sys.path.append('..')
-from microscope_ui.config import PIXEL_SCALE, TARGET, HEIGHT, WIDTH, FOV_X, FOV_Y, FOV_X_PIXELS, FOV_Y_PIXELS, XY_FEED, Z_FEED
+from config import PIXEL_SCALE, TARGET, HEIGHT, WIDTH, FOV_X, FOV_Y, FOV_X_PIXELS, FOV_Y_PIXELS, XY_FEED, Z_FEED
 from PyQt5 import QtWidgets, QtGui, QtCore
 
 class ImageThread(QtCore.QThread):
