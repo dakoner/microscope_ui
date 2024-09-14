@@ -649,7 +649,7 @@
   <customwidget>
    <class>TileGraphicsView</class>
    <extends>QGraphicsView</extends>
-   <header>microscope_ui.controller.tile_graphics_view</header>
+   <header>tile_graphics_view</header>
   </customwidget>
  </customwidgets>
  <resources/>
