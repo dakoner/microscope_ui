@@ -1,3 +1,5 @@
+import cv2
+import os
 import numpy as np
 #import cv2
 import time
@@ -8,7 +10,7 @@ import serial_interface_qobject
 #import gige_camera_qobject
 import uvc_camera_qobject
 #from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
-from microscope_ui.config import PIXEL_SCALE, MQTT_HOST, XY_FEED
+from config import PIXEL_SCALE, MQTT_HOST, XY_FEED
 import event_filter
 import sys
 #sys.path.append("..")
@@ -16,15 +18,20 @@ import sys
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        loadUi("controller/microscope_controller.ui", self)
-        
+        loadUi("microscope_controller.ui", self)
+        self.zoom_view = QtWidgets.QLabel(parent=None)
+        #self.zoom_view.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
+        self.zoom_view.show()
+
+        #self.image_view.setScaledContents(True)
+
         #self.toolBar.actionTriggered.connect(self.test)
         #button_action.triggered.connect(self.onMyToolBarButtonClick)
 
-        self.serial = serial_interface_qobject.SerialInterface('/dev/ttyUSB0', "dektop")
-        self.serial.posChanged.connect(self.onPosChange)
-        self.serial.stateChanged.connect(self.onStateChange)
-        self.serial.messageChanged.connect(self.onMessageChanged)
+        # self.serial = serial_interface_qobject.SerialInterface('/dev/ttyUSB0', "dektop")
+        # self.serial.posChanged.connect(self.onPosChange)
+        # self.serial.stateChanged.connect(self.onStateChange)
+        # self.serial.messageChanged.connect(self.onMessageChanged)
 
 
         # self.microscope_esp32_controller_serial =microscope_serial_qobject.SerialInterface('/dev/ttyUSB1')
@@ -36,7 +43,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.microscope_esp32_controller_serial.messageChanged.connect(self.onMessage2Changed)
 
         #self.camera = pyspin_camera_qobject.PySpinCamera()
-        self.camera = uvc_camera_qobject.UVCCamera("/dev/video0")
+        self.camera = uvc_camera_qobject.UVCCamera(2)
         #self.camera = gige_camera_qobject.GigECamera()
         self.camera.imageChanged.connect(self.imageChanged)
         #self.setContinuous()
@@ -63,6 +70,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.hwToggleRadioButton.toggled.connect(self.enableHardwareTrigger)
         self.radioButton_23.toggled.connect(self.enableAuto)
 
+        self.prefix = os.path.join("photo", str(time.time()))
+        os.makedirs(self.prefix)
+        self.camera.snapshotCompleted.connect(self.snapshotCompleted)
 
 
         # self.AeTargetSlider.valueChanged.connect(self.AeTargetChanged)
@@ -86,7 +96,14 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.camera.ExposureTimeChanged.connect(lambda value: self.exposureTimeSlider.setValue(int(value)))
         # self.camera.AnalogGainChanged.connect(lambda value: self.analogGainSlider.setValue(int(value)))
 
-
+    def snapshotCompleted(self, frame):
+        format = QtGui.QImage.Format_RGB888
+        s = frame.shape
+        image = QtGui.QImage(frame, s[1], s[0], format)
+        t = str(time.time())
+        filename = f"{self.prefix}/test.{t}.png"
+        image.save(filename)
+        
     def enableSoftwareTrigger(self, value):
         print("toggle radio for sw:", value)
         self.swTogglePushButton.setEnabled(value)
@@ -156,25 +173,35 @@ class MainWindow(QtWidgets.QMainWindow):
     #     self.camera.TriggerActivation = 'RisingEdge'
     #     self.camera.StreamBufferHandlingMode = 'NewestOnly'
 
-    def imageChanged(self, draw_data):
+    def imageChanged(self, img):
         t0 = time.time()
         self.t0 = t0
         if self.state == 'Jog' or self.state == 'Run':
-            self.tile_graphics_view.addImageIfMissing(draw_data, self.m_pos)
+            self.tile_graphics_view.addImageIfMissing(img, self.m_pos)
                 #return
-        s = draw_data.shape
-        if s[2] == 1:
-            format = QtGui.QImage.Format_Grayscale8
-        elif s[2] == 3:
-            format = QtGui.QImage.Format_RGB888
+                
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img = cv2.normalize(img, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        img = (255*img).astype(np.uint8)
 
-        image = QtGui.QImage(draw_data, s[1], s[0], format)
+        s = img.shape
+        #if s[2] == 1:
+        format = QtGui.QImage.Format_Grayscale8
+        # elif s[2] == 3:
+        #     format = QtGui.QImage.Format_RGB888
+
+        image = QtGui.QImage(img, s[1], s[0], format)
         image = image.mirrored(horizontal=False, vertical=False)
+        w = self.image_view.mapFromGlobal(QtGui.QCursor.pos())
+        r = QtCore.QRect(w.x(), w.y() , 256, 256)
+        zoom_image = image.copy(r)
+        zoom_image = zoom_image.scaledToWidth(1024)
+        self.zoom_view.setFixedSize(1024, 1024)
+        self.zoom_view.setPixmap(QtGui.QPixmap.fromImage(zoom_image))
+        #self.image_view.setFixedSize(s[1], s[0])
         pixmap = QtGui.QPixmap.fromImage(image)
-        #self.image_view.setFixedSize(1440/2, 1080/2)
-        self.image_view.setFixedSize(s[1], s[0])
-        self.image_view.setPixmap(pixmap)
-
+        pixmap = pixmap.scaled(self.image_view.size(), QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+        self.image_view.setPixmap( pixmap )
 
     def onMessageChanged(self, message):
         self.textEdit.append(message)
