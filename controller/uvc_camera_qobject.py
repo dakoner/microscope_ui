@@ -1,10 +1,8 @@
-import signal
-import sys
 import numpy as np
-import pdb
 from PyQt5 import QtCore
 import cv2
-from microscope_ui.config import WIDTH, HEIGHT, FPS
+from config import WIDTH, HEIGHT, FPS
+
 
 class Worker(QtCore.QThread):
     imageChanged = QtCore.pyqtSignal(np.ndarray, int, int, int)
@@ -13,7 +11,7 @@ class Worker(QtCore.QThread):
         super().__init__()
         self.cap = cap
         self.paused = False
-        
+
     def pause(self):
         self.paused = True
 
@@ -24,7 +22,6 @@ class Worker(QtCore.QThread):
     def run(self):
         while not self.paused:
             self.acquire_callback()
-        
 
     def acquire_callback(self):
         ret = self.cap.grab()
@@ -48,16 +45,17 @@ class UVCCamera(QtCore.QObject):
     def __init__(self, device, parent=None):
         super().__init__(parent)
         self.cap = cv2.VideoCapture(device, 0)
-        self.cap.set(cv2.CAP_PROP_FOURCC,cv2.VideoWriter_fourcc('M','J','P','G'))
-        #FPS=30
+        self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M','J','P','G'))
         self.cap.set(cv2.CAP_PROP_FPS, FPS)
-        #WIDTH=1280
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
-        #HEIGHT=1024
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
         self.cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
+        self.cap.set(cv2.CAP_PROP_EXPOSURE, -11)
+        self.cap.set(cv2.CAP_PROP_AUTO_WB, 1.0)
+        self.cap.set(cv2.CAP_PROP_WB_TEMPERATURE, 6000)
+        self.cap.set(cv2.CAP_PROP_TEMPERATURE, 3000)
 
-        self.cap.set(cv2.CAP_PROP_EXPOSURE, 2000)
+        
         self.worker = None
 
     def callback(self, d, w, h, s):
