@@ -1,5 +1,5 @@
 from PyQt5 import QtCore
-from microscope_ui.config import PIXEL_SCALE, MQTT_HOST, XY_FEED, XY_STEP_SIZE, Z_FEED, Z_STEP_SIZE
+from config import PIXEL_SCALE, MQTT_HOST, XY_FEED, XY_STEP_SIZE, Z_FEED, Z_STEP_SIZE
 
 class EventFilter(QtCore.QObject):
     def __init__(self, main_window, *args, **kwargs):
@@ -11,7 +11,7 @@ class EventFilter(QtCore.QObject):
             key = event.key()
 
             state = self.main_window.state
-            serial = self.main_window.serial
+            #serial = self.main_window.serial
             tile_graphics_view = self.main_window.tile_graphics_view
             
             

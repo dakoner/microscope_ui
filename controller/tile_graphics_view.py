@@ -3,7 +3,7 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 import sys
 import functools
 sys.path.append("..")
-from microscope_ui.config import PIXEL_SCALE, WIDTH, HEIGHT
+from config import PIXEL_SCALE, WIDTH, HEIGHT
 
 #from movie_acquisition import Acquisition
 from photo_acquisition import Acquisition
