@@ -9,7 +9,8 @@ import serial_interface_qobject
 
 import gige_camera_qobject
 import uvc_camera_qobject
-#import pyspin_camera_qobject
+
+import pyspin_camera_qobject
 #from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
 from config import PIXEL_SCALE, MQTT_HOST, XY_FEED
 import event_filter
@@ -49,7 +50,7 @@ class MainWindow(QtWidgets.QMainWindow):
         #self.setContinuous()
         #self.setTrigger()
 
-#        self.camera.startWorker()
+        self.camera.startWorker()
         self.camera.begin()
         self.camera.camera_play()
 
@@ -72,7 +73,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.prefix = os.path.join("photo", str(time.time()))
         os.makedirs(self.prefix)
-        self.camera.snapshotCompleted.connect(self.snapshotCompleted)
+        #self.camera.snapshotCompleted.connect(self.snapshotCompleted)
 
 
         self.AeTargetSlider.valueChanged.connect(self.AeTargetChanged)
@@ -196,7 +197,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tile_graphics_view.addImageIfMissing(img, self.m_pos)
                 #return
                 
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        #img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         img = cv2.normalize(img, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         img = (255*img).astype(np.uint8)
 
@@ -217,10 +218,10 @@ class MainWindow(QtWidgets.QMainWindow):
         image = image.mirrored(horizontal=False, vertical=False)
         w = self.image_view.mapFromGlobal(QtGui.QCursor.pos())
         r = QtCore.QRect(w.x(), w.y() , 256, 256)
-        zoom_image = image.copy(r)
-        zoom_image = zoom_image.scaledToWidth(1024)
-        self.zoom_view.setFixedSize(1024, 1024)
-        self.zoom_view.setPixmap(QtGui.QPixmap.fromImage(zoom_image))
+        # zoom_image = image.copy(r)
+        # zoom_image = zoom_image.scaledToWidth(1024)
+        # self.zoom_view.setFixedSize(1024, 1024)
+        # self.zoom_view.setPixmap(QtGui.QPixmap.fromImage(zoom_image))
         #self.image_view.setFixedSize(s[1], s[0])
         pixmap = QtGui.QPixmap.fromImage(image)
         pixmap = pixmap.scaled(self.image_view.size(), QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)

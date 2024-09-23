@@ -1,3 +1,4 @@
+import time
 import signal
 import sys
 import numpy as np
@@ -5,7 +6,7 @@ import pdb
 from PyQt5 import QtCore
 import PySpin
 
-LOGGING_LEVEL = PySpin.LOG_LEVEL_WARN
+LOGGING_LEVEL = PySpin.SPINNAKER_LOG_LEVEL_WARN
 
 class LoggingEventHandler(PySpin.LoggingEventHandler):
 
@@ -73,6 +74,7 @@ class PySpinCamera(QtCore.QObject):
     TriggerActivationChanged = QtCore.pyqtSignal(bool)
     StreamBufferHandlingModeChanged = QtCore.pyqtSignal(bool)
     imageChanged = QtCore.pyqtSignal(np.ndarray, int, int, int)
+
     def __init__(self):
         super().__init__()
         self.system = PySpin.System.GetInstance()
@@ -89,7 +91,9 @@ class PySpinCamera(QtCore.QObject):
         self.nodemap = self.camera.GetNodeMap()
         self.nodemap_stream = self.camera.GetTLStreamNodeMap()
         self.worker = None
-       
+        self.AcquisitionMode = 'Continuous'
+        self.ExposureAuto = 'Off'
+        self.ExposureTime = 39
 
     def callback(self, d, w, h, s):
         self.imageChanged.emit(d, w, h, s)
