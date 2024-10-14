@@ -151,7 +151,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         p = qp3.toFillPolygon()
         a = calculate_area(p)
         if a > 500000:
-            print("Adding")
+            #print("Adding")
             self.addImage(draw_data, pos)
             
     def addImage(self, draw_data, pos):

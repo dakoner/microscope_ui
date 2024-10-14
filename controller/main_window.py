@@ -9,6 +9,7 @@ import serial_interface_qobject
 
 import gige_camera_qobject
 import uvc_camera_qobject
+from tile_graphics_view import TileGraphicsView
 #import pyspin_camera_qobject
 #from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
 from config import PIXEL_SCALE, MQTT_HOST, XY_FEED
@@ -19,6 +20,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         loadUi("microscope_controller.ui", self)
+        self.tile_graphics_view = TileGraphicsView()
+        self.tile_graphics_view.show()
         self.zoom_view = QtWidgets.QLabel(parent=None)
         #self.zoom_view.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
         self.zoom_view.show()
