@@ -10,8 +10,11 @@ MQTT_HOST='dektop'
 # Based on .15mm calibration slide, 1440x1080 image from FLIR camera
 #PIXEL_SCALE=0.00084745762
 
+# 4X objective to 1280x1024 camera
+PIXEL_SCALE = 0.0012
+
 # inspection scope with zoom lens, set to minimum zoom, 1280x720 image
-PIXEL_SCALE=.009865
+#PIXEL_SCALE=.009865
 WIDTH=1280
 HEIGHT=720
 FPS=30
@@ -24,7 +27,8 @@ FOV_Y = FOV_Y_PIXELS * PIXEL_SCALE
 XY_STEP_SIZE=0.1
 XY_FEED=500
 
-Z_STEP_SIZE=0.1
+Z_STEP_SIZE=0.025
+
 Z_FEED=100
 
 # 161 pix = 0.15mm

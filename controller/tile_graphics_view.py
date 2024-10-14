@@ -78,7 +78,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         pen.setWidth(10)
         brush = QtGui.QBrush(QtCore.Qt.blue)
         #print(0, 0, 45/PIXEL_SCALE, 45/PIXEL_SCALE)
-        self.stageRect = self.scene.addRect(0, 0, 80/PIXEL_SCALE, 43/PIXEL_SCALE, pen=pen, brush=brush)
+        self.stageRect = self.scene.addRect(0, 0, 110/PIXEL_SCALE, 83/PIXEL_SCALE, pen=pen, brush=brush)
         self.stageRect.setZValue(0)
 
     def addCurrentRect(self):

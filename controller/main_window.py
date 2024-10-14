@@ -9,8 +9,7 @@ import serial_interface_qobject
 
 import gige_camera_qobject
 import uvc_camera_qobject
-
-import pyspin_camera_qobject
+#import pyspin_camera_qobject
 #from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
 from config import PIXEL_SCALE, MQTT_HOST, XY_FEED
 import event_filter
@@ -29,10 +28,10 @@ class MainWindow(QtWidgets.QMainWindow):
         #self.toolBar.actionTriggered.connect(self.test)
         #button_action.triggered.connect(self.onMyToolBarButtonClick)
 
-        # self.serial = serial_interface_qobject.SerialInterface('/dev/ttyUSB0', "dektop")
-        # self.serial.posChanged.connect(self.onPosChange)
-        # self.serial.stateChanged.connect(self.onStateChange)
-        # self.serial.messageChanged.connect(self.onMessageChanged)
+        self.serial = serial_interface_qobject.SerialInterface('/dev/ttyUSB1', "dektop")
+        self.serial.posChanged.connect(self.onPosChange)
+        self.serial.stateChanged.connect(self.onStateChange)
+        self.serial.messageChanged.connect(self.onMessageChanged)
 
 
         #self.microscope_esp32_controller_serial =microscope_serial_qobject.SerialInterface('/dev/ttyUSB0')
@@ -44,13 +43,13 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.microscope_esp32_controller_serial.messageChanged.connect(self.onMessage2Changed)
 
         #self.camera = pyspin_camera_qobject.PySpinCamera()
-        self.camera = uvc_camera_qobject.UVCCamera(2)
-        #self.camera = gige_camera_qobject.GigECamera()
+        #self.camera = uvc_camera_qobject.UVCCamera(2)
+        self.camera = gige_camera_qobject.GigECamera()
         self.camera.imageChanged.connect(self.imageChanged)
         #self.setContinuous()
         #self.setTrigger()
 
-        self.camera.startWorker()
+        #self.camera.startWorker()
         self.camera.begin()
         self.camera.camera_play()
 
@@ -77,25 +76,23 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
         self.AeTargetSlider.valueChanged.connect(self.AeTargetChanged)
-        self.AeTargetLabel.setText(str(self.camera.AeTarget))
-        self.AeTargetSlider.setMinimum(self.camera.cap.sExposeDesc.uiTargetMin)
-        self.AeTargetSlider.setMaximum(self.camera.cap.sExposeDesc.uiTargetMax)
-        self.camera.AeTargetChanged.connect(self.AeTargetChangedCallback)
+        #self.AeTargetLabel.setText(str(self.camera.AeTarget))
+        #self.AeTargetSlider.setMinimum(self.camera.cap.sExposeDesc.uiTargetMin)
+        #self.AeTargetSlider.setMaximum(self.camera.cap.sExposeDesc.uiTargetMax)
+        #self.camera.AeTargetChanged.connect(self.AeTargetChangedCallback)
 
 
         self.exposureTimeSlider.valueChanged.connect(self.ExposureTimeChanged)
-        print(self.camera.ExposureTime)
-        self.exposureTimeLabel.setText(str(self.camera.ExposureTime))
-        print(self.camera.cap.sExposeDesc.uiExposeTimeMin, self.camera.cap.sExposeDesc.uiExposeTimeMax)
-        self.exposureTimeSlider.setMinimum(self.camera.cap.sExposeDesc.uiExposeTimeMin)
-        self.exposureTimeSlider.setMaximum(self.camera.cap.sExposeDesc.uiExposeTimeMax)
-        self.camera.ExposureTimeChanged.connect(self.ExposureTimeChangedCallback)
+        #self.exposureTimeLabel.setText(str(self.camera.ExposureTime))
+        #self.exposureTimeSlider.setMinimum(self.camera.cap.sExposeDesc.uiExposeTimeMin)
+        #self.exposureTimeSlider.setMaximum(self.camera.cap.sExposeDesc.uiExposeTimeMax)
+        #self.camera.ExposureTimeChanged.connect(self.ExposureTimeChangedCallback)
 
-        self.analogGainSlider.valueChanged.connect(self.AnalogGainChanged)
-        self.analogGainLabel.setText(str(self.camera.AnalogGain))
-        self.analogGainSlider.setMinimum(self.camera.cap.sExposeDesc.uiAnalogGainMin)
-        self.analogGainSlider.setMaximum(self.camera.cap.sExposeDesc.uiAnalogGainMax)
-        self.camera.AnalogGainChanged.connect(self.AnalogGainChangedCallback)
+        #self.analogGainSlider.valueChanged.connect(self.AnalogGainChanged)
+        #self.analogGainLabel.setText(str(self.camera.AnalogGain))
+        #self.analogGainSlider.setMinimum(self.camera.cap.sExposeDesc.uiAnalogGainMin)
+        #self.analogGainSlider.setMaximum(self.camera.cap.sExposeDesc.uiAnalogGainMax)
+        #self.camera.AnalogGainChanged.connect(self.AnalogGainChangedCallback)
 
     def snapshotCompleted(self, frame):
         format = QtGui.QImage.Format_RGB888
@@ -198,24 +195,24 @@ class MainWindow(QtWidgets.QMainWindow):
                 #return
                 
         #img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        img = cv2.normalize(img, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-        img = (255*img).astype(np.uint8)
+        #img = cv2.normalize(img, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        #img = (255*img).astype(np.uint8)
 
         # ima        image = QtGui.QImage(draw_data, s[1], s[0], format)
         # image = image.mirrored(horizontal=True, vertical=False)
-        # self.curr_image = image
         # pixmap = QtGui.QPixmap.fromImage(image)
         # self.image_view.setFixedSize(1440//2, 1080//2)
         # #self.image_view.setFixedSize(s[1], s[0])
         # self.image_view.setPixmap(pixmap)
 
         #if s[2] == 1:
-        format = QtGui.QImage.Format_Grayscale8
+        #format = QtGui.QImage.Format_Grayscale8
         # elif s[2] == 3:
-        #     format = QtGui.QImage.Format_RGB888
-
+        format = QtGui.QImage.Format_RGB888
+        s = img.shape
         image = QtGui.QImage(img, s[1], s[0], format)
         image = image.mirrored(horizontal=False, vertical=False)
+        self.curr_image = image
         w = self.image_view.mapFromGlobal(QtGui.QCursor.pos())
         r = QtCore.QRect(w.x(), w.y() , 256, 256)
         # zoom_image = image.copy(r)

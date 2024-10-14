@@ -1,3 +1,4 @@
+import time
 from PyQt5 import QtCore
 from config import PIXEL_SCALE, MQTT_HOST, XY_FEED, XY_STEP_SIZE, Z_FEED, Z_STEP_SIZE
 
@@ -11,7 +12,7 @@ class EventFilter(QtCore.QObject):
             key = event.key()
 
             state = self.main_window.state
-            #serial = self.main_window.serial
+            serial = self.main_window.serial
             tile_graphics_view = self.main_window.tile_graphics_view
             
             
@@ -33,8 +34,9 @@ class EventFilter(QtCore.QObject):
                 self.main_window.cancel()
                 tile_graphics_view.stopAcquisition()
             elif key == QtCore.Qt.Key_P:
-                fname = f"image_{int(time.time())}.tif"
+                fname = f"image_{int(time.time())}.png"
                 self.main_window.curr_image.save(fname)
+                print("Saved", fname)
             elif key == QtCore.Qt.Key_R:
                 tile_graphics_view.reset()
                 tile_graphics_view.addCurrentRect()
