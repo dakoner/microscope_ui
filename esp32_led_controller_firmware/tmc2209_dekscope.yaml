@@ -20,9 +20,9 @@ axes:
   shared_stepper_disable_pin: NO_PIN
   x:
     steps_per_mm: 400
-    max_rate_mm_per_min: 500
+    max_rate_mm_per_min: 250
     acceleration_mm_per_sec2: 10
-    max_travel_mm: 74
+    max_travel_mm: 110
     soft_limits: false
     homing:
       cycle: 1
@@ -44,8 +44,8 @@ axes:
         uart_num: 1
         addr: 0
         r_sense_ohms: 0.110
-        run_amps: 0.2
-        hold_amps: 0.2
+        run_amps: 0.5
+        hold_amps: 0.5
         microsteps: 16
         stallguard: 0
         stallguard_debug: false
@@ -60,10 +60,10 @@ axes:
         disable_pin: i2so.0
 
   y:
-    steps_per_mm: 2560
+    steps_per_mm: 400
     max_rate_mm_per_min: 250
     acceleration_mm_per_sec2: 10
-    max_travel_mm: 39
+    max_travel_mm: 83
     soft_limits: false
 
     homing:
@@ -87,8 +87,8 @@ axes:
         uart_num: 1
         addr: 1
         r_sense_ohms: 0.110
-        run_amps: 0.2
-        hold_amps: 0.2
+        run_amps: 0.5
+        hold_amps: 0.5
         microsteps: 16
         stallguard: 0
         stallguard_debug: false
@@ -126,16 +126,16 @@ axes:
         uart_num: 1
         addr: 2
         r_sense_ohms: 0.110
-        run_amps: 0.25
-        hold_amps: 0.25
+        run_amps: 0.1
+        hold_amps: 0.1
         microsteps: 16
         stallguard: 0
         stallguard_debug: false
         toff_disable: 0
         toff_stealthchop: 5
         toff_coolstep: 3
-        run_mode: CoolStep
-        homing_mode: CoolStep
+        run_mode: StealthChop
+        homing_mode: StealthChop
         use_enable: false
         direction_pin: i2so.9
         step_pin: i2so.10
