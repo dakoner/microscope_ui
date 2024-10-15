@@ -12,7 +12,7 @@ import uvc_camera_qobject
 from tile_graphics_view import TileGraphicsView
 import pyspin_camera_qobject
 #from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
-from config import PIXEL_SCALE, CAMERA, XY_FEED
+from config import PIXEL_SCALE, CAMERA, CAMERA_COLOR, XY_FEED
 import event_filter
 import sys
 
@@ -214,11 +214,11 @@ class MainWindow(QtWidgets.QMainWindow):
         # #self.image_view.setFixedSize(s[1], s[0])
         # self.image_view.setPixmap(pixmap)
 
-        #if s[2] == 1:
-        format = QtGui.QImage.Format_Grayscale8
-        # elif s[2] == 3:
-        #format = QtGui.QImage.Format_RGB888
         s = img.shape
+        if s[2] == 1:
+            format = QtGui.QImage.Format_Grayscale8
+        elif s[2] == 3:
+            format = QtGui.QImage.Format_RGB888
         image = QtGui.QImage(img, s[1], s[0], format)
         image = image.mirrored(horizontal=False, vertical=False)
         self.curr_image = image
