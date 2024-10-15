@@ -12,7 +12,6 @@ class EventFilter(QtCore.QObject):
             key = event.key()
 
             state = self.main_window.state
-            serial = self.main_window.serial
             tile_graphics_view = self.main_window.tile_graphics_view
             
             
@@ -46,42 +45,43 @@ class EventFilter(QtCore.QObject):
                     if event.modifiers() & QtCore.Qt.KeyboardModifier.ControlModifier:
                         d *= 10
                     cmd = f"$J=G91 G21 F{XY_FEED:.3f} X-{d:.3f}\n"
-                    serial.write(cmd)
+
+                    self.main_window.serial.write(cmd)
             elif key == QtCore.Qt.Key_Right:
                 if state == "Idle":
                     d = XY_STEP_SIZE
                     if event.modifiers() & QtCore.Qt.KeyboardModifier.ControlModifier:
                         d *= 10
                     cmd = f"$J=G91 G21 F{XY_FEED:.3f} X{d:.3f}\n"
-                    serial.write(cmd)
+                    self.main_window.serial.write(cmd)
             elif key == QtCore.Qt.Key_Up:
                 if state == "Idle":
                     d = XY_STEP_SIZE
                     if event.modifiers() & QtCore.Qt.KeyboardModifier.ControlModifier:
                         d *= 10
                     cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y-{d:.3f}\n"
-                    serial.write(cmd)
+                    self.main_window.serial.write(cmd)
             elif key == QtCore.Qt.Key_Down:
                 if state == "Idle":
                     d = XY_STEP_SIZE
                     if event.modifiers() & QtCore.Qt.KeyboardModifier.ControlModifier:
                         d *= 10  
                     cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y{d:.3f}\n"
-                    serial.write(cmd)
+                    self.main_window.serial.write(cmd)
             elif key == QtCore.Qt.Key_PageUp:
                 if state == "Idle":
                     d = Z_STEP_SIZE
                     if event.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier:
                         d *= 10
                     cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z-{d:.3f}\n"
-                    serial.write(cmd)
+                    self.main_window.serial.write(cmd)
             elif key == QtCore.Qt.Key_PageDown:
                 if state == "Idle":
                     d = XY_STEP_SIZE
                     if event.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier:
                         d *= 10                
                     cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z{d:.3f}\n"
-                    serial.write(cmd)
+                    self.main_window.serial.write(cmd)
             # return super().keyPressEvent(event)
         
 
