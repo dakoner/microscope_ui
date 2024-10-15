@@ -4,6 +4,7 @@ import sys
 import numpy as np
 import pdb
 from PyQt5 import QtCore
+import PySpin
 LOGGING_LEVEL = PySpin.SPINNAKER_LOG_LEVEL_WARN
 
 class LoggingEventHandler(PySpin.LoggingEventHandler):
@@ -82,6 +83,9 @@ class PySpinCamera(QtCore.QObject):
         # self.system.RegisterLoggingEventHandler(self.logging_event_handler)
         # self.system.SetLoggingEventPriorityLevel(LOGGING_LEVEL)
         self.init()
+        
+    def camera_play(self):
+        self.startWorker()
 
     def init(self):
         self.camera.Init()
