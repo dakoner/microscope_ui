@@ -11,7 +11,7 @@ import gige_camera_qobject
 import uvc_camera_qobject
 from tile_graphics_view import TileGraphicsView
 #from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
-from config import PIXEL_SCALE, CAMERA, CAMERA_COLOR, XY_FEED
+from config import PIXEL_SCALE, CAMERA, XY_FEED
 import event_filter
 import sys
 
@@ -220,10 +220,10 @@ class MainWindow(QtWidgets.QMainWindow):
         elif s[2] == 3:
             format = QtGui.QImage.Format_RGB888
         image = QtGui.QImage(img, s[1], s[0], format)
-        image = image.mirrored(horizontal=False, vertical=False)
+        #image = image.mirrored(horizontal=False, vertical=False)
         self.curr_image = image
-        w = self.image_view.mapFromGlobal(QtGui.QCursor.pos())
-        r = QtCore.QRect(w.x(), w.y() , 256, 256)
+        #w = self.image_view.mapFromGlobal(QtGui.QCursor.pos())
+        #r = QtCore.QRect(w.x(), w.y() , 256, 256)
         # zoom_image = image.copy(r)
         # zoom_image = zoom_image.scaledToWidth(1024)
         # self.zoom_view.setFixedSize(1024, 1024)
