@@ -79,7 +79,7 @@ class EventFilter(QtCore.QObject):
             elif key == QtCore.Qt.Key_PageUp:
                 if state == "Idle":
                     d = Z_STEP_SIZE
-                    if event.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier:
+                    if event.modifiers() & QtCore.Qt.KeyboardModifier.ControlModifier:
                         d *= 10
                     elif event.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier:
                         d /= 10
@@ -88,7 +88,7 @@ class EventFilter(QtCore.QObject):
             elif key == QtCore.Qt.Key_PageDown:
                 if state == "Idle":
                     d = Z_STEP_SIZE
-                    if event.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier:
+                    if event.modifiers() & QtCore.Qt.KeyboardModifier.ControlModifier:
                         d *= 10                
                     elif event.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier:
                         d /= 10
