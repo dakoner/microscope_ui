@@ -87,7 +87,7 @@ class EventFilter(QtCore.QObject):
                     self.main_window.serial.write(cmd)
             elif key == QtCore.Qt.Key_PageDown:
                 if state == "Idle":
-                    d = XY_STEP_SIZE
+                    d = Z_STEP_SIZE
                     if event.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier:
                         d *= 10                
                     elif event.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier:
