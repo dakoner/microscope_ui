@@ -44,6 +44,8 @@ class EventFilter(QtCore.QObject):
                     d = XY_STEP_SIZE
                     if event.modifiers() & QtCore.Qt.KeyboardModifier.ControlModifier:
                         d *= 10
+                    elif event.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier:
+                        d /= 10
                     cmd = f"$J=G91 G21 F{XY_FEED:.3f} X-{d:.3f}\n"
 
                     self.main_window.serial.write(cmd)
@@ -52,6 +54,8 @@ class EventFilter(QtCore.QObject):
                     d = XY_STEP_SIZE
                     if event.modifiers() & QtCore.Qt.KeyboardModifier.ControlModifier:
                         d *= 10
+                    elif event.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier:
+                        d /= 10
                     cmd = f"$J=G91 G21 F{XY_FEED:.3f} X{d:.3f}\n"
                     self.main_window.serial.write(cmd)
             elif key == QtCore.Qt.Key_Up:
@@ -59,13 +63,17 @@ class EventFilter(QtCore.QObject):
                     d = XY_STEP_SIZE
                     if event.modifiers() & QtCore.Qt.KeyboardModifier.ControlModifier:
                         d *= 10
+                    elif event.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier:
+                        d /= 10
                     cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y-{d:.3f}\n"
                     self.main_window.serial.write(cmd)
             elif key == QtCore.Qt.Key_Down:
                 if state == "Idle":
                     d = XY_STEP_SIZE
                     if event.modifiers() & QtCore.Qt.KeyboardModifier.ControlModifier:
-                        d *= 10  
+                        d *= 10
+                    elif event.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier:
+                        d /= 10  
                     cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y{d:.3f}\n"
                     self.main_window.serial.write(cmd)
             elif key == QtCore.Qt.Key_PageUp:
@@ -73,6 +81,8 @@ class EventFilter(QtCore.QObject):
                     d = Z_STEP_SIZE
                     if event.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier:
                         d *= 10
+                    elif event.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier:
+                        d /= 10
                     cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z-{d:.3f}\n"
                     self.main_window.serial.write(cmd)
             elif key == QtCore.Qt.Key_PageDown:
@@ -80,6 +90,8 @@ class EventFilter(QtCore.QObject):
                     d = XY_STEP_SIZE
                     if event.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier:
                         d *= 10                
+                    elif event.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier:
+                        d /= 10
                     cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z{d:.3f}\n"
                     self.main_window.serial.write(cmd)
             # return super().keyPressEvent(event)

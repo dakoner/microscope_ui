@@ -10,7 +10,6 @@ import serial_interface_qobject
 import gige_camera_qobject
 import uvc_camera_qobject
 from tile_graphics_view import TileGraphicsView
-import pyspin_camera_qobject
 #from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
 from config import PIXEL_SCALE, CAMERA, XY_FEED
 import event_filter
@@ -46,6 +45,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.microscope_esp32_controller_serial.messageChanged.connect(self.onMessage2Changed)
 
         if CAMERA == 'spin':
+            import pyspin_camera_qobject
             self.camera = pyspin_camera_qobject.PySpinCamera()
         elif CAMERA == 'uvc': 
             self.camera = uvc_camera_qobject.UVCCamera(2)
@@ -215,9 +215,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.image_view.setPixmap(pixmap)
 
         #if s[2] == 1:
-        format = QtGui.QImage.Format_Grayscale8
+        #format = QtGui.QImage.Format_Grayscale8
         # elif s[2] == 3:
-        #format = QtGui.QImage.Format_RGB888
+        format = QtGui.QImage.Format_RGB888
         s = img.shape
         image = QtGui.QImage(img, s[1], s[0], format)
         image = image.mirrored(horizontal=False, vertical=False)
