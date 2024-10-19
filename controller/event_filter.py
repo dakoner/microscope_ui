@@ -1,5 +1,5 @@
 import time
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtGui
 from config import PIXEL_SCALE, MQTT_HOST, XY_FEED, XY_STEP_SIZE, Z_FEED, Z_STEP_SIZE
 
 class EventFilter(QtCore.QObject):
@@ -94,7 +94,9 @@ class EventFilter(QtCore.QObject):
                         d /= 10
                     cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z{d:.3f}\n"
                     self.main_window.serial.write(cmd)
-            # return super().keyPressEvent(event)
+            # return super().keyPressEvent(event)event
         
-
+        elif not isinstance(event, QtGui.QPaintEvent) and not event.type() == QtCore.QEvent.UpdateRequest and not event.type() == QtCore.QEvent.LayoutRequest and not event.type() == QtCore.QEvent.ActivationChange and not event.type() == QtCore.QEvent.WindowActivate and not event.type() == QtCore.QEvent.WindowDeactivate and not event.type() == QtCore.QEvent.ShortcutOverride and not event.type() == QtCore.QEvent.Enter and not event.type() == QtCore.QEvent.HoverEnter and not event.type() == QtCore.QEvent.Move and not event.type() == QtCore.QEvent.ChildPolished and not event.type() == QtCore.QEvent.Resize and not event.type() == QtCore.QEvent.PolishRequest and not event.type() == QtCore.QEvent.ShowToParent and not event.type() == QtCore.QEvent.PlatformSurface:
+            pass
+            #print(obj, event.type(), event.Type())
         return super(EventFilter, self).eventFilter(obj, event)
