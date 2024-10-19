@@ -22,7 +22,7 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
         self.setObjectName("TileGraphicsScene")
 
    
-    # def mouseMoveEvent(self, event):
+    # def mouseMoveEvent(self, event):mouseRele
     #     print("tile scene moved")
     #     app = QtWidgets.QApplication.instance()
     #     pos = event.scenePos()
@@ -35,6 +35,7 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
     #     #self.press = QtCore.QPointF(event.pos())
 
     def mouseReleaseEvent(self, event):
+        print("mouse release event")
         if abs((event.scenePos() - event.buttonDownScenePos(QtCore.Qt.MouseButton.LeftButton)).manhattanLength()) == 0.0:
             app = QtWidgets.QApplication.instance()
             if app.main_window.state_value.text() == 'Jog':
@@ -49,8 +50,9 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
 class TileGraphicsView(QtWidgets.QGraphicsView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.rubberBandChanged.connect(self.onRubberBandChanged)
 
+        self.rubberBandChanged.connect(self.onRubberBandChanged)
+        self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
         self.scene = TileGraphicsScene()
         self.setScene(self.scene)
         self.addStageRect()
