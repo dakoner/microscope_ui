@@ -21,9 +21,9 @@ class MainWindow(QtWidgets.QMainWindow):
         loadUi("microscope_controller.ui", self)
         self.tile_graphics_view = TileGraphicsView()
         self.tile_graphics_view.show()
-        self.zoom_view = QtWidgets.QLabel(parent=None)
+        #self.zoom_view = QtWidgets.QLabel(parent=None)
         #self.zoom_view.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
-        self.zoom_view.show()
+        #self.zoom_view.show()
 
         #self.image_view.setScaledContents(True)
 
