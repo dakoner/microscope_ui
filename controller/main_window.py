@@ -18,9 +18,7 @@ import sys
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        loadUi("microscope_controller.ui", self)
-        self.tile_graphics_view = TileGraphicsView()
-        self.tile_graphics_view.show()
+        
         #self.zoom_view = QtWidgets.QLabel(parent=None)
         #self.zoom_view.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
         #self.zoom_view.show()
@@ -29,12 +27,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         #self.toolBar.actionTriggered.connect(self.test)
         #button_action.triggered.connect(self.onMyToolBarButtonClick)
-
-        self.serial = serial_interface_qobject.SerialInterface('/dev/ttyUSB1', "dektop")
-        self.serial.posChanged.connect(self.onPosChange)
-        self.serial.stateChanged.connect(self.onStateChange)
-        self.serial.messageChanged.connect(self.onMessageChanged)
-
 
         #self.microscope_esp32_controller_serial =microscope_serial_qobject.SerialInterface('/dev/ttyUSB0')
         #self.microscope_esp32_controller_serial.reset()
@@ -54,7 +46,6 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             print("Unsupported camera type", CAMERA)
             raise
-        self.camera.imageChanged.connect(self.imageChanged)
         #self.setContinuous()
         #self.setTrigger()
 
@@ -72,7 +63,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.event_filter = event_filter.EventFilter(self)
         self.installEventFilter(self.event_filter) #keyboard control
 
+        loadUi("microscope_controller.ui", self)
+        self.camera.imageChanged.connect(self.imageChanged)
 
+
+        self.serial = serial_interface_qobject.SerialInterface('/dev/ttyUSB1', "dektop")
+        self.serial.posChanged.connect(self.onPosChange)
+        self.serial.stateChanged.connect(self.onStateChange)
+        self.serial.messageChanged.connect(self.onMessageChanged)
+
+
+        self.tile_graphics_view = TileGraphicsView()
+        self.tile_graphics_view.show()
         self.buttonGroup.buttonClicked.connect(self.triggerButtonGroupClicked)
         self.swToggleRadioButton.toggled.connect(self.enableSoftwareTrigger)
         self.swTogglePushButton.pressed.connect(self.softwareTrigger)

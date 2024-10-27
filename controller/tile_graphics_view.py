@@ -3,7 +3,7 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 import sys
 import functools
 sys.path.append("..")
-from config import PIXEL_SCALE, WIDTH, HEIGHT
+from config import PIXEL_SCALE, WIDTH, HEIGHT, STAGE_X_SIZE, STAGE_Y_SIZE
 
 #from movie_acquisition import Acquisition
 from photo_acquisition import Acquisition
@@ -35,7 +35,6 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
     #     #self.press = QtCore.QPointF(event.pos())
 
     def mouseReleaseEvent(self, event):
-        print("mouse release event")
         if abs((event.scenePos() - event.buttonDownScenePos(QtCore.Qt.MouseButton.LeftButton)).manhattanLength()) == 0.0:
             app = QtWidgets.QApplication.instance()
             if app.main_window.state_value.text() == 'Jog':
@@ -67,7 +66,6 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
 
 
     def keyPressEvent(self, event):
-        print("keyPressEvent")
         event.ignore()
     #     key = event.key()
     #     if key == QtCore.Qt.Key_Plus:
@@ -80,7 +78,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         pen.setWidth(10)
         brush = QtGui.QBrush(QtCore.Qt.blue)
         #print(0, 0, 45/PIXEL_SCALE, 45/PIXEL_SCALE)
-        self.stageRect = self.scene.addRect(0, 0, 110/PIXEL_SCALE, 83/PIXEL_SCALE, pen=pen, brush=brush)
+        self.stageRect = self.scene.addRect(0, 0, STAGE_X_SIZE/PIXEL_SCALE, STAGE_Y_SIZE/PIXEL_SCALE, pen=pen, brush=brush)
         self.stageRect.setZValue(0)
 
     def addCurrentRect(self):

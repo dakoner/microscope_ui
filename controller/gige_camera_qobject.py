@@ -211,8 +211,7 @@ class GigECamera(QtCore.QObject):
         print("etj", mvsdk.CameraGetExtTrigJitterTime(self.hCamera))
         print("tc", mvsdk.CameraGetTriggerCount(self.hCamera))
 
-
-        self.ExposureTime = 10
+        self.ExposureTime = 1000
         print("ex", mvsdk.CameraGetExposureTime(self.hCamera))
         print("extrig", mvsdk.CameraGetExtTrigSignalType(self.hCamera))
         #self.ExposureTime = 0
@@ -224,8 +223,8 @@ class GigECamera(QtCore.QObject):
         self.VMirror = mvsdk.CameraGetMirror(self.hCamera, 1)
         self.HMirror = mvsdk.CameraGetMirror(self.hCamera, 0)
         self.TriggerMode = mvsdk.CameraGetTriggerMode(self.hCamera)
-        self.AeState = mvsdk.CameraGetAeState(self.hCamera)
-        self.AeState = True
+        #self.AeState = mvsdk.CameraGetAeState(self.hCamera)
+        self.AeState = 0
         self.AeTarget = mvsdk.CameraGetAeTarget(self.hCamera)
         self.enableCallback()
 
