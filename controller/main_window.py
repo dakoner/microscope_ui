@@ -94,10 +94,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
         self.exposureTimeSlider.valueChanged.connect(self.ExposureTimeChanged)
-        #self.exposureTimeLabel.setText(str(self.camera.ExposureTime))
-        #self.exposureTimeSlider.setMinimum(self.camera.cap.sExposeDesc.uiExposeTimeMin)
-        #self.exposureTimeSlider.setMaximum(self.camera.cap.sExposeDesc.uiExposeTimeMax)
-        #self.camera.ExposureTimeChanged.connect(self.ExposureTimeChangedCallback)
+        self.exposureTimeLabel.setText(str(self.camera.ExposureTime))
+        self.exposureTimeSlider.setMinimum(self.camera.cap.sExposeDesc.uiExposeTimeMin)
+        self.exposureTimeSlider.setMaximum(self.camera.cap.sExposeDesc.uiExposeTimeMax)
+        self.camera.ExposureTimeChanged.connect(self.ExposureTimeChangedCallback)
 
         #self.analogGainSlider.valueChanged.connect(self.AnalogGainChanged)
         #self.analogGainLabel.setText(str(self.camera.AnalogGain))
