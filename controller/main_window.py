@@ -163,12 +163,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.AeTargetLabel.setText(str(int(value)))
 
     def ExposureTimeChanged(self, exposure):
-        print("ExposureTimeChanged: ", exposure)
         self.camera.ExposureTime = exposure
 
 
     def ExposureTimeChangedCallback(self, exposure):
-        print("ExposureTimeChangedCallback: ", exposure)
         self.camera.ExposureTime = exposure
         self.exposureTimeSlider.setValue(int(exposure))
         self.exposureTimeLabel.setText(str(int(exposure)))
