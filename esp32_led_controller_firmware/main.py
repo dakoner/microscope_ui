@@ -36,7 +36,13 @@ class Program():
         else:
            self.led.on()
            print("falling")
-        
+        #self.tim0.init(period=1000, mode=Timer.ONE_SHOT, callback=self.cb)
+        # if not pin.value():
+        #     self.rmt = esp32.RMT(0, pin=self.led, clock_div=64) # 1 time unit = 3 us
+        #     self.rmt.write_pulses((32767,), 1)  # Send HIGH for 32767 * 100ns = 3ms
+        # else:
+        #     self.rmt.deinit()
+
 
     def loop(self):
         while True:
