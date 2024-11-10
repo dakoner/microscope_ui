@@ -22,7 +22,7 @@ axes:
     steps_per_mm: 1600
     max_rate_mm_per_min: 500
     acceleration_mm_per_sec2: 50
-    max_travel_mm: 110
+    max_travel_mm: 111
     soft_limits: false
     homing:
       cycle: 1
@@ -38,7 +38,7 @@ axes:
       limit_neg_pin: gpio.36:low
       limit_pos_pin: NO_PIN
       limit_all_pin: NO_PIN
-      hard_limits: false
+      hard_limits: true
       pulloff_mm: 1
       tmc_2209:
         uart_num: 1
@@ -63,7 +63,7 @@ axes:
     steps_per_mm: 1600
     max_rate_mm_per_min: 500
     acceleration_mm_per_sec2: 50
-    max_travel_mm: 83
+    max_travel_mm: 65
     soft_limits: false
 
     homing:
@@ -81,7 +81,7 @@ axes:
       limit_neg_pin: gpio.39:low
       limit_pos_pin: NO_PIN
       limit_all_pin: NO_PIN
-      hard_limits: false
+      hard_limits: true
       pulloff_mm: 1
       tmc_2209:
         uart_num: 1
