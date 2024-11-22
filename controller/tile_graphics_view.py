@@ -20,15 +20,16 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setObjectName("TileGraphicsScene")
-
    
-    # def mouseMoveEvent(self, event):mouseRele
-    #     print("tile scene moved")
-    #     app = QtWidgets.QApplication.instance()
-    #     pos = event.scenePos()
-    #     app.main_window.statusbar.showMessage(f"Canvas: {pos.x():.3f}, {pos.y():.3f}, Stage: {pos.x()*PIXEL_SCALE:.3f}, {pos.y()*PIXEL_SCALE:.3f}")
-    #     print("y")
-    
+    def mouseMoveEvent(self, event):
+        print("tile scene moved")
+        app = QtWidgets.QApplication.instance()
+        pos = event.scenePos()
+        message = f"Canvas: {pos.x():.3f}, {pos.y():.3f}, Stage: {pos.x()*PIXEL_SCALE:.3f}, {pos.y()*PIXEL_SCALE:.3f}"
+        print(message)
+        app.main_window.statusbar.showMessage(message)
+        return super().mouseMoveEvent(event)
+
     # def mousePressEvent(self, event):
     #     #print("tile scene pressed")
     #     app = QtWidgets.QApplication.instance()
@@ -56,10 +57,11 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         self.setScene(self.scene)
         self.addStageRect()
         print("Scene rect:", self.scene.sceneRect(), self.scene.itemsBoundingRect())
-        self.fitInView(self.scene.itemsBoundingRect(), QtCore.Qt.KeepAspectRatio)
+        #self.fitInView(self.scene.itemsBoundingRect(), QtCore.Qt.KeepAspectRatio)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         #self.centerOn(self.scene.itemsBoundingRect().width()/2, self.scene.itemsBoundingRect().height()/2)
+        #self.setMouseTracking(True)
 
         self.currentRect = None
         self.acquisition = None
@@ -74,26 +76,27 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
     #         self.scale(0.9, 0.9)   
 
     def addStageRect(self):
-        pen = QtGui.QPen(QtCore.Qt.red)
-        pen.setWidth(10)
-        brush = QtGui.QBrush(QtCore.Qt.blue)
+        self.setSceneRect( 0, 0, STAGE_X_SIZE/PIXEL_SCALE, STAGE_Y_SIZE/PIXEL_SCALE)
+        pen = QtGui.QPen(QtCore.Qt.black)
+        pen.setWidth(1)
+        brush = QtGui.QBrush(QtCore.Qt.black)
         #print(0, 0, 45/PIXEL_SCALE, 45/PIXEL_SCALE)
         self.stageRect = self.scene.addRect(0, 0, STAGE_X_SIZE/PIXEL_SCALE, STAGE_Y_SIZE/PIXEL_SCALE, pen=pen, brush=brush)
-        self.stageRect.setZValue(0)
+        self.stageRect.setZValue(1)
 
     def addCurrentRect(self):
-        pen = QtGui.QPen(QtCore.Qt.green)
-        pen.setWidth(10)
-        brush = QtGui.QBrush()
-        rect = QtCore.QRectF(0, 0, WIDTH, HEIGHT)
-        self.currentRect = self.scene.addRect(rect, pen=pen, brush=brush)
-        self.currentRect.setZValue(5)
+        pen = QtGui.QPen(QtCore.Qt.white)
+        pen.setWidth(1)
+        brush = QtGui.QBrush(QtCore.Qt.white)
+
+        self.currentRect = self.scene.addRect(0, 0, WIDTH, HEIGHT, pen=pen, brush=brush)
+        self.currentRect.setZValue(1)
 
     def updateCurrentRect(self, x, y):
         if not self.currentRect:
             self.addCurrentRect()
         self.currentRect.setPos(x/PIXEL_SCALE, y/PIXEL_SCALE)
-        self.centerOn(self.currentRect)
+        #self.centerOn(self.currentRect)
     
     # def doAcquisition(self):
     #     if self.acquisition:
