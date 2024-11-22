@@ -56,7 +56,7 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
             x = event.scenePos().x() - (WIDTH)
             y = event.scenePos().y() - (HEIGHT)
             app.main_window.moveTo(event.scenePos())
-        event.accept()
+        return super().mouseMoveEvent(event)
 
 
 class TileGraphicsView(QtWidgets.QGraphicsView):
@@ -89,8 +89,8 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
 
     def addStageRect(self):
         self.setSceneRect(0, 0, STAGE_X_SIZE / PIXEL_SCALE, STAGE_Y_SIZE / PIXEL_SCALE)
-        pen = QtGui.QPen(QtCore.Qt.black)
-        pen.setWidth(1)
+        pen = QtGui.QPen(QtCore.Qt.white)
+        pen.setWidth(0)
         brush = QtGui.QBrush(QtCore.Qt.black)
         # print(0, 0, 45/PIXEL_SCALE, 45/PIXEL_SCALE)
         self.stageRect = self.scene.addRect(
@@ -110,7 +110,6 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         brush = QtGui.QBrush(brush_color)
 
         self.currentRect = self.scene.addRect(0, 0, WIDTH, HEIGHT, pen=pen, brush=brush)
-        print(self.currentRect.brush())
         self.currentRect.setZValue(2)
 
     def updateCurrentRect(self, x, y):
@@ -133,7 +132,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
     def onRubberBandChanged(self, rect, from_, to):
         if from_.isNull() and to.isNull():
             pen = QtGui.QPen(QtCore.Qt.red)
-            pen.setWidth(10)
+            pen.setWidth(0)
             color = QtGui.QColor(QtCore.Qt.black)
             color.setAlpha(0)
             brush = QtGui.QBrush(color)
