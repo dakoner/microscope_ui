@@ -66,6 +66,7 @@ class QApplication(QtWidgets.QApplication):
                     image = QtGui.QImage(fname)
                     pixmap = QtGui.QPixmap(image)
                     item = scene.addPixmap(pixmap)
+                    print(x0, y0)
                     item.setPos(x0, y0)
                 
             

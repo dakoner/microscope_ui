@@ -17,9 +17,7 @@ def addImage(self, pos, image):
 
 
 def main():
-    g = glob.glob("movie/*")
-    g.sort()
-    prefix = g[-1]
+    prefix=sys.argv[1]
     d=json.load(open(f"{prefix}/scan_config.json"))
     r=pd.read_json(f"{prefix}/tile_config.json", lines=True)
     r.set_index(['counter', 'i', 'j', 'k'])

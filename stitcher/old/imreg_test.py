@@ -1,3 +1,4 @@
+import sys
 import json
 import numpy as np
 import os
@@ -17,7 +18,6 @@ def main(prefix):
     images = {}
     for index, img in r.iterrows():
         image = np.asarray(Image.open(os.path.join(prefix, img.fname)).convert('L'))
-        print(image)
         images[index] = image
         #image = cv2.imread(os.path.join(prefix, img.fname))
         #images[index] = image[:720, 280:1280-280 ]
@@ -28,6 +28,7 @@ def main(prefix):
             # print(index1, index2, result.isSucceed(), result.getParam())
             t0, t1 = translation(images[index1], images[index2]) 
             print(index1, index2, t0, t1)
+            #, t0, t1)
             #shift, error, diffphase = phase_cross_correlation(images[index1], images[index2])#
             #print(index1, index2, shift, error, diffphase)
 
@@ -36,5 +37,5 @@ def main(prefix):
 
 if __name__ == '__main__':
     
-    prefix = "photo\\test2"    
+    prefix = sys.argv[1]   
     main(prefix)
