@@ -2,8 +2,7 @@ import sys
 import glob
 import json
 import pandas as pd
-sys.path.append("..")
-from microscope_ui.config import HEIGHT, WIDTH, FOV_X_PIXELS, FOV_Y_PIXELS, PIXEL_SCALE
+from config import HEIGHT, WIDTH, FOV_X_PIXELS, FOV_Y_PIXELS, PIXEL_SCALE
 
 def main():
     #g = glob.glob(sys/argv[1] + "/*.jpg")
@@ -12,7 +11,7 @@ def main():
     #d=json.load(open(f"{prefix}/scan_config.json"))
     #import glob
     #g = glob.glob("photo/*")
-    prefix = "photo\\test2"
+    prefix = sys.argv[1]
     #prefix = sorted(g, key=lambda x: float(x.split("/")[1]))[-1]
     r=pd.read_json(f"{prefix}/tile_config.json", lines=True)
     r.set_index(['i', 'j', 'k'])

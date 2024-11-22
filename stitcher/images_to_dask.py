@@ -7,12 +7,15 @@ import pandas as pd
 import tifffile
 import sys
 sys.path.append("..")
-from microscope_ui.config import FOV_X_PIXELS, FOV_Y_PIXELS, PIXEL_SCALE, HEIGHT, WIDTH
+from config import FOV_X_PIXELS, FOV_Y_PIXELS, PIXEL_SCALE, HEIGHT, WIDTH
+
+# rewrite to be chunk based:
+# iterate over all chunks.  Find all images that intersect chunk.  Composite them (with proper offsets and bounding rectangle)
+
+# write chunks into dask array
 
 def main():
-    g = glob.glob("movie/*")
-    g.sort()
-    prefix = g[-1]
+    prefix = sys.argv[1]
     #prefix="movie/1669690354.4376109"
     #print(prefix)
     d=json.load(open(f"{prefix}/scan_config.json"))

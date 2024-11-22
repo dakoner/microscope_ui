@@ -8,7 +8,7 @@ import sys
 import signal
 from PyQt5 import QtGui, QtCore, QtWidgets
 sys.path.append("..")
-from microscope_ui.config import HEIGHT, WIDTH, FOV_X_PIXELS, FOV_Y_PIXELS, PIXEL_SCALE
+from config import HEIGHT, WIDTH, FOV_X_PIXELS, FOV_Y_PIXELS, PIXEL_SCALE
 from PIL import Image
 
 class ScannedImage(QtWidgets.QGraphicsView):
@@ -112,9 +112,7 @@ class ScannedImage(QtWidgets.QGraphicsView):
 class QApplication(QtWidgets.QApplication):
     def doit(self):
 
-        import glob
-        g = glob.glob("photo/*")
-        prefix = sorted(g, key=lambda x: float(x.split(os.sep)[1]))[-1]
+        prefix = sys.argv[1]
 
         print(prefix)
         d=json.load(open(f"{prefix}/scan_config.json"))
@@ -129,7 +127,6 @@ class QApplication(QtWidgets.QApplication):
     def doit2(self):
         self.items = {}
         for fname, x, y in self.tiles:
-                                
             data = np.asarray(Image.open(fname))
             x0 = x / PIXEL_SCALE
             y0 = y / PIXEL_SCALE

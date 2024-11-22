@@ -10,7 +10,7 @@ import signal
 from PyQt5 import QtGui, QtCore, QtWidgets
 import os
 from PyQt5.uic import loadUi
-from microscope_ui.config import FOV_X_PIXELS, FOV_Y_PIXELS, WIDTH, HEIGHT # should obtain from movie json.
+from config import FOV_X_PIXELS, FOV_Y_PIXELS, WIDTH, HEIGHT # should obtain from movie json.
 
 
 
@@ -33,13 +33,15 @@ class QApplication(QtWidgets.QApplication):
 
         self.main_window = QtWidgets.QTabWidget()
         self.main_window.show()
+        self.tw = TileView()
+
         self.load()
 
     def load(self):
-        g = glob.glob("movie/*")
-        g.sort()
+        #g = glob.glob("movie/*")
+        #g.sort()
         #prefix = g[-2]
-        prefix="movie/1669690354.4376109"
+        prefix=sys.argv[1]
         #print(prefix)
         d=json.load(open(f"{prefix}/scan_config.json"))
         r=pd.read_json(f"{prefix}/tile_config.json", lines=True)
@@ -67,8 +69,7 @@ class QApplication(QtWidgets.QApplication):
                     item.setPos(x0, y0)
                 
             
-                tw = TileView()
-                tw.setScene(scene)
+                self.tw.setScene(scene)
                 #self.main_window.addTab(tw, f"t={t}_z={z}")           
 
 
@@ -108,10 +109,10 @@ class QApplication(QtWidgets.QApplication):
             # out_fname = f"out/image_t={t}.npz"
             # print("save", out_fname)
             # np.savez_compressed(out_fname, data=data)
-            d = da.from_array(data, chunks=(1, 32768, 32768))
-            out_fname = f"out/image_t={t}.zarr"
-            d.to_zarr(out_fname)
-            print("done", out_fname)
+            # d = da.from_array(data, chunks=(1, 32768, 32768))
+            # out_fname = f"out/image_t={t}.zarr"
+            # d.to_zarr(out_fname)
+            # print("done", out_fname)
         pass
 
                 
