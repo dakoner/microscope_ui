@@ -101,15 +101,17 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
             pen=pen,
             brush=brush,
         )
-        self.stageRect.setZValue(1)
+        self.stageRect.setZValue(0)
 
     def addCurrentRect(self):
-        pen = QtGui.QPen(QtCore.Qt.white)
-        pen.setWidth(1)
-        brush = QtGui.QBrush(QtCore.Qt.white)
+        pen = QtGui.QPen(QtCore.Qt.green)
+        pen.setWidth(0)
+        brush_color = QtGui.QColor(0,0,0,0)
+        brush = QtGui.QBrush(brush_color)
 
         self.currentRect = self.scene.addRect(0, 0, WIDTH, HEIGHT, pen=pen, brush=brush)
-        self.currentRect.setZValue(1)
+        print(self.currentRect.brush())
+        self.currentRect.setZValue(2)
 
     def updateCurrentRect(self, x, y):
         if not self.currentRect:
