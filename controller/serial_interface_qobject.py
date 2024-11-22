@@ -16,28 +16,30 @@ def openSerial(port, baud):
     serialport.bytesize = serial.EIGHTBITS
     serialport.dsrdtr = True
     serialport.dtr = True
-    
+
     try:
         serialport.open()
     except serial.SerialException as e:
-        sys.stderr.write("Could not open serial port {}: {}\n".format(serialport.name, e))
+        sys.stderr.write(
+            "Could not open serial port {}: {}\n".format(serialport.name, e)
+        )
         raise
 
     return serialport
 
 
-class FakeSerial():
+class FakeSerial:
     def read(*args):
-        return bytes("", 'utf8')        
-    
+        return bytes("", "utf8")
+
     def readline(*args):
-        return bytes('\n', 'utf8')
-        
+        return bytes("\n", "utf8")
+
     def write(*args):
         pass
-        #print("Write", args)
-        
-        
+        # print("Write", args)
+
+
 class SerialInterface(QtCore.QObject):
     messageChanged = QtCore.pyqtSignal(str)
     stateChanged = QtCore.pyqtSignal(str)
@@ -80,7 +82,7 @@ class SerialInterface(QtCore.QObject):
     def startStatusThread(self):
         self.status_thread = threading.Thread(target=self.get_status)
         self.status_thread.start()
-    
+
     def startReadThread(self):
         self.read_thread = threading.Thread(target=self.read)
         self.read_thread.start()
@@ -92,20 +94,20 @@ class SerialInterface(QtCore.QObject):
     def readline(self):
         message = self.serialport.readline()
         try:
-            message = str(message, 'utf8').strip()
+            message = str(message, "utf8").strip()
         except UnicodeDecodeError:
             print("Failed to decode", message)
             return
-        if message == '':
+        if message == "":
             return
         if message.startswith("<") and message.endswith(">"):
-            rest = message[1:-3].split('|')
+            rest = message[1:-3].split("|")
             new_state = rest[0]
             if new_state != self.state:
                 self.state = new_state
             for item in rest:
                 if item.startswith("MPos"):
-                    new_pos = [float(field) for field in item[5:].split(',')]
+                    new_pos = [float(field) for field in item[5:].split(",")]
                     self.pos = new_pos
         else:
             self.messageChanged.emit(message)
@@ -117,7 +119,7 @@ class SerialInterface(QtCore.QObject):
 
     def soft_reset(self):
         print("soft reset")
-        self.serialport.write(b"\x18") # Ctrl-X
+        self.serialport.write(b"\x18")  # Ctrl-X
 
     def cancel(self):
         print("cancel")
@@ -126,9 +128,9 @@ class SerialInterface(QtCore.QObject):
     def reset(self):
         print("reset\r")
         self.serialport.dtr = False
-        time.sleep(.5)
+        time.sleep(0.5)
         self.serialport.dtr = True
 
     def write(self, data):
-        self.serialport.write(bytes(data,"utf-8"))
+        self.serialport.write(bytes(data, "utf-8"))
         self.serialport.flush()

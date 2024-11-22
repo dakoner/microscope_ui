@@ -2,19 +2,19 @@ import time
 from PyQt5 import QtCore, QtGui
 from config import PIXEL_SCALE, MQTT_HOST, XY_FEED, XY_STEP_SIZE, Z_FEED, Z_STEP_SIZE
 
+
 class EventFilter(QtCore.QObject):
     def __init__(self, main_window, *args, **kwargs):
         self.main_window = main_window
         super().__init__(*args, **kwargs)
 
     def eventFilter(self, obj, event):
-        if (event.type() == QtCore.QEvent.KeyPress):
+        if event.type() == QtCore.QEvent.KeyPress:
             key = event.key()
 
             state = self.main_window.state
             tile_graphics_view = self.main_window.tile_graphics_view
-            
-            
+
             if key == QtCore.Qt.Key_C:
                 self.main_window.cancel()
             elif key == QtCore.Qt.Key_H:
@@ -41,7 +41,7 @@ class EventFilter(QtCore.QObject):
                 print("Reset")
                 tile_graphics_view.reset()
                 tile_graphics_view.addCurrentRect()
-                #self.main_window.serial.reset()
+                # self.main_window.serial.reset()
             elif key == QtCore.Qt.Key_Left:
                 if state == "Idle":
                     d = XY_STEP_SIZE
@@ -76,7 +76,7 @@ class EventFilter(QtCore.QObject):
                     if event.modifiers() & QtCore.Qt.KeyboardModifier.ControlModifier:
                         d *= 10
                     elif event.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier:
-                        d /= 10  
+                        d /= 10
                     cmd = f"$J=G91 G21 F{XY_FEED:.3f} Y{d:.3f}\n"
                     self.main_window.serial.write(cmd)
             elif key == QtCore.Qt.Key_PageUp:
@@ -92,14 +92,30 @@ class EventFilter(QtCore.QObject):
                 if state == "Idle":
                     d = Z_STEP_SIZE
                     if event.modifiers() & QtCore.Qt.KeyboardModifier.ControlModifier:
-                        d *= 10                
+                        d *= 10
                     elif event.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier:
                         d /= 10
                     cmd = f"$J=G91 G21 F{Z_FEED:.3f} Z{d:.3f}\n"
                     self.main_window.serial.write(cmd)
             # return super().keyPressEvent(event)event
-        
-        elif not isinstance(event, QtGui.QPaintEvent) and not event.type() == QtCore.QEvent.UpdateRequest and not event.type() == QtCore.QEvent.LayoutRequest and not event.type() == QtCore.QEvent.ActivationChange and not event.type() == QtCore.QEvent.WindowActivate and not event.type() == QtCore.QEvent.WindowDeactivate and not event.type() == QtCore.QEvent.ShortcutOverride and not event.type() == QtCore.QEvent.Enter and not event.type() == QtCore.QEvent.HoverEnter and not event.type() == QtCore.QEvent.Move and not event.type() == QtCore.QEvent.ChildPolished and not event.type() == QtCore.QEvent.Resize and not event.type() == QtCore.QEvent.PolishRequest and not event.type() == QtCore.QEvent.ShowToParent and not event.type() == QtCore.QEvent.PlatformSurface:
+
+        elif (
+            not isinstance(event, QtGui.QPaintEvent)
+            and not event.type() == QtCore.QEvent.UpdateRequest
+            and not event.type() == QtCore.QEvent.LayoutRequest
+            and not event.type() == QtCore.QEvent.ActivationChange
+            and not event.type() == QtCore.QEvent.WindowActivate
+            and not event.type() == QtCore.QEvent.WindowDeactivate
+            and not event.type() == QtCore.QEvent.ShortcutOverride
+            and not event.type() == QtCore.QEvent.Enter
+            and not event.type() == QtCore.QEvent.HoverEnter
+            and not event.type() == QtCore.QEvent.Move
+            and not event.type() == QtCore.QEvent.ChildPolished
+            and not event.type() == QtCore.QEvent.Resize
+            and not event.type() == QtCore.QEvent.PolishRequest
+            and not event.type() == QtCore.QEvent.ShowToParent
+            and not event.type() == QtCore.QEvent.PlatformSurface
+        ):
             pass
-            #print(obj, event.type(), event.Type())
+            # print(obj, event.type(), event.Type())
         return super(EventFilter, self).eventFilter(obj, event)

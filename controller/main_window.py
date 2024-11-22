@@ -1,7 +1,8 @@
 import cv2
 import os
 import numpy as np
-#import cv2
+
+# import cv2
 import time
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.uic import loadUi
@@ -10,68 +11,67 @@ import serial_interface_qobject
 import gige_camera_qobject
 import uvc_camera_qobject
 from tile_graphics_view import TileGraphicsView
-#from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
+
+# from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
 from config import PIXEL_SCALE, CAMERA, XY_FEED
 import event_filter
 import sys
 
+
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
-        #self.zoom_view = QtWidgets.QLabel(parent=None)
-        #self.zoom_view.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
-        #self.zoom_view.show()
 
-        #self.image_view.setScaledContents(True)
+        # self.zoom_view = QtWidgets.QLabel(parent=None)
+        # self.zoom_view.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
+        # self.zoom_view.show()
 
-        #self.toolBar.actionTriggered.connect(self.test)
-        #button_action.triggered.connect(self.onMyToolBarButtonClick)
+        # self.image_view.setScaledContents(True)
 
-        #self.microscope_esp32_controller_serial =microscope_serial_qobject.SerialInterface('/dev/ttyUSB0')
-        #self.microscope_esp32_controller_serial.reset()
-        #time.sleep(1)
+        # self.toolBar.actionTriggered.connect(self.test)
+        # button_action.triggered.connect(self.onMyToolBarButtonClick)
+
+        # self.microscope_esp32_controller_serial =microscope_serial_qobject.SerialInterface('/dev/ttyUSB0')
+        # self.microscope_esp32_controller_serial.reset()
+        # time.sleep(1)
 
         # self.microscope_esp32_controller_serial.write("P 2000000 325\n")
         # self.microscope_esp32_controller_serial.write("L1\n")
         # self.microscope_esp32_controller_serial.messageChanged.connect(self.onMessage2Changed)
 
-        if CAMERA == 'spin':
+        if CAMERA == "spin":
             import pyspin_camera_qobject
+
             self.camera = pyspin_camera_qobject.PySpinCamera()
-        elif CAMERA == 'uvc': 
+        elif CAMERA == "uvc":
             self.camera = uvc_camera_qobject.UVCCamera(2)
-        elif CAMERA == 'gige':
+        elif CAMERA == "gige":
             self.camera = gige_camera_qobject.GigECamera()
         else:
             print("Unsupported camera type", CAMERA)
             raise
-        #self.setContinuous()
-        #self.setTrigger()
+        # self.setContinuous()
+        # self.setTrigger()
 
-        #self.camera.startWorker()
+        # self.camera.startWorker()
         self.camera.begin()
         self.camera.camera_play()
 
-
-        self.state = 'None'
+        self.state = "None"
         self.m_pos = [-1, -1, -1]
 
         self.t0 = time.time()
 
-
         self.event_filter = event_filter.EventFilter(self)
-        self.installEventFilter(self.event_filter) #keyboard control
+        self.installEventFilter(self.event_filter)  # keyboard control
 
         loadUi("microscope_controller.ui", self)
         self.camera.imageChanged.connect(self.imageChanged)
 
-
-        self.serial = serial_interface_qobject.SerialInterface('/dev/ttyUSB1', "dektop")
+        self.serial = serial_interface_qobject.SerialInterface("/dev/ttyUSB1", "dektop")
         self.serial.posChanged.connect(self.onPosChange)
         self.serial.stateChanged.connect(self.onStateChange)
         self.serial.messageChanged.connect(self.onMessageChanged)
-
 
         self.tile_graphics_view = TileGraphicsView()
         self.tile_graphics_view.show()
@@ -83,15 +83,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.prefix = os.path.join("photo", str(time.time()))
         os.makedirs(self.prefix)
-        #self.camera.snapshotCompleted.connect(self.snapshotCompleted)
-
+        # self.camera.snapshotCompleted.connect(self.snapshotCompleted)
 
         self.AeTargetSlider.valueChanged.connect(self.AeTargetChanged)
-        #self.AeTargetLabel.setText(str(self.camera.AeTarget))
-        #self.AeTargetSlider.setMinimum(self.camera.cap.sExposeDesc.uiTargetMin)
-        #self.AeTargetSlider.setMaximum(self.camera.cap.sExposeDesc.uiTargetMax)
-        #self.camera.AeTargetChanged.connect(self.AeTargetChangedCallback)
-
+        # self.AeTargetLabel.setText(str(self.camera.AeTarget))
+        # self.AeTargetSlider.setMinimum(self.camera.cap.sExposeDesc.uiTargetMin)
+        # self.AeTargetSlider.setMaximum(self.camera.cap.sExposeDesc.uiTargetMax)
+        # self.camera.AeTargetChanged.connect(self.AeTargetChangedCallback)
 
         self.exposureTimeSlider.valueChanged.connect(self.ExposureTimeChanged)
         self.exposureTimeLabel.setText(str(self.camera.ExposureTime))
@@ -99,11 +97,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.exposureTimeSlider.setMaximum(self.camera.cap.sExposeDesc.uiExposeTimeMax)
         self.camera.ExposureTimeChanged.connect(self.ExposureTimeChangedCallback)
 
-        #self.analogGainSlider.valueChanged.connect(self.AnalogGainChanged)
-        #self.analogGainLabel.setText(str(self.camera.AnalogGain))
-        #self.analogGainSlider.setMinimum(self.camera.cap.sExposeDesc.uiAnalogGainMin)
-        #self.analogGainSlider.setMaximum(self.camera.cap.sExposeDesc.uiAnalogGainMax)
-        #self.camera.AnalogGainChanged.connect(self.AnalogGainChangedCallback)
+        # self.analogGainSlider.valueChanged.connect(self.AnalogGainChanged)
+        # self.analogGainLabel.setText(str(self.camera.AnalogGain))
+        # self.analogGainSlider.setMinimum(self.camera.cap.sExposeDesc.uiAnalogGainMin)
+        # self.analogGainSlider.setMaximum(self.camera.cap.sExposeDesc.uiAnalogGainMax)
+        # self.camera.AnalogGainChanged.connect(self.AnalogGainChangedCallback)
 
     def snapshotCompleted(self, frame):
         format = QtGui.QImage.Format_RGB888
@@ -112,15 +110,15 @@ class MainWindow(QtWidgets.QMainWindow):
         t = str(time.time())
         filename = f"{self.prefix}/test.{t}.png"
         image.save(filename)
-        
+
     def enableSoftwareTrigger(self, value):
         print("toggle radio for sw:", value)
         self.swTogglePushButton.setEnabled(value)
- 
+
     def enableHardwareTrigger(self, value):
         print("toggle radio for sw:", value)
         self.hwTogglePushButton.setEnabled(value)
-        #lambda value: self.groupBox_2.setEnabled(value))
+        # lambda value: self.groupBox_2.setEnabled(value))
 
     def softwareTrigger(self, *args):
         print("software trigger", args)
@@ -136,7 +134,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.camera.TriggerMode = 0
         else:
             print("uknown button")
-
 
     def AnalogGainChanged(self, analog_gain):
         print("AnalogGainChanged", analog_gain)
@@ -165,14 +162,13 @@ class MainWindow(QtWidgets.QMainWindow):
     def ExposureTimeChanged(self, exposure):
         self.camera.ExposureTime = exposure
 
-
     def ExposureTimeChangedCallback(self, exposure):
         self.camera.ExposureTime = exposure
         self.exposureTimeSlider.setValue(int(exposure))
         self.exposureTimeLabel.setText(str(int(exposure)))
 
     def onMessage2Changed(self, *args):
-        print('message2 changed', args)
+        print("message2 changed", args)
 
     # def setContinuous(self):
     #     self.camera.AcquisitionMode = 'Continuous'
@@ -199,13 +195,13 @@ class MainWindow(QtWidgets.QMainWindow):
     def imageChanged(self, img):
         t0 = time.time()
         self.t0 = t0
-        if self.state == 'Jog' or self.state == 'Run':
+        if self.state == "Jog" or self.state == "Run":
             self.tile_graphics_view.addImageIfMissing(img, self.m_pos)
-                #return
-                
-        #img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        #img = cv2.normalize(img, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-        #img = (255*img).astype(np.uint8)
+            # return
+
+        # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # img = cv2.normalize(img, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        # img = (255*img).astype(np.uint8)
 
         # ima        image = QtGui.QImage(draw_data, s[1], s[0], format)
         # image = image.mirrored(horizontal=True, vertical=False)
@@ -220,24 +216,28 @@ class MainWindow(QtWidgets.QMainWindow):
         elif s[2] == 3:
             format = QtGui.QImage.Format_RGB888
         image = QtGui.QImage(img, s[1], s[0], format)
-        #image = image.mirrored(horizontal=False, vertical=False)
+        # image = image.mirrored(horizontal=False, vertical=False)
         self.curr_image = image
-        #w = self.image_view.mapFromGlobal(QtGui.QCursor.pos())
-        #r = QtCore.QRect(w.x(), w.y() , 256, 256)
+        # w = self.image_view.mapFromGlobal(QtGui.QCursor.pos())
+        # r = QtCore.QRect(w.x(), w.y() , 256, 256)
         # zoom_image = image.copy(r)
         # zoom_image = zoom_image.scaledToWidth(1024)
         # self.zoom_view.setFixedSize(1024, 1024)
         # self.zoom_view.setPixmap(QtGui.QPixmap.fromImage(zoom_image))
-        #self.image_view.setFixedSize(s[1], s[0])
+        # self.image_view.setFixedSize(s[1], s[0])
         pixmap = QtGui.QPixmap.fromImage(image)
-        pixmap = pixmap.scaled(self.image_view.size(), QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
-        self.image_view.setPixmap( pixmap )
+        pixmap = pixmap.scaled(
+            self.image_view.size(),
+            QtCore.Qt.KeepAspectRatio,
+            QtCore.Qt.SmoothTransformation,
+        )
+        self.image_view.setPixmap(pixmap)
 
     def onMessageChanged(self, message):
         self.textEdit.append(message)
 
     def onPosChange(self, x, y, z, t):
-        self.m_pos = [x,y,z]
+        self.m_pos = [x, y, z]
         self.x_value.display(x)
         self.y_value.display(y)
         self.z_value.display(z)
@@ -256,15 +256,17 @@ class MainWindow(QtWidgets.QMainWindow):
         time.sleep(1)
         image_result = self.camera.camera.GetNextImage()
         if image_result.IsIncomplete():
-            print('Image incomplete with image status %d ...' % image_result.GetImageStatus())
+            print(
+                "Image incomplete with image status %d ..."
+                % image_result.GetImageStatus()
+            )
         else:
             d = image_result.GetNDArray()
             print(d)
         time.sleep(1)
         # print("setcont")
         self.camera.startWorker()
-        #self.setContinuous()
-        
+        # self.setContinuous()
 
     def reset(self):
         self.serial.reset()
@@ -277,11 +279,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def cancel(self):
         self.serial.cancel()
-        #self.client.publish(f"{TARGET}/cancel", "")
+        # self.client.publish(f"{TARGET}/cancel", "")
 
     def moveTo(self, position):
-        x = position.x()*PIXEL_SCALE
-        y = position.y()*PIXEL_SCALE
+        x = position.x() * PIXEL_SCALE
+        y = position.y() * PIXEL_SCALE
         cmd = f"$J=G90 G21 F{XY_FEED:.3f} X{x:.3f} Y{y:.3f}\n"
         self.serial.write(cmd)
-

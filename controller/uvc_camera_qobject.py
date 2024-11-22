@@ -31,7 +31,12 @@ class Worker(QtCore.QThread):
                 width = img.shape[1]
                 height = img.shape[0]
                 stride = img.shape[1]
-                self.imageChanged.emit(cv2.cvtColor(img, cv2.COLOR_BGR2RGB), img.shape[1], img.shape[0], img.shape[1])
+                self.imageChanged.emit(
+                    cv2.cvtColor(img, cv2.COLOR_BGR2RGB),
+                    img.shape[1],
+                    img.shape[0],
+                    img.shape[1],
+                )
 
 
 class UVCCamera(QtCore.QObject):
@@ -45,7 +50,7 @@ class UVCCamera(QtCore.QObject):
     def __init__(self, device, parent=None):
         super().__init__(parent)
         self.cap = cv2.VideoCapture(device, 0)
-        self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M','J','P','G'))
+        self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc("M", "J", "P", "G"))
         self.cap.set(cv2.CAP_PROP_FPS, FPS)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
@@ -55,7 +60,6 @@ class UVCCamera(QtCore.QObject):
         self.cap.set(cv2.CAP_PROP_WB_TEMPERATURE, 6000)
         self.cap.set(cv2.CAP_PROP_TEMPERATURE, 3000)
 
-        
         self.worker = None
 
     def callback(self, d, w, h, s):
@@ -64,16 +68,14 @@ class UVCCamera(QtCore.QObject):
 
     def snapshot(self):
         self.snapshotCompleted.emit(self.currentFrame)
-        
-
 
     def enableCallback(self):
         print("enableCallback")
-        #self.worker.resume()
+        # self.worker.resume()
 
     def disableCallback(self):
         print("disableCallback")
-        #self.worker.pause()
+        # self.worker.pause()
 
     def begin(self):
         self.worker = Worker(self.cap)
@@ -95,14 +97,12 @@ class UVCCamera(QtCore.QObject):
     #     acquisitionMode_value = node_acquisition_mode.GetEntryByName(acquisitionMode).GetValue()
     #     if acquisitionMode_value == node_acquisition_mode.GetIntValue(): return
     #     node_acquisition_mode.SetIntValue(acquisitionMode_value)
-    #     self.acquisitionModeChanged.emit(node_acquisition_mode.GetIntValue()) 
-
-
+    #     self.acquisitionModeChanged.emit(node_acquisition_mode.GetIntValue())
 
     # @QtCore.pyqtProperty(bool)#, notify=autoExposureModeChanged)
     # def autoExposureMode(self):
     #     try:
-    #         node_autoExposure_mode = PySpin.CEnumerationPtr(self.nodemap.GetNode('ExposureAuto'))    
+    #         node_autoExposure_mode = PySpin.CEnumerationPtr(self.nodemap.GetNode('ExposureAuto'))
     #         currentValue = node_autoExposure_mode.GetIntValue()
     #         if currentValue == PySpin.ExposureAuto_Off: returnValue= False
     #         elif currentValue == PySpin.ExposureAuto_Continuous: returnValue= True
@@ -126,7 +126,7 @@ class UVCCamera(QtCore.QObject):
 
     #     if currentValue == PySpin.ExposureAuto_Off: returnValue= False
     #     elif currentValue == PySpin.ExposureAuto_Continuous: returnValue= True
-    #     self.autoExposureModeChanged.emit(returnValue) 
+    #     self.autoExposureModeChanged.emit(returnValue)
 
     # @QtCore.pyqtProperty(float, notify=exposureChanged)
     # def exposure(self):
@@ -138,7 +138,4 @@ class UVCCamera(QtCore.QObject):
     #     if exposure == self.camera.ExposureTime.GetValue():
     #         return
     #     self.camera.ExposureTime.SetValue(exposure)
-    #     self.exposureChanged.emit(self.camera.ExposureTime.GetValue()) 
-        
-
-
+    #     self.exposureChanged.emit(self.camera.ExposureTime.GetValue())

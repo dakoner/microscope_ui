@@ -1,12 +1,13 @@
 from PyQt5 import QtWidgets
 import code
 
+
 class PythonConsole(QtWidgets.QPlainTextEdit):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.appendPlainText('>>> ')
-        #self.installEventFilter(self)
+        self.appendPlainText(">>> ")
+        # self.installEventFilter(self)
         self.interp = code.InteractiveInterpreter()
         self.curPos = self.textCursor().position()
 
@@ -21,4 +22,3 @@ class PythonConsole(QtWidgets.QPlainTextEdit):
     #             self.curPos = self.textCursor().position()
 
     #     return super().eventFilter(obj, event)
-

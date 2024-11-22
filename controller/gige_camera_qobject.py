@@ -6,6 +6,7 @@ import pdb
 from PyQt5 import QtCore
 import mvsdk
 
+
 class GigECamera(QtCore.QObject):
     imageChanged = QtCore.pyqtSignal(np.ndarray)
     ExposureTimeChanged = QtCore.pyqtSignal(float)
@@ -29,20 +30,20 @@ class GigECamera(QtCore.QObject):
         if nDev < 1:
             print("No camera was found!")
             return
-            
+
         for i, DevInfo in enumerate(DevList):
-            print("{}: {} {}".format(i, DevInfo.GetFriendlyName(), DevInfo.GetPortType()))
+            print(
+                "{}: {} {}".format(i, DevInfo.GetFriendlyName(), DevInfo.GetPortType())
+            )
         i = 0 if nDev == 1 else int(input("Select camera: "))
         DevInfo = DevList[i]
 
-        
         self.hCamera = 0
         try:
             self.hCamera = mvsdk.CameraInit(DevInfo, -1, -1)
         except mvsdk.CameraException as e:
-            print("CameraInit Failed({}): {}".format(e.error_code, e.message) )
+            print("CameraInit Failed({}): {}".format(e.error_code, e.message))
             return
-
 
     @QtCore.pyqtProperty(int, notify=GammaChanged)
     def Gamma(self):
@@ -53,8 +54,7 @@ class GigECamera(QtCore.QObject):
         if gamma == mvsdk.CameraGetGamma(self.hCamera):
             return
         mvsdk.CameraSetGamma(self.hCamera, gamma)
-        self.GammaChanged.emit(mvsdk.CameraGetGamma(self.hCamera)) 
-
+        self.GammaChanged.emit(mvsdk.CameraGetGamma(self.hCamera))
 
     @QtCore.pyqtProperty(int, notify=ContrastChanged)
     def Contrast(self):
@@ -65,7 +65,7 @@ class GigECamera(QtCore.QObject):
         if contrast == mvsdk.CameraGetContrast(self.hCamera):
             return
         mvsdk.CameraSetContrast(self.hCamera, contrast)
-        self.ContrastChanged.emit(mvsdk.CameraGetContrast(self.hCamera)) 
+        self.ContrastChanged.emit(mvsdk.CameraGetContrast(self.hCamera))
 
     @QtCore.pyqtProperty(int, notify=SharpnessChanged)
     def Sharpness(self):
@@ -76,7 +76,7 @@ class GigECamera(QtCore.QObject):
         if sharpness == mvsdk.CameraGetSharpness(self.hCamera):
             return
         mvsdk.CameraSetSharpness(self.hCamera, sharpness)
-        self.SharpnessChanged.emit(mvsdk.CameraGetSharpness(self.hCamera)) 
+        self.SharpnessChanged.emit(mvsdk.CameraGetSharpness(self.hCamera))
 
     @QtCore.pyqtProperty(int, notify=AnalogGainChanged)
     def AnalogGain(self):
@@ -87,8 +87,7 @@ class GigECamera(QtCore.QObject):
         if gain == mvsdk.CameraGetAnalogGain(self.hCamera):
             return
         mvsdk.CameraSetAnalogGain(self.hCamera, gain)
-        self.AnalogGainChanged.emit(mvsdk.CameraGetAnalogGain(self.hCamera)) 
-
+        self.AnalogGainChanged.emit(mvsdk.CameraGetAnalogGain(self.hCamera))
 
     @QtCore.pyqtProperty(int, notify=VMirrorChanged)
     def VMirror(self):
@@ -99,7 +98,7 @@ class GigECamera(QtCore.QObject):
         if mode == mvsdk.CameraGetMirror(self.hCamera, 1):
             return
         mvsdk.CameraSetMirror(self.hCamera, 1, mode)
-        self.VMirrorChanged.emit(mvsdk.CameraGetMirror(self.hCamera, 1)) 
+        self.VMirrorChanged.emit(mvsdk.CameraGetMirror(self.hCamera, 1))
 
     @QtCore.pyqtProperty(int, notify=HMirrorChanged)
     def HMirror(self):
@@ -110,10 +109,7 @@ class GigECamera(QtCore.QObject):
         if mode == mvsdk.CameraGetMirror(self.hCamera, 0):
             return
         mvsdk.CameraSetMirror(self.hCamera, 0, mode)
-        self.HMirrorChanged.emit(mvsdk.CameraGetMirror(self.hCamera, 0)) 
-
-
-
+        self.HMirrorChanged.emit(mvsdk.CameraGetMirror(self.hCamera, 0))
 
     @QtCore.pyqtProperty(int, notify=TriggerModeChanged)
     def TriggerMode(self):
@@ -124,8 +120,7 @@ class GigECamera(QtCore.QObject):
         if trigger_mode == mvsdk.CameraGetTriggerMode(self.hCamera):
             return
         mvsdk.CameraSetTriggerMode(self.hCamera, trigger_mode)
-        self.TriggerModeChanged.emit(mvsdk.CameraGetTriggerMode(self.hCamera)) 
-
+        self.TriggerModeChanged.emit(mvsdk.CameraGetTriggerMode(self.hCamera))
 
     @QtCore.pyqtProperty(int, notify=AeStateChanged)
     def AeState(self):
@@ -136,7 +131,7 @@ class GigECamera(QtCore.QObject):
         if state == mvsdk.CameraGetAeState(self.hCamera):
             return
         mvsdk.CameraSetAeState(self.hCamera, state)
-        self.AeStateChanged.emit(mvsdk.CameraGetAeState(self.hCamera)) 
+        self.AeStateChanged.emit(mvsdk.CameraGetAeState(self.hCamera))
 
     @QtCore.pyqtProperty(float, notify=AeTargetChanged)
     def AeTarget(self):
@@ -147,7 +142,7 @@ class GigECamera(QtCore.QObject):
         if target == mvsdk.CameraGetAeTarget(self.hCamera):
             return
         mvsdk.CameraSetAeTarget(self.hCamera, target)
-        self.AeTargetChanged.emit(mvsdk.CameraGetAeTarget(self.hCamera)) 
+        self.AeTargetChanged.emit(mvsdk.CameraGetAeTarget(self.hCamera))
 
     @QtCore.pyqtProperty(float, notify=ExposureTimeChanged)
     def ExposureTime(self):
@@ -158,7 +153,7 @@ class GigECamera(QtCore.QObject):
         if exposure == mvsdk.CameraGetExposureTime(self.hCamera):
             return
         mvsdk.CameraSetExposureTime(self.hCamera, exposure)
-        self.ExposureTimeChanged.emit(mvsdk.CameraGetExposureTime(self.hCamera)) 
+        self.ExposureTimeChanged.emit(mvsdk.CameraGetExposureTime(self.hCamera))
 
     @mvsdk.method(mvsdk.CAMERA_SNAP_PROC)
     def callback(self, hCamera, pRawData, pFrameHead, pContext):
@@ -170,7 +165,13 @@ class GigECamera(QtCore.QObject):
 
         frame_data = (mvsdk.c_ubyte * FrameHead.uBytes).from_address(pFrameBuffer)
         frame = np.frombuffer(frame_data, dtype=np.uint8)
-        frame = frame.reshape((FrameHead.iHeight, FrameHead.iWidth, 1 if FrameHead.uiMediaType == mvsdk.CAMERA_MEDIA_TYPE_MONO8 else 3) )
+        frame = frame.reshape(
+            (
+                FrameHead.iHeight,
+                FrameHead.iWidth,
+                1 if FrameHead.uiMediaType == mvsdk.CAMERA_MEDIA_TYPE_MONO8 else 3,
+            )
+        )
 
         self.imageChanged.emit(frame)
 
@@ -183,23 +184,33 @@ class GigECamera(QtCore.QObject):
 
         frame_data = (mvsdk.c_ubyte * FrameHead.uBytes).from_address(pFrameBuffer)
         frame = np.frombuffer(frame_data, dtype=np.uint8)
-        frame = frame.reshape((FrameHead.iHeight, FrameHead.iWidth, 1 if FrameHead.uiMediaType == mvsdk.CAMERA_MEDIA_TYPE_MONO8 else 3) )
+        frame = frame.reshape(
+            (
+                FrameHead.iHeight,
+                FrameHead.iWidth,
+                1 if FrameHead.uiMediaType == mvsdk.CAMERA_MEDIA_TYPE_MONO8 else 3,
+            )
+        )
         self.snapshotCompleted.emit(frame)
-        
+
     def begin(self):
         self.cap = mvsdk.CameraGetCapability(self.hCamera)
 
-        monoCamera = (self.cap.sIspCapacity.bMonoSensor != 0)
+        monoCamera = self.cap.sIspCapacity.bMonoSensor != 0
         if monoCamera:
             mvsdk.CameraSetIspOutFormat(self.hCamera, mvsdk.CAMERA_MEDIA_TYPE_MONO8)
 
-        self.FrameBufferSize = self.cap.sResolutionRange.iWidthMax * self.cap.sResolutionRange.iHeightMax * (1 if monoCamera else 3)
+        self.FrameBufferSize = (
+            self.cap.sResolutionRange.iWidthMax
+            * self.cap.sResolutionRange.iHeightMax
+            * (1 if monoCamera else 3)
+        )
         self.pFrameBuffer = mvsdk.CameraAlignMalloc(self.FrameBufferSize, 16)
 
         print("td", mvsdk.CameraGetTriggerDelayTime(self.hCamera))
         mvsdk.CameraSetStrobeMode(self.hCamera, 1)
         print("sm ", mvsdk.CameraGetStrobeMode(self.hCamera))
-               
+
         mvsdk.CameraSetStrobeDelayTime(self.hCamera, 0)
         print("sd", mvsdk.CameraGetStrobeDelayTime(self.hCamera))
         mvsdk.CameraSetStrobePulseWidth(self.hCamera, 50000)
@@ -214,7 +225,7 @@ class GigECamera(QtCore.QObject):
         self.ExposureTime = 10000
         print("ex", mvsdk.CameraGetExposureTime(self.hCamera))
         print("extrig", mvsdk.CameraGetExtTrigSignalType(self.hCamera))
-        #self.ExposureTime = 0
+        # self.ExposureTime = 0
         self.Gamma = mvsdk.CameraGetGamma(self.hCamera)
         self.Contrast = mvsdk.CameraGetContrast(self.hCamera)
         self.Sharpness = mvsdk.CameraGetSharpness(self.hCamera)
@@ -223,31 +234,28 @@ class GigECamera(QtCore.QObject):
         self.VMirror = mvsdk.CameraGetMirror(self.hCamera, 1)
         self.HMirror = mvsdk.CameraGetMirror(self.hCamera, 0)
         self.TriggerMode = mvsdk.CameraGetTriggerMode(self.hCamera)
-        #self.AeState = mvsdk.CameraGetAeState(self.hCamera)
+        # self.AeState = mvsdk.CameraGetAeState(self.hCamera)
         self.AeState = 1
         self.AeTarget = mvsdk.CameraGetAeTarget(self.hCamera)
         self.enableCallback()
 
     def enableCallback(self):
         mvsdk.CameraSetCallbackFunction(self.hCamera, self.callback, 0)
+
     def disableCallback(self):
         mvsdk.CameraSetCallbackFunction(self.hCamera, None, 0)
 
-
     def end(self):
         self.disableCallback()
-        
-        mvsdk.CameraUnInit(self.hCamera)
-        mvsdk.CameraAlignFree(self.pFrameBuffer) 
 
+        mvsdk.CameraUnInit(self.hCamera)
+        mvsdk.CameraAlignFree(self.pFrameBuffer)
 
     def camera_play(self):
         return mvsdk.CameraPlay(self.hCamera)
 
-
     def camera_stop(self):
         return mvsdk.CameraStop(self.hCamera)
-
 
     def getFrameStatistic(self):
         return mvsdk.CameraGetFrameStatistic(self.hCamera)
