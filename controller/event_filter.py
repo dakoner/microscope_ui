@@ -38,9 +38,10 @@ class EventFilter(QtCore.QObject):
                 self.main_window.curr_image.save(fname)
                 print("Saved", fname)
             elif key == QtCore.Qt.Key_R:
+                print("Reset")
                 tile_graphics_view.reset()
                 tile_graphics_view.addCurrentRect()
-                self.main_window.serial.reset()
+                #self.main_window.serial.reset()
             elif key == QtCore.Qt.Key_Left:
                 if state == "Idle":
                     d = XY_STEP_SIZE
