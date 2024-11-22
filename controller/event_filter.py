@@ -34,6 +34,7 @@ class EventFilter(QtCore.QObject):
                 tile_graphics_view.stopAcquisition()
             elif key == QtCore.Qt.Key_P:
                 fname = f"image_{int(time.time())}.png"
+                time.sleep(1)
                 self.main_window.curr_image.save(fname)
                 print("Saved", fname)
             elif key == QtCore.Qt.Key_R:

@@ -22,7 +22,7 @@ class ImageThread(QtCore.QThread):
 
     def run(self):
         counter = 0
-        self.results = []
+        #self.results = []
 
         camera_time_0 = None
         time_0 = None
@@ -43,11 +43,13 @@ class ImageThread(QtCore.QThread):
                 if not time_0:
                     time_0 = self.parent.m_pos_t
                 print("image result at", camera_timestamp-time_0, x, y, z)
-                d = np.zeros( (768,1024,3), np.uint8)
+                #d = np.zeros( (768,1024,3), np.uint8)
                 # d = image_result.GetNDArray()
                 # image_result.Release()
                 fname = f"{self.parent.prefix}/test.{self.i}_{self.j}.{counter}.tif"
-                self.results.append((fname, d))
+                #self.results.append((fname, d))
+                tifffile.imwrite(fname, d)
+
 
                 json.dump({
                     "fname": os.path.basename(fname),
@@ -68,8 +70,6 @@ class ImageThread(QtCore.QThread):
             time.sleep(0.6)
 
         self.app.main_window.microscope_esp32_controller_serial.write("P2000000 6\n")
-        for fname, d in self.results:
-            tifffile.imwrite(fname, d)
 
 
 class Acquisition():
@@ -163,9 +163,17 @@ class Acquisition():
         for i, deltaz in enumerate(self.zs):           
             curr_z = z + deltaz
             for j, gy in enumerate(self.ys):
-                #grid.append([["MOVE_TO", (self.xs[0],gy,curr_z), (0,j,0), 1000], ["HOME_X"], ["WAIT"]])
-                for k, gx in enumerate(self.xs):
-                    grid.append([["MOVE_TO", (gx,gy,curr_z), (k,j,0), 1000], 
+                #grid.append([["MOVE_TO", (self.xs[0],gy,curr_z), (0,j,0), 1000], ["HOME_X"], ["WAIT"]])                                                                                                                           
+                if j % 2 == 0:
+                    xs = enumerate(self.xs)
+                else:
+                    print(xs)
+                    
+                    xs = enumerate(reversed(self.xs))
+                    print(xs)
+                for k, gx in enumerate(xs):
+                    print(k,gx, float(gx[1]))
+                    grid.append([["MOVE_TO", (float(gx[1]),gy,curr_z), (k,j,0), 1000], 
                                  ["WAIT"], 
                                  ["PHOTO"]])
                 # inner_grid = []
@@ -194,7 +202,7 @@ class Acquisition():
                     "fov_x_pixels": FOV_X_PIXELS,
                     "fov_y_pixels": FOV_Y_PIXELS,
                 }, scan_config)
-        print("grid:", grid)
+        #print("grid:", grid)
         return grid
 
     def startAcquisition(self):

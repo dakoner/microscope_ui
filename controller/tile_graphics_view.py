@@ -133,9 +133,9 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
     
 
     def addImageIfMissing(self, draw_data, pos):
-        if self.acquisition:
-            print("Not adding image during acquisition")
-            return
+        # if self.acquisition:
+        #     print("Not adding image during acquisition")
+        #     return
         #if not self.acquisition or len(self.acquisition.grid) == 0:
         #    return
         ci = self.currentRect.collidingItems()
@@ -158,9 +158,10 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
             #print('addImage')
             image = QtGui.QImage(draw_data, draw_data.shape[1], draw_data.shape[0], QtGui.QImage.Format_RGB888)
             image = image.mirrored(horizontal=True, vertical=False)
-
+            image = image.scaledToHeight(128)
             pixmap = QtGui.QPixmap.fromImage(image)
             pm = self.scene.addPixmap(pixmap)
             pm.setPos(pos[0]/PIXEL_SCALE, pos[1]/PIXEL_SCALE)
+            pm.setScale(10)
             pm.setZValue(1)
        
