@@ -92,7 +92,7 @@ def do(polys, x, y, box_to_image):
     
     results = results / counter
     results[np.isnan(results)] = 0
-    return results
+    return x, y, results
     # im = Image.fromarray(np.uint8(counter))
     # im.save(f"out\\counter.{i},{j}.png")
     # im = Image.fromarray(np.uint8(results))
@@ -111,17 +111,17 @@ def main(prefix):
             executor.submit(load_image, prefix, image): image for image in tc.images
         }
 
-    box_to_image = {}
+        box_to_image = {}
 
-    polys = []
-    for future in concurrent.futures.as_completed(future_to_image):
-        fname = future_to_image[future]
-        filename, image, i = future.result()
-        b = shapely.geometry.box(
-            int(image.x), int(image.y), int(image.x) + i.width, int(image.y) + i.height
-        )
-        box_to_image[b] = np.asarray(i).T
-        polys.append(b)
+        polys = []
+        for future in concurrent.futures.as_completed(future_to_image):
+            fname = future_to_image[future]
+            filename, image, i = future.result()
+            b = shapely.geometry.box(
+                int(image.x), int(image.y), int(image.x) + i.width, int(image.y) + i.height
+            )
+            box_to_image[b] = np.asarray(i).T
+            polys.append(b)
 
     c = shapely.geometry.GeometryCollection(polys)
 
@@ -131,15 +131,19 @@ def main(prefix):
     bounds = round_up(c.bounds[2]), round_up(c.bounds[3])
     d = da.zeros(bounds, dtype=np.uint8)
     
-    for x in range(0, int(c.bounds[2]), CHUNK_SIZE):
-        for y in range(0, int(c.bounds[3]), CHUNK_SIZE):
-            results = do(polys, x, y, box_to_image)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
+        futures = []
+        for x in range(0, int(c.bounds[2]), CHUNK_SIZE):
+            for y in range(0, int(c.bounds[3]), CHUNK_SIZE):
+                futures.append(executor.submit(do, polys, x, y, box_to_image))
 
-
+        for future in concurrent.futures.as_completed(futures):
+            x, y, results = future.result()
             d[x:x+CHUNK_SIZE, y:y+CHUNK_SIZE] = results
-            del results
+        
+
     print("Write final image")
-    tifffile.imwrite('temp.ome.tif', d, imagej=True, resolution=(832, 832), metadata={'unit': 'mm', 'axes': 'YX'})
+    tifffile.imwrite('temp.ome.tif', da.flipud(d), imagej=True, resolution=(833, 833), metadata={'unit': 'mm', 'axes': 'YX'})
 
 
 
