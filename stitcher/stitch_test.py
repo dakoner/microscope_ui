@@ -22,12 +22,12 @@ def get_image_dimensions(filename):
     i = Image.open(filename)
     return i.width, i.height
 
+@lru_cache(maxsize=32)
 def get_image_data(filename):
     im = Image.open(filename)
     im = im.convert("L")
     return np.asarray(im).T
 
-@lru_cache
 def load_image(prefix, image):
     filename = f"{prefix}/{image.filename}"
     i = Image.open(filename)
