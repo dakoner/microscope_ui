@@ -13,14 +13,21 @@ from PIL import Image
 import sys
 import concurrent.futures
 import dask.array as da
+from functools import lru_cache
 
 CHUNK_SIZE = 8192
+
 
 def get_image_dimensions(filename):
     i = Image.open(filename)
     return i.width, i.height
-      
 
+def get_image_data(filename):
+    im = Image.open(filename)
+    im = im.convert("L")
+    return np.asarray(im).T
+
+@lru_cache
 def load_image(prefix, image):
     filename = f"{prefix}/{image.filename}"
     i = Image.open(filename)
@@ -45,9 +52,7 @@ def do(polys, x, y, box_to_fname):
             inter, lambda x: x - chunk_origin
         ).bounds
 
-        im = Image.open(box_to_fname[p])
-        im = im.convert("L")
-        im = np.asarray(im).T
+        im = get_image_data(box_to_fname[p])
         data = im[
             int(inter_in_box_coords[0]) : int(inter_in_box_coords[2]),
             int(inter_in_box_coords[1]) : int(inter_in_box_coords[3]),
@@ -120,6 +125,6 @@ def main(prefix):
 
 
 # main(sys.argv[1])
-if __name__ == '__main__':
+if __name__ == "__main__":
     main("controller\\photo\\1732256851.6429064")
     # main("controller\\photo\\1732319758.459453")
