@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import sys
 import pandas as pd
 from config import PIXEL_SCALE
-
+import pathlib
 @dataclass
 class TileImage:
     filename: str
@@ -28,7 +28,7 @@ class TileConfiguration:
                 x, y = coords.split(",")
                 x = float(x)
                 y = float(y)
-                self.addImage(filename=fname, x=x, y=y)
+                self.addImage(filename=pathlib.Path(fname), x=x, y=y)
         
     def addImage(self, **kwargs):
         self.images.append(TileImage(**kwargs))
