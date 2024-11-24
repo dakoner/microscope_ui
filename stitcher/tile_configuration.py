@@ -36,8 +36,6 @@ class TileConfiguration:
     def move_to_origin(self):
         x_min = min(x.x for x in self.images)
         y_min = min(x.y for x in self.images)
-        print(x_min)
-        print(y_min)
         for image in self.images:
             image.x = image.x - x_min
             image.y = image.y - y_min
