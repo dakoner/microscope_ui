@@ -3,6 +3,7 @@ import sys
 import pandas as pd
 from config import PIXEL_SCALE
 import pathlib
+
 @dataclass
 class TileImage:
     filename: str

@@ -1,3 +1,4 @@
+from numcodecs import Blosc
 import pathlib
 from lxml import etree as ET
 import sys
@@ -12,27 +13,8 @@ from tile_configuration import TileConfiguration
 from PIL import Image
 import sys
 import concurrent.futures
-import dask.array as da
-from functools import lru_cache
-
+from util import load_image, get_image_data, get_image_dimensions
 CHUNK_SIZE = 8192
-
-
-def get_image_dimensions(filename):
-    i = Image.open(filename)
-    return i.width, i.height
-
-@lru_cache(maxsize=32)
-def get_image_data(filename):
-    im = Image.open(filename)
-    im = im.convert("L")
-    return np.asarray(im).T
-
-def load_image(prefix, image):
-    filename = f"{prefix}/{image.filename}"
-    i = Image.open(filename)
-    i = i.convert("L")
-    return filename, image, i
 
 
 def do(polys, x, y, box_to_fname):
@@ -79,7 +61,7 @@ def round_up(val):
 
 def main(prefix):
     tc = TileConfiguration()
-    tc.load(f"{prefix}/TileConfiguration.registered.txt")
+    tc.load(f"{prefix}/TileConfiguration.txt")
     tc.move_to_origin()
 
     polys = []
@@ -102,7 +84,7 @@ def main(prefix):
     # find all the intersecting polys
     # composite the chunk from the intersecting polys
     bounds = round_up(c.bounds[2]), round_up(c.bounds[3])
-    d = da.zeros(bounds, dtype=np.uint8)
+    da = np.zeros(bounds, dtype=np.uint8)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
         futures = []
@@ -112,19 +94,19 @@ def main(prefix):
 
         for future in concurrent.futures.as_completed(futures):
             x, y, results = future.result()
-            d[x : x + CHUNK_SIZE, y : y + CHUNK_SIZE] = results
+            da[x : x + CHUNK_SIZE, y : y + CHUNK_SIZE] = results
 
     print("Write final image")
     tifffile.imwrite(
         "temp.ome.tif",
-        da.flipud(d),
+        np.flipud(da),
         imagej=True,
         resolution=(833, 833),
         metadata={"unit": "mm", "axes": "YX"},
     )
+    #d.to_zarr("temp.zarr", compressor=Blosc(cname='zstd', clevel=3))
 
-
-# main(sys.argv[1])
 if __name__ == "__main__":
-    main("controller\\photo\\1732256851.6429064")
+    main(sys.argv[1])
+    #main("C:\\Users\\davidek\\Desktop\\1732488657.752864")
     # main("controller\\photo\\1732319758.459453")

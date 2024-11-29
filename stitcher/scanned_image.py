@@ -39,12 +39,12 @@ class ScannedImage(QtWidgets.QGraphicsView):
             self.scale(0.5, 0.5)
 
     def addImage(self, pos, image):
-        # r = self.scene.addRect(pos.x(), pos.y(), width, height)
+        # r = self.scene.addRect(pos.x(), pos.y(), image.width(), image.height())
         # r.setZValue(2)
 
         # qp = QtGui.QPainterPath()
 
-        # a = QtGui.QImage(width, height, QtGui.QImage.Format_ARGB32)
+        # a = QtGui.QImage(image.width(), image.height(), QtGui.QImage.Format_ARGB32)
         # a.fill(QtGui.QColor(255, 255, 255, 255))
 
         # qp.addRect(r.sceneBoundingRect())
@@ -69,7 +69,7 @@ class ScannedImage(QtWidgets.QGraphicsView):
         #         p.begin(a)
         #         p.setPen(QtCore.Qt.NoPen)
         #         p.setBrush(QtGui.QBrush(linearGrad))
-        #         p.drawRect(x, y, width, height)
+        #         p.drawRect(int(x), int(y), int(width), int(height))
         #         p.end()
         # self.scene.removeItem(r)
 

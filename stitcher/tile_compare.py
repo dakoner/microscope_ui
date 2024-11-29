@@ -1,3 +1,5 @@
+import os
+import json
 from PIL import Image
 import numpy as np
 import pathlib
@@ -16,15 +18,15 @@ from image_registration import chi2_shift
 from image_registration.fft_tools import shift
 import imageio.v3 as iio
 
-SCALING = 10
 
 def load_and_grayscale(filename):
     image = imageio.imread(filename)
     gray = np.dot(image, [0.2989, 0.5870, 0.1140])
     gray = np.round(gray).astype(np.uint8)
-    return rescale(gray, 1/SCALING)
+    return gray
+    #return #rescale(gray, 1/SCALING)
 
-def get_shifts(i1, i2):
+def get_shift(i1, i2):
     # compute the cross-power spectrum of the two images:
     image_product = np.fft.fft2(i1) * np.fft.fft2(i2).conj()
 
@@ -34,7 +36,7 @@ def get_shifts(i1, i2):
 
     # for visualization reasons, shift the zero-frequency 
     # component to the center of the spectrum:
-    cc_image_fftshift = np.fft.fftshift(cc_image)
+    #cc_image_fftshift = np.fft.fftshift(cc_image)
     shape = i1.shape
     # find the peak in cc_image: 
     maxima = np.unravel_index(np.argmax(np.abs(cc_image)), shape)
@@ -43,7 +45,7 @@ def get_shifts(i1, i2):
     shifts = np.stack(maxima).astype(float_dtype, copy=False)
     shifts[shifts > midpoints] -= np.array(shape)[shifts > midpoints]
     #print(f"detected shifts: {shifts[1], shifts[0]}")
-    return shifts * SCALING
+    return shifts
 
 def main(prefix):
     tc = TileConfiguration()
@@ -51,7 +53,7 @@ def main(prefix):
     tc.move_to_origin()
     images = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
-        future_to_fname = {executor.submit(load_and_grayscale, pathlib.Path(prefix) / image.filename): image.filename for image in tc.images[:1000]}
+        future_to_fname = {executor.submit(load_and_grayscale, pathlib.Path(prefix) / image.filename): image.filename for image in tc.images if not os.path.exists(f"out/{image.filename}.json") }
 
         for future in concurrent.futures.as_completed(future_to_fname):
             filename = future_to_fname[future]
@@ -59,24 +61,27 @@ def main(prefix):
             images[filename] = image
             
 
-    future_to_shift = {}
-    
-    with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
-        for i, fname1 in enumerate(images):
-            for j, fname2 in enumerate(images):
-                future_to_shift[executor.submit(get_shifts, images[fname1], images[fname2])] = fname1, fname2
+    for fname1 in images:
+        print(fname1)
+        i1 = images[fname1]
+        future_to_shift = {}
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+            for fname2 in images:
+                i2 = images[fname2]
+                future_to_shift[executor.submit(get_shift, i1, i2)] = fname2
+                
+            shifts = {}
+            for future in concurrent.futures.as_completed(future_to_shift):
+                fname2 = future_to_shift[future]
+                result = future.result().tolist()
+                if result != [0., 0.]:
+                    shifts[str(fname2)] = result
             
-        print("Total:", len(future_to_shift))
-        counter = 0
-        for future in concurrent.futures.as_completed(future_to_shift):
-            fname1, fname2 = future_to_shift[future]
-            shifts = future.result()
-            s =  np.sum((shifts - np.array([0., 0.]))**2)
-            if s != 0:
-                print(fname1, fname2, shifts)
-            counter += 1
-            if counter % 100 == 0:
-                print("Counter:", counter)
+            with open(f"out/{fname1}.json", "w") as w:
+                w.write(json.dumps(shifts))
+                
+                
+            
 
 if __name__ == "__main__":
     #main(sys.argv[1])
