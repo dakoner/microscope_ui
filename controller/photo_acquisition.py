@@ -128,7 +128,7 @@ class Acquisition:
         image = QtGui.QImage(frame, s[1], s[0], format)
         image = image.mirrored(horizontal=True, vertical=False)
         t = str(time.time())
-        filename = f"{self.prefix}/test.{t}.jpg"
+        filename = f"{self.prefix}/test.{t}.png"
         image.save(filename)
         pixmap = QtGui.QPixmap.fromImage(image)
         # self.image_view.setFixedSize(1440/2, 1080/2)
@@ -172,10 +172,10 @@ class Acquisition:
         # print("fov_y", FOV_Y)
         z = self.app.main_window.m_pos[2]
         num_z = len(self.zs)
-        self.ys = np.arange(self.y_min, self.y_max, FOV_Y * (2 / 3))
+        self.ys = np.arange(self.y_min, self.y_max, FOV_Y * (9 / 10))
         # ys = [y_min, y_max]
         num_y = len(self.ys)
-        self.xs = np.arange(self.x_min, self.x_max, FOV_X * (2 / 3))
+        self.xs = np.arange(self.x_min, self.x_max, FOV_X * (9 / 10))
         # self.xs = [self.x_min, self.x_max]
         num_x = len(self.xs)
 
@@ -185,13 +185,13 @@ class Acquisition:
             curr_z = z + deltaz
             for j, gy in enumerate(self.ys):
                 # grid.append([["MOVE_TO", (self.xs[0],gy,curr_z), (0,j,0), 1000], ["HOME_X"], ["WAIT"]])
-                if j % 2 == 0:
-                    xs = enumerate(self.xs)
-                else:
-                    print(xs)
+                # if j % 2 == 0:
+                xs = enumerate(self.xs)
+                # else:
+                #     print(xs)
 
-                    xs = enumerate(reversed(self.xs))
-                    print(xs)
+                #     xs = enumerate(reversed(self.xs))
+                #     print(xs)
                 for k, gx in enumerate(xs):
                     print(k, gx, float(gx[1]))
                     grid.append(
