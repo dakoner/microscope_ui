@@ -59,7 +59,7 @@ class ScannedImage(QtWidgets.QGraphicsView):
     def addItem(self, bounds):
         x, y = bounds[0], bounds[1]
         width, height = bounds[2] - x, bounds[3] - y
-        r = ImageNode(x, y, width/10, height/10)
+        r = ImageNode(x+width/2, y+height/2, width/2, height/2)
         self.scene.addItem(r)
         pen = QtGui.QPen(QtGui.QColor(0, 0, 0))
         pen.setWidth(10)
@@ -73,7 +73,7 @@ class ScannedImage(QtWidgets.QGraphicsView):
         p1, p2 = intersection
         c1 = shapely.centroid(p1)
         c2 = shapely.centroid(p2)
-        line = self.scene.addLine(c1.x, c1.y, c2.x, c2.y)
+        line = self.scene.addLine(c1.x+320, c1.y+256, c2.x+320, c2.y+256)
         pen = QtGui.QPen(QtGui.QColor(0, 0, 0))
         pen.setWidth(10)
         line.setPen(pen)
@@ -92,16 +92,16 @@ class QApplication(QtWidgets.QApplication):
         self.tc.move_to_origin()
         self.create_graph()
         
+
         self.main_window = QtWidgets.QMainWindow()
-        self.main_window.show()  # Maximized()
-
-
         self.main_window.setCentralWidget(self.scanned_image)
         self.scanned_image.show()
         self.scanned_image.scene.setSceneRect(
             self.scanned_image.scene.itemsBoundingRect()
         )
         self.scanned_image.scene.clearSelection()
+
+        self.main_window.showMaximized()
 
 
     def create_graph(self):
