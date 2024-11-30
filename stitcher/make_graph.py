@@ -59,8 +59,9 @@ class ScannedImage(QtWidgets.QGraphicsView):
     def addItem(self, bounds):
         x, y = bounds[0], bounds[1]
         width, height = bounds[2] - x, bounds[3] - y
-        r = ImageNode(x+width/2, y+height/2, width/2, height/2)
+        r = ImageNode(0, 0, width, height)
         self.scene.addItem(r)
+        r.setPos(x, y)
         pen = QtGui.QPen(QtGui.QColor(0, 0, 0))
         pen.setWidth(10)
         r.setPen(pen)
@@ -73,7 +74,7 @@ class ScannedImage(QtWidgets.QGraphicsView):
         p1, p2 = intersection
         c1 = shapely.centroid(p1)
         c2 = shapely.centroid(p2)
-        line = self.scene.addLine(c1.x+320, c1.y+256, c2.x+320, c2.y+256)
+        line = self.scene.addLine(c1.x, c1.y, c2.x, c2.y)
         pen = QtGui.QPen(QtGui.QColor(0, 0, 0))
         pen.setWidth(10)
         line.setPen(pen)
