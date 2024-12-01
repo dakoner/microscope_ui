@@ -3,7 +3,7 @@ import pathlib
 from functools import lru_cache
 from PIL import Image
 import numpy as np
-
+CHUNK_SIZE = 1024
 
 def get_image_dimensions(filename):
     i = Image.open(filename)
@@ -13,8 +13,8 @@ def get_image_dimensions(filename):
 @lru_cache(maxsize=32)
 def get_image_data(filename):
     im = Image.open(filename)
-    im = im.convert("L")
-    return np.asarray(im).T
+    #im = im.convert("L")
+    return np.asarray(im)
 
 
 def load_image(prefix, image):
