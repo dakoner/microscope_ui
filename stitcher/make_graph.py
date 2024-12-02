@@ -59,7 +59,7 @@ class ScannedImage(QtWidgets.QGraphicsView):
     def addItem(self, bounds):
         x, y = bounds[0], bounds[1]
         width, height = bounds[2] - x, bounds[3] - y
-        r = ImageNode(0, 0, width, height)
+        r = ImageNode(-width, -height, width, height)
         self.scene.addItem(r)
         r.setPos(x, y)
         pen = QtGui.QPen(QtGui.QColor(0, 0, 0))
@@ -79,20 +79,18 @@ class ScannedImage(QtWidgets.QGraphicsView):
         pen.setWidth(10)
         line.setPen(pen)
         return line
-        
-        
-    
+
+
 class QApplication(QtWidgets.QApplication):
     def __init__(self, prefix, *argv):
         super().__init__(["foo"])
         self.scanned_image = ScannedImage()
-        
+
         self.prefix = prefix
         self.tc = TileConfiguration()
         self.tc.load(f"{prefix}/TileConfiguration.txt")
         self.tc.move_to_origin()
         self.create_graph()
-        
 
         self.main_window = QtWidgets.QMainWindow()
         self.main_window.setCentralWidget(self.scanned_image)
@@ -103,7 +101,6 @@ class QApplication(QtWidgets.QApplication):
         self.scanned_image.scene.clearSelection()
 
         self.main_window.showMaximized()
-
 
     def create_graph(self):
         polys, poly_to_fname = tile_config_to_shapely(self.prefix, self.tc)
