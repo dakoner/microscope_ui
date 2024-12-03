@@ -53,8 +53,7 @@ class TileConfiguration:
         with open(fname, "w") as w:
             w.write("\n".join(s))
         
-if __name__ == '__main__':
-    prefix = sys.argv[1]
+def tile_config_to_tileconfiguration(prefix):
     r = pd.read_json(f"{prefix}/tile_config.json", lines=True)
     r.set_index(["i", "j", "k"])
     tc = TileConfiguration()
@@ -64,7 +63,6 @@ if __name__ == '__main__':
     tc.scale(1/PIXEL_SCALE, 1/PIXEL_SCALE)
     tc.save(f"{prefix}/TileConfiguration.txt")
     
-    
-    tc = TileConfiguration()
-    tc.load(f"{sys.argv[1]}/TileConfiguration.txt")
-    tc.save(f"{sys.argv[1]}/TileConfiguration.mine.txt")
+if __name__ == '__main__':
+    prefix = sys.argv[1]
+    tile_config_to_tileconfiguration(prefix)

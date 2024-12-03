@@ -3,7 +3,7 @@ import pathlib
 from functools import lru_cache
 from PIL import Image
 import numpy as np
-CHUNK_SIZE = 1024
+CHUNK_SIZE = 8192
 
 def get_image_dimensions(filename):
     i = Image.open(filename)
@@ -15,13 +15,6 @@ def get_image_data(filename):
     im = Image.open(filename)
     #im = im.convert("L")
     return np.asarray(im)
-
-
-def load_image(prefix, image):
-    filename = f"{prefix}/{image.filename}"
-    i = Image.open(filename)
-    i = i.convert("L")
-    return filename, image, i
 
 
 def tile_config_to_shapely(prefix, tc):
