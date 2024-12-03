@@ -30,7 +30,7 @@ import threading
 
 def main(prefix):
     tc = TileConfiguration()
-    tc.load(f"{prefix}/TileConfiguration.txt")
+    tc.load(f"{prefix}/TileConfiguration.registered.registered.txt")
     tc.move_to_origin()
 
     polys = []
@@ -50,40 +50,39 @@ def main(prefix):
     z = zarr.open(
         "test.zarr",
         mode="w",
-        shape=(c.bounds[2], c.bounds[3], 3),
-        chunks=(CHUNK_SIZE, CHUNK_SIZE),
+        shape=(3, c.bounds[2], c.bounds[3]),
+        chunks=(3, CHUNK_SIZE, CHUNK_SIZE),
         dtype=np.uint16,
     )
     counter = zarr.open(
         "counter.zarr",
         mode="w",
-        shape=(int(c.bounds[2]), int(c.bounds[3]), 3),
-        chunks=(CHUNK_SIZE, CHUNK_SIZE),
+        shape=(3, int(c.bounds[2]), int(c.bounds[3])),
+        chunks=(3, CHUNK_SIZE, CHUNK_SIZE),
         dtype=np.uint8,
     )
 
     for image in tqdm.tqdm(tc.images):
         filename = pathlib.Path(prefix) / image.filename
-        img = get_image_data(filename).swapaxes(0, 1)
+        img = get_image_data(filename)
         x = int(image.x)
         y = int(image.y)
         width = img.shape[0]
         height = img.shape[1]
-        z[x : x + width, y : y + height :] += img
-        counter[x : x + width, y : y + height] += 1
+        z[:, x : x + width, y : y + height] += np.moveaxis(img.swapaxes(0, 1), 2, 0)
+        counter[: , x : x + width, y : y + height] += 1
 
-    z = dask.array.from_array(z, chunks=(CHUNK_SIZE, CHUNK_SIZE, 3))
-    counter = dask.array.from_array(counter, chunks=(CHUNK_SIZE, CHUNK_SIZE, 3))
+    z = dask.array.from_array(z, chunks=(3, CHUNK_SIZE, CHUNK_SIZE))
+    counter = dask.array.from_array(counter, chunks=(3, CHUNK_SIZE, CHUNK_SIZE))
     z = z // counter
     z = z.astype(dask.array.uint8)
-    z = dask.array.moveaxis(z, 2, 0)
     dask.array.to_zarr(z, "test-2.zarr")
 
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     prefix = sys.argv[1]
-    tile_config_to_tileconfiguration(prefix)
+    #tile_config_to_tileconfiguration(prefix)
     # prefix = r"C:\Users\davidek\microscope_ui\controller\photo\1733112316.740324"
     main(prefix)
     # main("C:\\Users\\davidek\\Desktop\\1732488657.752864")
