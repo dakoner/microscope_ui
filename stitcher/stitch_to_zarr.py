@@ -1,3 +1,4 @@
+import cv2
 import dask.array
 import tqdm
 import PIL
@@ -33,19 +34,6 @@ def main(prefix):
     tc.load(f"{prefix}/TileConfiguration.registered.registered.txt")
     tc.move_to_origin()
 
-    polys = []
-    box_to_fname = {}
-    for image in tc.images:
-        filename = pathlib.Path(prefix) / image.filename
-        width, height = get_image_dimensions(filename)
-
-        b = shapely.geometry.box(
-            int(image.x), int(image.y), int(image.x) + width, int(image.y) + height
-        )
-        box_to_fname[b] = filename
-        polys.append(b)
-
-    c = shapely.geometry.GeometryCollection(polys)
 
     z = zarr.open(
         "test.zarr",
@@ -62,14 +50,14 @@ def main(prefix):
         dtype=np.uint8,
     )
 
-    for image in tqdm.tqdm(tc.images):
+    for image in tc.images:#tqdm.tqdm(tc.images):
         filename = pathlib.Path(prefix) / image.filename
         img = get_image_data(filename)
         x = int(image.x)
         y = int(image.y)
-        width = img.shape[0]
-        height = img.shape[1]
-        z[:, x : x + width, y : y + height] += np.moveaxis(img.swapaxes(0, 1), 2, 0)
+        width = img.shape[1]
+        height = img.shape[0]
+        z[:, x : x + width, y : y + height] += np.moveaxis(img.swapaxes(0,1), 2, 0)
         counter[: , x : x + width, y : y + height] += 1
 
     z = dask.array.from_array(z, chunks=(3, CHUNK_SIZE, CHUNK_SIZE))
