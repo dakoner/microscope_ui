@@ -3,7 +3,7 @@ import signal
 import sys
 import numpy as np
 import pdb
-from PyQt5 import QtCore
+from PyQt6 import QtCore
 import mvsdk
 
 

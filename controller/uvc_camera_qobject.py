@@ -1,5 +1,5 @@
 import numpy as np
-from PyQt5 import QtCore
+from PyQt6 import QtCore
 import cv2
 from config import WIDTH, HEIGHT, FPS
 

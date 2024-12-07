@@ -20,7 +20,7 @@ from config import (
     XY_FEED,
     Z_FEED,
 )
-from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt6 import QtWidgets, QtGui, QtCore
 
 
 class Acquisition:

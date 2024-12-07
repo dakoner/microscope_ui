@@ -3,8 +3,8 @@ import os
 import numpy as np
 
 import time
-from PyQt5 import QtGui, QtCore, QtWidgets
-from PyQt5.uic import loadUi
+from PyQt6 import QtGui, QtCore, QtWidgets
+from PyQt6.uic import loadUi
 import serial_interface_qobject
 
 import gige_camera_qobject
@@ -57,18 +57,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.camera.camera_play()
 
 
-        self.process = (
-            ffmpeg.input(
-                "pipe:",
-                format="rawvideo",
-                pix_fmt="rgb24",
-                s="{}x{}".format(1280, 1024),
-            ).filter('scale', 640, -1)
-            .output(
-                "movie.mp4", pix_fmt="yuv420p", vcodec="libx264", preset="ultrafast", crf=27)
-            .overwrite_output()
-            .run_async(pipe_stdin=True)
-        )
+        # self.process = (
+        #     ffmpeg.input(
+        #         "pipe:",
+        #         format="rawvideo",
+        #         pix_fmt="rgb24",
+        #         s="{}x{}".format(1280, 1024),
+        #     ).filter('scale', 640, -1)
+        #     .output(
+        #         "movie.mp4", pix_fmt="yuv420p", vcodec="libx264", preset="ultrafast", crf=27)
+        #     .overwrite_output()
+        #     .run_async(pipe_stdin=True)
+        # )
         #self.movie = open("movie.raw", "wb")
         self.state = "None"
         self.m_pos = [-1, -1, -1]
@@ -211,7 +211,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def imageChanged(self, img):
         t0 = time.time()
         #self.movie.write(img.astype(np.uint8).tobytes())
-        self.process.stdin.write(img.astype(np.uint8).tobytes())
+        #self.process.stdin.write(img.astype(np.uint8).tobytes())
 
         self.t0 = t0
         if self.state == "Jog" or self.state == "Run":
@@ -231,9 +231,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         s = img.shape
         if s[2] == 1:
-            format = QtGui.QImage.Format_Grayscale8
+            format = QtGui.QImage.Format.Format_Grayscale8
         elif s[2] == 3:
-            format = QtGui.QImage.Format_RGB888
+            format = QtGui.QImage.Format.Format_RGB888
         image = QtGui.QImage(img, s[1], s[0], format)
         # image = image.mirrored(horizontal=False, vertical=False)
         self.curr_image = image

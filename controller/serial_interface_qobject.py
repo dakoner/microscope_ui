@@ -3,7 +3,7 @@ import sys
 import serial
 import time
 import threading
-from PyQt5 import QtCore
+from PyQt6 import QtCore
 
 STATUS_TIMEOUT = 0.01
 
