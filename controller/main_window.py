@@ -96,6 +96,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.exposureTimeSlider.setMinimum(self.camera.cap.sExposeDesc.uiExposeTimeMin)
         self.exposureTimeSlider.setMaximum(self.camera.cap.sExposeDesc.uiExposeTimeMax)
         self.camera.ExposureTimeChanged.connect(self.ExposureTimeChangedCallback)
+        self.radioButton_23.toggle()
+        #self.enableAuto(True)
+        self.ExposureTimeChanged(650)
 
         # self.analogGainSlider.valueChanged.connect(self.AnalogGainChanged)
         # self.analogGainLabel.setText(str(self.camera.AnalogGain))
