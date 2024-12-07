@@ -59,7 +59,7 @@ class ScannedImage(QtWidgets.QGraphicsView):
     def addItem(self, bounds):
         x, y = bounds[0], bounds[1]
         width, height = bounds[2] - x, bounds[3] - y
-        r = ImageNode(-width, -height, width, height)
+        r = ImageNode(0, 0, width, height)
         self.scene.addItem(r)
         r.setPos(x, y)
         pen = QtGui.QPen(QtGui.QColor(0, 0, 0))
@@ -91,7 +91,8 @@ class QApplication(QtWidgets.QApplication):
         self.tc.load(f"{prefix}/TileConfiguration.txt")
         self.tc.move_to_origin()
         self.create_graph()
-
+        self.create_scene()
+        
         self.main_window = QtWidgets.QMainWindow()
         self.main_window.setCentralWidget(self.scanned_image)
         self.scanned_image.show()
@@ -105,24 +106,31 @@ class QApplication(QtWidgets.QApplication):
     def create_graph(self):
         polys, poly_to_fname = tile_config_to_shapely(self.prefix, self.tc)
         self.graph = nx.Graph()
-        poly_to_item = {}
         for poly in polys:
-            self.graph.add_node(poly_to_fname[poly])
-            poly_to_item[poly] = self.scanned_image.addItem(poly.bounds)
+            self.graph.add_node(poly, fname=poly_to_fname[poly])
         intersections = polys_to_intersections(polys)
         for intersection in intersections:
             self.graph.add_edge(*intersection)
-            line = self.scanned_image.addEdge(intersection)
-            i1 = poly_to_item[intersection[0]]
+
+    def create_scene(self):
+        poly_to_item = {}
+
+        for node in self.graph.nodes:
+            self.graph.add_node(node)
+            poly_to_item[node] = self.scanned_image.addItem(node.bounds)
+        
+        for edge in self.graph.edges:
+            line = self.scanned_image.addEdge(edge)
+            i1 = poly_to_item[edge[0]]
             i1.edges.append(line)
-            i2 = poly_to_item[intersection[1]]
+            i2 = poly_to_item[edge[1]]
             i2.edges.append(line)
             line.polys = (i1, i2)
 
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
-        prefix = r".\controller\photo\1732835470.1956787"
+        prefix = r"C:\Users\davidek\microscope_ui\controller\photo\1732319758.459453"
     else:
         prefix = sys.argv[1]
 
