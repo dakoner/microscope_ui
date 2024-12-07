@@ -14,7 +14,7 @@ MQTT_HOST='dektop'
 # 10X objective to 1280x1024 camera
 #PIXEL_SCALE = 1/2062
 # 4X objective to 1280x1024 camera
-PIXEL_SCALE = 1/832 # pixel / mm
+PIXEL_SCALE = 1/833 # pixel / mm
 STAGE_X_SIZE=140
 STAGE_Y_SIZE=140
 
