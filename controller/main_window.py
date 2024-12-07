@@ -1,8 +1,7 @@
-import cv2
+import ffmpeg
 import os
 import numpy as np
 
-# import cv2
 import time
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.uic import loadUi
@@ -57,6 +56,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.camera.begin()
         self.camera.camera_play()
 
+
+        self.process = (
+            ffmpeg.input(
+                "pipe:",
+                format="rawvideo",
+                pix_fmt="rgb24",
+                s="{}x{}".format(1280, 1024),
+            ).filter('scale', 640, -1)
+            .output(
+                "movie.mp4", pix_fmt="yuv420p", vcodec="libx264", preset="ultrafast", crf=27)
+            .overwrite_output()
+            .run_async(pipe_stdin=True)
+        )
+        #self.movie = open("movie.raw", "wb")
         self.state = "None"
         self.m_pos = [-1, -1, -1]
 
@@ -197,6 +210,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def imageChanged(self, img):
         t0 = time.time()
+        #self.movie.write(img.astype(np.uint8).tobytes())
+        self.process.stdin.write(img.astype(np.uint8).tobytes())
+
         self.t0 = t0
         if self.state == "Jog" or self.state == "Run":
             self.tile_graphics_view.addImageIfMissing(img, self.m_pos)
@@ -229,11 +245,11 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.zoom_view.setPixmap(QtGui.QPixmap.fromImage(zoom_image))
         # self.image_view.setFixedSize(s[1], s[0])
         pixmap = QtGui.QPixmap.fromImage(image)
-        pixmap = pixmap.scaled(
-            self.image_view.size(),
-            QtCore.Qt.KeepAspectRatio,
-            QtCore.Qt.SmoothTransformation,
-        )
+        # pixmap = pixmap.scaled(
+        #     self.image_view.size(),
+        #     QtCore.Qt.KeepAspectRatio,
+        #     QtCore.Qt.SmoothTransformation,
+        # )
         self.image_view.setPixmap(pixmap)
 
     def onMessageChanged(self, message):
