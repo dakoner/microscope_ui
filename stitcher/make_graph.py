@@ -19,6 +19,7 @@ import numpy as np
 import sys
 import signal
 from PyQt5 import QtGui, QtCore, QtWidgets
+import imageio as iio
 
 sys.path.insert(0, "controller")
 sys.path.insert(0, "../controller")
@@ -26,49 +27,90 @@ from config import HEIGHT, WIDTH, FOV_X_PIXELS, FOV_Y_PIXELS, PIXEL_SCALE
 from PIL import Image
 
 
-class ImageNode(QtWidgets.QGraphicsRectItem):
-    def __init__(self, *args):
-        super().__init__(*args)
-        self.setFlags(QtWidgets.QGraphicsItem.ItemIsMovable | QtWidgets.QGraphicsItem.ItemSendsScenePositionChanges)
+class ImageNode(QtWidgets.QGraphicsPixmapItem):
+    def __init__(self, bounds, fname, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setFlags(
+            QtWidgets.QGraphicsItem.ItemIsMovable
+            | QtWidgets.QGraphicsItem.ItemSendsScenePositionChanges
+        )
+        x, y = bounds[0], bounds[1]
+        # width, height = bounds[2] - x, bounds[3] - y
+        image = iio.imread(fname)
+        alpha = np.zeros((image.shape[0], image.shape[1]), dtype=np.uint8)
+        alpha.fill(127)
+        image = np.dstack((image, alpha))
+        image = qimage2ndarray.array2qimage(image)  # , normalize=True)
+
+        pixmap = QtGui.QPixmap.fromImage(image)
+        self.setPixmap(pixmap)
         self.edges = []
+        self.setPos(x, y)
+
+    def paint(self, qp, opt, widget=None):
+        colliding = [item for item in self.collidingItems() if item is not self and isinstance(item, ImageNode)]
+        
+        if not colliding:
+            print("easy case")
+            super().paint(qp, opt, widget)
+            return
+
+        qp.save()
+
+        collisions = QtGui.QPolygonF()
+        for other in colliding:
+            collisions = collisions.united(
+                other.mapToScene(other.boundingRect()))
+        collisionPath = QtGui.QPainterPath()
+        collisionPath.addPolygon(collisions)
+
+        fullPath = QtGui.QPainterPath()
+        fullPath.addPolygon(self.mapToScene(self.boundingRect()))
+        print(fullPath.controlPointRect())
+        # draw the pixmap only where it has no colliding items
+        qp.setClipPath(self.mapFromScene(fullPath.subtracted(collisionPath)))
+        super().paint(qp, opt, widget)
+
+        # draw the collision parts with half opacity
+        qp.setClipPath(self.mapFromScene(fullPath.intersected(collisionPath)))
+        qp.setOpacity(.1)
+        super().paint(qp, opt, widget)
+
+        qp.restore()
+        
+        return super().paint(qp, opt, widget)
         
     def itemChange(self, change, variant):
         if change == QtWidgets.QGraphicsItem.ItemPositionChange:
             t = variant - self.pos()
             for edge in self.edges:
-                if edge.polys[0] == self: 
-                    l = edge.line()
+                l = edge.line()
+                if edge.polys[0] == self:
                     l.setP1(l.p1() + t)
                     edge.setLine(l)
                 elif edge.polys[1] == self:
-                    l = edge.line()
                     l.setP2(l.p2() + t)
                     edge.setLine(l)
         return super().itemChange(change, variant)
-        
+
+
 class ScannedImage(QtWidgets.QGraphicsView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.scene = QtWidgets.QGraphicsScene()
         self.setScene(self.scene)
+        self.setCacheMode(QtWidgets.QGraphicsView.CacheNone)
 
     def resizeEvent(self, event):
         # fitInView interferes with scale()
         self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
 
-    def addItem(self, bounds):
-        x, y = bounds[0], bounds[1]
-        width, height = bounds[2] - x, bounds[3] - y
-        r = ImageNode(0, 0, width, height)
-        self.scene.addItem(r)
-        r.setPos(x, y)
-        pen = QtGui.QPen(QtGui.QColor(0, 0, 0))
-        pen.setWidth(10)
-        r.setPen(pen)
-        brush = QtGui.QBrush(QtGui.QColor(255, 255, 0))
-        r.setBrush(brush)
-        return r
+    def addItem(self, bounds, fname):
 
+        r = ImageNode(bounds, fname)
+        self.scene.addItem(r)
+
+        return r
 
     def addEdge(self, intersection):
         p1, p2 = intersection
@@ -88,11 +130,11 @@ class QApplication(QtWidgets.QApplication):
 
         self.prefix = prefix
         self.tc = TileConfiguration()
-        self.tc.load(f"{prefix}/TileConfiguration.txt")
+        self.tc.load(f"{prefix}/images.origin.txt")
         self.tc.move_to_origin()
         self.create_graph()
         self.create_scene()
-        
+
         self.main_window = QtWidgets.QMainWindow()
         self.main_window.setCentralWidget(self.scanned_image)
         self.scanned_image.show()
@@ -116,16 +158,18 @@ class QApplication(QtWidgets.QApplication):
         poly_to_item = {}
 
         for node in self.graph.nodes:
-            self.graph.add_node(node)
-            poly_to_item[node] = self.scanned_image.addItem(node.bounds)
-        
-        for edge in self.graph.edges:
-            line = self.scanned_image.addEdge(edge)
-            i1 = poly_to_item[edge[0]]
-            i1.edges.append(line)
-            i2 = poly_to_item[edge[1]]
-            i2.edges.append(line)
-            line.polys = (i1, i2)
+            fname = self.graph.nodes[node]["fname"]
+            poly_to_item[node] = self.scanned_image.addItem(
+                node.bounds, self.prefix / fname
+            )
+
+        # for edge in self.graph.edges:
+        #     line = self.scanned_image.addEdge(edge)
+        #     i1 = poly_to_item[edge[0]]
+        #     i1.edges.append(line)
+        #     i2 = poly_to_item[edge[1]]
+        #     i2.edges.append(line)
+        #     line.polys = (i1, i2)
 
 
 if __name__ == "__main__":
@@ -137,4 +181,3 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     app = QApplication(prefix)
     app.exec()
-
