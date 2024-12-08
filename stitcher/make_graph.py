@@ -18,7 +18,7 @@ import qimage2ndarray
 import numpy as np
 import sys
 import signal
-from PyQt5 import QtGui, QtCore, QtWidgets
+from PyQt6 import QtGui, QtCore, QtWidgets
 import imageio as iio
 
 sys.path.insert(0, "controller")
@@ -31,57 +31,67 @@ class ImageNode(QtWidgets.QGraphicsPixmapItem):
     def __init__(self, bounds, fname, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setFlags(
-            QtWidgets.QGraphicsItem.ItemIsMovable
-            | QtWidgets.QGraphicsItem.ItemSendsScenePositionChanges
+            QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable
+           # | QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemSendsScenePositionChanges
         )
         x, y = bounds[0], bounds[1]
         # width, height = bounds[2] - x, bounds[3] - y
         image = iio.imread(fname)
         alpha = np.zeros((image.shape[0], image.shape[1]), dtype=np.uint8)
-        alpha.fill(127)
+        alpha.fill(255)
         image = np.dstack((image, alpha))
         image = qimage2ndarray.array2qimage(image)  # , normalize=True)
-
         pixmap = QtGui.QPixmap.fromImage(image)
         self.setPixmap(pixmap)
         self.edges = []
         self.setPos(x, y)
 
-    def paint(self, qp, opt, widget=None):
+    def paint(self, painter, opt, widget=None):
         colliding = [item for item in self.collidingItems() if item is not self and isinstance(item, ImageNode)]
-        
         if not colliding:
-            print("easy case")
-            super().paint(qp, opt, widget)
-            return
+            return super().paint(painter, opt, widget)
 
-        qp.save()
+        painter.save()
 
         collisions = QtGui.QPolygonF()
+
         for other in colliding:
             collisions = collisions.united(
                 other.mapToScene(other.boundingRect()))
         collisionPath = QtGui.QPainterPath()
         collisionPath.addPolygon(collisions)
-
+        
         fullPath = QtGui.QPainterPath()
         fullPath.addPolygon(self.mapToScene(self.boundingRect()))
-        print(fullPath.controlPointRect())
         # draw the pixmap only where it has no colliding items
-        qp.setClipPath(self.mapFromScene(fullPath.subtracted(collisionPath)))
-        super().paint(qp, opt, widget)
-
+        painter.setClipPath(self.mapFromScene(fullPath.subtracted(collisionPath)))
+        super().paint(painter, opt, widget)
         # draw the collision parts with half opacity
-        qp.setClipPath(self.mapFromScene(fullPath.intersected(collisionPath)))
-        qp.setOpacity(.1)
-        super().paint(qp, opt, widget)
-
-        qp.restore()
+        painter.setClipPath(self.mapFromScene(fullPath.intersected(collisionPath)))
+        painter.setOpacity(.5)
+        super().paint(painter, opt, widget)
         
-        return super().paint(qp, opt, widget)
+        
+        painter.restore()
+
+        painter.save()        
+        painter.setOpacity(1)
+        painter.setClipping(False)
+        
+        border_colour = QtGui.QColor(241, 175, 0, 255)
+        painter.setPen(QtGui.QPen(border_colour, 2))
+        painter.drawPath(self.mapFromScene(fullPath.intersected(collisionPath)))
+        
+        
+        border_colour = QtGui.QColor(175, 241, 0, 255)
+        painter.setPen(QtGui.QPen(border_colour, 2))
+        painter.drawPath(self.mapFromScene(fullPath.subtracted(collisionPath)))
+        painter.restore()
+        
+        return #super().paint(painter, opt, widget)
         
     def itemChange(self, change, variant):
-        if change == QtWidgets.QGraphicsItem.ItemPositionChange:
+        if change == QtWidgets.QGraphicsItem.GraphicsItemChange.ItemPositionChange:
             t = variant - self.pos()
             for edge in self.edges:
                 l = edge.line()
@@ -99,11 +109,26 @@ class ScannedImage(QtWidgets.QGraphicsView):
         super().__init__(*args, **kwargs)
         self.scene = QtWidgets.QGraphicsScene()
         self.setScene(self.scene)
-        self.setCacheMode(QtWidgets.QGraphicsView.CacheNone)
+        self.setCacheMode(QtWidgets.QGraphicsView.CacheModeFlag.CacheNone)
+        self.setViewportUpdateMode(QtWidgets.QGraphicsView.ViewportUpdateMode.FullViewportUpdate)
+        #self.setStyleSheet("background-color: transparent;")
 
-    def resizeEvent(self, event):
-        # fitInView interferes with scale()
-        self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
+        self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
+        # self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        # self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+    
+    def keyPressEvent(self, event):
+        key = event.key()
+        # check if autorepeat (only if doing cancelling-moves)
+        if key == QtCore.Qt.Key.Key_Up:
+            print("Scale")
+            self.scale(2, 2)
+        elif key == QtCore.Qt.Key.Key_Down:
+            self.scale(0.5, 0.5)
+            
+    # def resizeEvent(self, event):
+    #     # fitInView interferes with scale()
+    #     self.fitInView(self.scene.sceneRect(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
 
     def addItem(self, bounds, fname):
 
@@ -130,7 +155,9 @@ class QApplication(QtWidgets.QApplication):
 
         self.prefix = prefix
         self.tc = TileConfiguration()
-        self.tc.load(f"{prefix}/images.origin.txt")
+        #self.tc.load(f"{prefix}/images.origin.txt")
+        self.tc.load(f"{prefix}/TileConfiguration.registered.registered.txt")
+        
         self.tc.move_to_origin()
         self.create_graph()
         self.create_scene()
@@ -138,12 +165,12 @@ class QApplication(QtWidgets.QApplication):
         self.main_window = QtWidgets.QMainWindow()
         self.main_window.setCentralWidget(self.scanned_image)
         self.scanned_image.show()
-        self.scanned_image.scene.setSceneRect(
-            self.scanned_image.scene.itemsBoundingRect()
-        )
+        # self.scanned_image.scene.setSceneRect(
+        #     self.scanned_image.scene.itemsBoundingRect()
+        # )
         self.scanned_image.scene.clearSelection()
 
-        self.main_window.showMaximized()
+        self.main_window.show()#Maximized()
 
     def create_graph(self):
         polys, poly_to_fname = tile_config_to_shapely(self.prefix, self.tc)
