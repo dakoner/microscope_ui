@@ -9,6 +9,7 @@ import serial_interface_qobject
 
 import gige_camera_qobject
 import uvc_camera_qobject
+import uvclite_camera_qobject
 from tile_graphics_view import TileGraphicsView
 
 # from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
@@ -40,10 +41,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if CAMERA == "spin":
             import pyspin_camera_qobject
-
             self.camera = pyspin_camera_qobject.PySpinCamera()
         elif CAMERA == "uvc":
-            self.camera = uvc_camera_qobject.UVCCamera(2)
+            self.camera = uvc_camera_qobject.UVCCamera(3)
+        elif CAMERA == "uvclite":
+            self.camera = uvclite_camera_qobject.UVCCamera()
         elif CAMERA == "gige":
             self.camera = gige_camera_qobject.GigECamera()
         else:
@@ -104,14 +106,14 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.AeTargetSlider.setMaximum(self.camera.cap.sExposeDesc.uiTargetMax)
         # self.camera.AeTargetChanged.connect(self.AeTargetChangedCallback)
 
-        self.exposureTimeSlider.valueChanged.connect(self.ExposureTimeChanged)
-        self.exposureTimeLabel.setText(str(self.camera.ExposureTime))
-        self.exposureTimeSlider.setMinimum(self.camera.cap.sExposeDesc.uiExposeTimeMin)
-        self.exposureTimeSlider.setMaximum(self.camera.cap.sExposeDesc.uiExposeTimeMax)
-        self.camera.ExposureTimeChanged.connect(self.ExposureTimeChangedCallback)
+        #self.exposureTimeSlider.valueChanged.connect(self.ExposureTimeChanged)
+        #self.exposureTimeLabel.setText(str(self.camera.ExposureTime))
+        #self.exposureTimeSlider.setMinimum(self.camera.cap.sExposeDesc.uiExposeTimeMin)
+        #self.exposureTimeSlider.setMaximum(self.camera.cap.sExposeDesc.uiExposeTimeMax)
+        #self.camera.ExposureTimeChanged.connect(self.ExposureTimeChangedCallback)
         self.radioButton_23.toggle()
         #self.enableAuto(True)
-        self.ExposureTimeChanged(650)
+        #self.ExposureTimeChanged(650)
 
         # self.analogGainSlider.valueChanged.connect(self.AnalogGainChanged)
         # self.analogGainLabel.setText(str(self.camera.AnalogGain))

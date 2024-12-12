@@ -16,13 +16,13 @@ MQTT_HOST='dektop'
 # 4X objective to 1280x1024 camera
 PIXEL_SCALE = 1/832 # pixel / mm
 STAGE_X_SIZE=140
-STAGE_Y_SIZE=140
+STAGE_Y_SIZE=120
 
 # inspection scope with zoom lens, set to minimum zoom, 1280x720 image
 #PIXEL_SCALE=.009865
-CAMERA='gige'
+CAMERA='uvclite'
 WIDTH=1280
-HEIGHT=1024
+HEIGHT=720
 FPS=30
 
 FOV_X_PIXELS = WIDTH
