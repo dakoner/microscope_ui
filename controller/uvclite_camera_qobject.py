@@ -27,7 +27,7 @@ class Worker(QtCore.QThread):
 
     def acquire_callback(self):
         frame = self.device.get_frame()
-        print(frame.size)  # print size of frame in bytes
+        print("Frame")
         if frame.size != 1280*720*2:
             print("bad frame")
             return
@@ -68,6 +68,10 @@ class UVCCamera(QtCore.QObject):
         # format_desc = uvclite.libuvc.uvc_get_format_descs(device._handle_p)
         # print(format_desc)
         self.device.set_stream_format(uvclite.UVCFrameFormat.UVC_FRAME_FORMAT_YUYV, width=1280, height=720)  # sets default format (MJPEG, 640x480, 30fps)
+        error = uvclite.libuvc.uvc_set_ae_mode(self.device._handle_p, 1)
+        print(error)
+        error=uvclite.libuvc.uvc_set_exposure_abs(self.device._handle_p, 100)
+        print(error)
         self.worker = None 
 
     def __del__(self):
