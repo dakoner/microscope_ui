@@ -131,9 +131,9 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
 
     def onRubberBandChanged(self, rect, from_, to):
         if from_.isNull() and to.isNull():
-            pen = QtGui.QPen(QtCore.Qt.red)
+            pen = QtGui.QPen(QtCore.Qt.GlobalColor.red)
             pen.setWidth(0)
-            color = QtGui.QColor(QtCore.Qt.black)
+            color = QtGui.QColor(QtCore.Qt.GlobalColor.black)
             color.setAlpha(0)
             brush = QtGui.QBrush(color)
 
