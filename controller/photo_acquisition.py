@@ -123,7 +123,7 @@ class Acquisition:
         self.app.main_window.tile_graphics_view.addImage(
             frame, self.app.main_window.m_pos
         )
-        format = QtGui.QImage.Format_RGB888
+        format = QtGui.QImage.Format.Format_RGB888
         s = frame.shape
         image = QtGui.QImage(frame, s[1], s[0], format)
         image = image.mirrored(horizontal=True, vertical=False)
@@ -183,20 +183,19 @@ class Acquisition:
         # print(self.ys)
         for i, deltaz in enumerate(self.zs):
             curr_z = z + deltaz
-            for j, gy in enumerate(self.ys):
-                # grid.append([["MOVE_TO", (self.xs[0],gy,curr_z), (0,j,0), 1000], ["HOME_X"], ["WAIT"]])
+
+            for k, gx in enumerate(self.xs):
+                for j, gy in enumerate(self.ys):
                 # if j % 2 == 0:
-                xs = enumerate(self.xs)
+                #xs = enumerate(self.xs)
                 # else:
                 #     print(xs)
 
                 #     xs = enumerate(reversed(self.xs))
                 #     print(xs)
-                for k, gx in enumerate(xs):
-                    print(k, gx, float(gx[1]))
                     grid.append(
                         [
-                            ["MOVE_TO", (float(gx[1]), gy, curr_z), (k, j, 0), 1000],
+                            ["MOVE_TO", (float(gx), float(gy), curr_z), (k, j, 0), 1000],
                             ["WAIT"],
                             ["PHOTO"],
                         ]
