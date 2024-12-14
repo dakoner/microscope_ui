@@ -1,3 +1,4 @@
+from ctypes import byref, POINTER, c_void_p, c_uint32
 import numpy as np
 from PyQt6 import QtCore
 import uvclite
@@ -27,7 +28,7 @@ class Worker(QtCore.QThread):
 
     def acquire_callback(self):
         frame = self.device.get_frame()
-        print("Frame")
+        #print("Frame")
         if frame.size != 1280*720*2:
             print("bad frame")
             return
@@ -43,11 +44,10 @@ class Worker(QtCore.QThread):
         self.device.close()
 
 
-class UVCCamera(QtCore.QObject):
+class UVCLiteCamera(QtCore.QObject):
 
-    exposureChanged = QtCore.pyqtSignal(float)
-    autoExposureModeChanged = QtCore.pyqtSignal(bool)
-    acquisitionModeChanged = QtCore.pyqtSignal(bool)
+    ExposureTimeChanged = QtCore.pyqtSignal(float)
+    AeStateChanged = QtCore.pyqtSignal(float)
     imageChanged = QtCore.pyqtSignal(np.ndarray, int, int, int)
     snapshotCompleted = QtCore.pyqtSignal(np.ndarray)
 
@@ -55,6 +55,7 @@ class UVCCamera(QtCore.QObject):
         super().__init__(parent)
         self.context = uvclite.UVCContext()
         self.device = self.context.find_device() # finds first device
+        print(dir(self.device))
         self.device.open()
         self.device.print_diagnostics()
         devdesc = self.device.get_device_descriptor()
@@ -68,12 +69,60 @@ class UVCCamera(QtCore.QObject):
         # format_desc = uvclite.libuvc.uvc_get_format_descs(device._handle_p)
         # print(format_desc)
         self.device.set_stream_format(uvclite.UVCFrameFormat.UVC_FRAME_FORMAT_YUYV, width=1280, height=720)  # sets default format (MJPEG, 640x480, 30fps)
-        error = uvclite.libuvc.uvc_set_ae_mode(self.device._handle_p, 1)
-        print(error)
-        error=uvclite.libuvc.uvc_set_exposure_abs(self.device._handle_p, 100)
-        print(error)
+        #error = uvclite.libuvc.uvc_set_ae_mode(self.device._handle_p, 1)
+        #error = uvclite.libuvc.uvc_set_exposure_abs(self.device._handle_p, 100)
         self.worker = None 
 
+    def _uvc_get_exposure_abs(self, flag):
+        t = c_uint32()
+        error = uvclite.libuvc.uvc_get_exposure_abs(self.device._handle_p, byref(t), flag.value)
+        if error != 0:
+            raise RuntimeError(error)
+        return t.value
+
+    def _uvc_get_exposure_abs_min(self):
+        return self._uvc_get_exposure_abs(uvclite.libuvc.uvc_req_code.UVC_GET_MIN)
+    
+    def _uvc_get_exposure_abs_max(self):
+        return self._uvc_get_exposure_abs(uvclite.libuvc.uvc_req_code.UVC_GET_MAX)
+    
+    def _uvc_get_exposure_abs_def(self):
+        return self._uvc_get_exposure_abs(uvclite.libuvc.uvc_req_code.UVC_GET_DEF)
+    
+    def _uvc_get_exposure_abs_cur(self):
+        return self._uvc_get_exposure_abs(uvclite.libuvc.uvc_req_code.UVC_GET_DEF)
+    
+        
+    @QtCore.pyqtProperty(float, notify=ExposureTimeChanged)
+    def ExposureTime(self):
+        return self._uvc_get_exposure_abs_cur()
+                                                    
+    @ExposureTime.setter
+    def ExposureTime(self, exposure):
+        if exposure == self._uvc_get_exposure_abs_cur():
+            return
+        result = uvclite.libuvc.uvc_set_exposure_abs(self.device._handle_p, exposure)
+        return self._uvc_get_exposure_abs_cur()
+ 
+ 
+    def _uvc_get_ae_mode(self, flag):
+        t = c_uint32()
+        error = uvclite.libuvc.uvc_get_ae_mode(self.device._handle_p, byref(t), flag.value)
+        if error != 0:
+            raise RuntimeError(error)
+        return t
+    
+    @QtCore.pyqtProperty(int, notify=AeStateChanged)
+    def AeState(self):
+        return self._uvc_get_ae_mode(uvclite.libuvc.uvc_req_code.UVC_GET_CUR).value
+
+    @AeState.setter
+    def AeState(self, state):
+        if state == self._uvc_get_ae_mode(uvclite.libuvc.uvc_req_code.UVC_GET_CUR):
+            return
+        result = uvclite.libuvc.uvc_set_ae_mode(self.device._handle_p, state)
+        return self._uvc_get_ae_mode(uvclite.libuvc.uvc_req_code.UVC_GET_CUR).value
+    
     def __del__(self):
         self.device.free_device_descriptor()
         print("Freed descriptor")
@@ -105,56 +154,3 @@ class UVCCamera(QtCore.QObject):
         self.worker.terminate()
         self.worker = None
         self.cap.release()
-
-    # @QtCore.pyqtProperty(str, notify=acquisitionModeChanged)
-    # def acquisitionMode(self):
-    #     return self.camera.AcquisitionMode.ToString()
-
-    # @acquisitionMode.setter
-    # def acquisitionMode(self, acquisitionMode):
-    #     node_acquisition_mode = PySpin.CEnumerationPtr(self.nodemap.GetNode('AcquisitionMode'))
-    #     acquisitionMode_value = node_acquisition_mode.GetEntryByName(acquisitionMode).GetValue()
-    #     if acquisitionMode_value == node_acquisition_mode.GetIntValue(): return
-    #     node_acquisition_mode.SetIntValue(acquisitionMode_value)
-    #     self.acquisitionModeChanged.emit(node_acquisition_mode.GetIntValue())
-
-    # @QtCore.pyqtProperty(bool)#, notify=autoExposureModeChanged)
-    # def autoExposureMode(self):
-    #     try:
-    #         node_autoExposure_mode = PySpin.CEnumerationPtr(self.nodemap.GetNode('ExposureAuto'))
-    #         currentValue = node_autoExposure_mode.GetIntValue()
-    #         if currentValue == PySpin.ExposureAuto_Off: returnValue= False
-    #         elif currentValue == PySpin.ExposureAuto_Continuous: returnValue= True
-    #         return returnValue
-    #     except:
-    #         import traceback
-    #         traceback.print_exc()
-
-    # @autoExposureMode.setter
-    # def autoExposureMode(self, autoExposureMode):
-    #     currentValue = self.camera.ExposureAuto.GetValue()
-    #     if autoExposureMode is False:
-    #         if currentValue is PySpin.ExposureAuto_Off: return
-    #         self.camera.ExposureAuto.SetValue(PySpin.ExposureAuto_Off)
-
-    #     elif autoExposureMode is True:
-    #         if currentValue is PySpin.ExposureAuto_Continuous: return
-    #         self.camera.ExposureAuto.SetValue(PySpin.ExposureAuto_Continuous)
-
-    #     currentValue = self.camera.ExposureAuto.GetValue()
-
-    #     if currentValue == PySpin.ExposureAuto_Off: returnValue= False
-    #     elif currentValue == PySpin.ExposureAuto_Continuous: returnValue= True
-    #     self.autoExposureModeChanged.emit(returnValue)
-
-    # @QtCore.pyqtProperty(float, notify=exposureChanged)
-    # def exposure(self):
-    #     return self.camera.ExposureTime.GetValue()
-
-    # @exposure.setter
-    # def exposure(self, exposure):
-    #     print("Autoexposure value:",  self.camera.ExposureAuto.GetValue())
-    #     if exposure == self.camera.ExposureTime.GetValue():
-    #         return
-    #     self.camera.ExposureTime.SetValue(exposure)
-    #     self.exposureChanged.emit(self.camera.ExposureTime.GetValue())

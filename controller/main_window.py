@@ -45,7 +45,7 @@ class MainWindow(QtWidgets.QMainWindow):
         elif CAMERA == "uvc":
             self.camera = uvc_camera_qobject.UVCCamera(3)
         elif CAMERA == "uvclite":
-            self.camera = uvclite_camera_qobject.UVCCamera()
+            self.camera = uvclite_camera_qobject.UVCLiteCamera()
         elif CAMERA == "gige":
             self.camera = gige_camera_qobject.GigECamera()
         else:
@@ -106,14 +106,19 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.AeTargetSlider.setMaximum(self.camera.cap.sExposeDesc.uiTargetMax)
         # self.camera.AeTargetChanged.connect(self.AeTargetChangedCallback)
 
-        #self.exposureTimeSlider.valueChanged.connect(self.ExposureTimeChanged)
-        #self.exposureTimeLabel.setText(str(self.camera.ExposureTime))
+        self.exposureTimeSlider.valueChanged.connect(self.ExposureTimeChanged)
+        self.exposureTimeLabel.setText(str(self.camera.ExposureTime))
+        # needs to be camera-independent
         #self.exposureTimeSlider.setMinimum(self.camera.cap.sExposeDesc.uiExposeTimeMin)
         #self.exposureTimeSlider.setMaximum(self.camera.cap.sExposeDesc.uiExposeTimeMax)
-        #self.camera.ExposureTimeChanged.connect(self.ExposureTimeChangedCallback)
+        self.exposureTimeSlider.setMinimum(self.camera._uvc_get_exposure_abs_min())
+        self.exposureTimeSlider.setMaximum(self.camera._uvc_get_exposure_abs_max())
+        self.exposureTimeSlider.setValue(self.camera._uvc_get_exposure_abs_cur())
+        self.camera.ExposureTimeChanged.connect(self.ExposureTimeChangedCallback)
         self.radioButton_23.toggle()
-        #self.enableAuto(True)
-        #self.ExposureTimeChanged(650)
+        
+        self.enableAuto(True)
+        self.ExposureTimeChanged(650)
 
         # self.analogGainSlider.valueChanged.connect(self.AnalogGainChanged)
         # self.analogGainLabel.setText(str(self.camera.AnalogGain))
