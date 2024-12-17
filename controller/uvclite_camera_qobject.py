@@ -29,14 +29,16 @@ class Worker(QtCore.QThread):
     def acquire_callback(self):
         frame = self.device.get_frame()
         #print("Frame")
-        if frame.size != 1280*720*2:
+        if frame.size != WIDTH*HEIGHT*2:
             print("bad frame")
             return
-        raw_data = np.frombuffer(frame.data, dtype=np.uint8, count=1280*720*2)
-        im = raw_data.reshape(720, 1280, 2)
+        raw_data = np.frombuffer(frame.data, dtype=np.uint8, count=WIDTH*HEIGHT*2)
+        im = raw_data.reshape(HEIGHT, WIDTH, 2)
+        im = cv2.cvtColor(im, cv2.COLOR_YUV2BGR_YUYV)
+        im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
         self.imageChanged.emit(
-            cv2.cvtColor(im, cv2.COLOR_YUV2BGR_YUYV),
-            1280, 720, 1280
+            im,
+            WIDTH, HEIGHT, WIDTH
         )
 
     def __del__(self):
@@ -69,7 +71,7 @@ class UVCLiteCamera(QtCore.QObject):
         # print(uvclite.libuvc.uvc_get_format_descs)
         # format_desc = uvclite.libuvc.uvc_get_format_descs(device._handle_p)
         # print(format_desc)
-        self.device.set_stream_format(uvclite.UVCFrameFormat.UVC_FRAME_FORMAT_YUYV, width=1280, height=720)  # sets default format (MJPEG, 640x480, 30fps)
+        self.device.set_stream_format(uvclite.UVCFrameFormat.UVC_FRAME_FORMAT_YUYV, width=WIDTH, height=HEIGHT)  # sets default format (MJPEG, 640x480, 30fps)
         self.worker = None 
 
     def _uvc_get_exposure_abs(self, flag):
