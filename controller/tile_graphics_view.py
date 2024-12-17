@@ -6,7 +6,7 @@ import functools
 sys.path.append("..")
 from config import PIXEL_SCALE, WIDTH, HEIGHT, STAGE_X_SIZE, STAGE_Y_SIZE
 
-# from movie_acquisition import Acquisition
+#from movie_acquisition import Acquisition
 from photo_acquisition import Acquisition
 
 
@@ -26,11 +26,10 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
         self.setObjectName("TileGraphicsScene")
 
     def mouseMoveEvent(self, event):
-        print("tile scene moved")
         app = QtWidgets.QApplication.instance()
         pos = event.scenePos()
         message = f"Canvas: {pos.x():.3f}, {pos.y():.3f}, Stage: {pos.x()*PIXEL_SCALE:.3f}, {pos.y()*PIXEL_SCALE:.3f}"
-        print(message)
+        #print(message)
         app.main_window.statusbar.showMessage(message)
         return super().mouseMoveEvent(event)
 
@@ -146,7 +145,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
                 brush=brush,
             )
             rect.setZValue(3)
-            self.acquisition = Acquisition(self.lastRubberBand)
+            self.acquisition = Acquisition(self.scene, rect.rect(), self.lastRubberBand)
             self.acquisition.startAcquisition()
         else:
             self.lastRubberBand = from_, to

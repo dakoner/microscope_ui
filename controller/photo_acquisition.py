@@ -89,9 +89,10 @@ class ImageThread(QtCore.QThread):
 
 
 class Acquisition:
-    def __init__(self, lastRubberBand):
+    def __init__(self, scene, rect, lastRubberBand):
         self.app = QtWidgets.QApplication.instance()
-
+        self.scene = scene
+        self.rect = rect
         self.lastRubberBand = lastRubberBand
         self.startPos = QtCore.QPointF(
             self.lastRubberBand[0].x(), self.lastRubberBand[0].y()
