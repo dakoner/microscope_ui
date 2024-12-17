@@ -100,7 +100,7 @@ class MainWindow(QtWidgets.QMainWindow):
         os.makedirs(self.prefix)
         # self.camera.snapshotCompleted.connect(self.snapshotCompleted)
 
-        self.AeTargetSlider.valueChanged.connect(self.AeTargetChanged)
+        # self.AeTargetSlider.valueChanged.connect(self.AeTargetChanged)
         # self.AeTargetLabel.setText(str(self.camera.AeTarget))
         # self.AeTargetSlider.setMinimum(self.camera.cap.sExposeDesc.uiTargetMin)
         # self.AeTargetSlider.setMaximum(self.camera.cap.sExposeDesc.uiTargetMax)
@@ -118,13 +118,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.radioButton_23.toggle()
         
         self.enableAuto(True)
-        self.ExposureTimeChanged(650)
-
-        # self.analogGainSlider.valueChanged.connect(self.AnalogGainChanged)
-        # self.analogGainLabel.setText(str(self.camera.AnalogGain))
-        # self.analogGainSlider.setMinimum(self.camera.cap.sExposeDesc.uiAnalogGainMin)
-        # self.analogGainSlider.setMaximum(self.camera.cap.sExposeDesc.uiAnalogGainMax)
-        # self.camera.AnalogGainChanged.connect(self.AnalogGainChangedCallback)
+        # Thjis doesn't update the slider
+        self.ExposureTimeChangedCallback(25)
+        self.analogGainSlider.valueChanged.connect(self.AnalogGainChanged)
+        self.analogGainLabel.setText(str(self.camera.AnalogGain))
+        self.analogGainSlider.setMinimum(self.camera._uvc_get_gain_min())
+        self.analogGainSlider.setMaximum(self.camera._uvc_get_gain_max())
+        self.camera.AnalogGainChanged.connect(self.AnalogGainChangedCallback)
 
     def snapshotCompleted(self, frame):
         format = QtGui.QImage.Format_RGB888
