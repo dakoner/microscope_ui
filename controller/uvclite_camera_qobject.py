@@ -1,4 +1,4 @@
-from ctypes import byref, POINTER, c_void_p, c_uint32
+from ctypes import byref, POINTER, c_void_p, c_uint32, c_uint16
 import numpy as np
 from PyQt6 import QtCore
 import uvclite
@@ -48,6 +48,7 @@ class UVCLiteCamera(QtCore.QObject):
 
     ExposureTimeChanged = QtCore.pyqtSignal(float)
     AeStateChanged = QtCore.pyqtSignal(float)
+    AnalogGainChanged = QtCore.pyqtSignal(float)
     imageChanged = QtCore.pyqtSignal(np.ndarray, int, int, int)
     snapshotCompleted = QtCore.pyqtSignal(np.ndarray)
 
@@ -69,8 +70,6 @@ class UVCLiteCamera(QtCore.QObject):
         # format_desc = uvclite.libuvc.uvc_get_format_descs(device._handle_p)
         # print(format_desc)
         self.device.set_stream_format(uvclite.UVCFrameFormat.UVC_FRAME_FORMAT_YUYV, width=1280, height=720)  # sets default format (MJPEG, 640x480, 30fps)
-        #error = uvclite.libuvc.uvc_set_ae_mode(self.device._handle_p, 1)
-        #error = uvclite.libuvc.uvc_set_exposure_abs(self.device._handle_p, 100)
         self.worker = None 
 
     def _uvc_get_exposure_abs(self, flag):
@@ -114,15 +113,62 @@ class UVCLiteCamera(QtCore.QObject):
     
     @QtCore.pyqtProperty(int, notify=AeStateChanged)
     def AeState(self):
-        return self._uvc_get_ae_mode(uvclite.libuvc.uvc_req_code.UVC_GET_CUR).value
+        return self._uvc_get_ae_mode(uvclite.libuvc.uvc_req_code.UVC_GET_CUR)
 
     @AeState.setter
     def AeState(self, state):
         if state == self._uvc_get_ae_mode(uvclite.libuvc.uvc_req_code.UVC_GET_CUR):
             return
         result = uvclite.libuvc.uvc_set_ae_mode(self.device._handle_p, state)
-        return self._uvc_get_ae_mode(uvclite.libuvc.uvc_req_code.UVC_GET_CUR).value
+        return self._uvc_get_ae_mode(uvclite.libuvc.uvc_req_code.UVC_GET_CUR)
     
+    
+    # @QtCore.pyqtProperty(float, notify=AeTargetChanged)
+    # def AeTarget(self):
+    #     return mvsdk.CameraGetAeTarget(self.hCamera)
+
+    # @AeTarget.setter
+    # def AeTarget(self, target):
+    #     if target == mvsdk.CameraGetAeTarget(self.hCamera):
+    #         return
+    #     mvsdk.CameraSetAeTarget(self.hCamera, target)
+    #     self.AeTargetChanged.emit(mvsdk.CameraGetAeTarget(self.hCamera))
+
+
+
+    def _uvc_get_gain(self, flag):
+        t = c_uint16()
+        error = uvclite.libuvc.uvc_get_gain(self.device._handle_p, byref(t), flag.value)
+        if error != 0:
+            raise RuntimeError(error)
+        return t.value
+    
+    def _uvc_get_gain_min(self):
+        return self._uvc_get_gain(uvclite.libuvc.uvc_req_code.UVC_GET_MIN)
+    
+    def _uvc_get_gain_max(self):
+        return self._uvc_get_gain(uvclite.libuvc.uvc_req_code.UVC_GET_MAX)
+    
+    def _uvc_get_gain_def(self):
+        return self._uvc_get_gain(uvclite.libuvc.uvc_req_code.UVC_GET_DEF)
+    
+    def _uvc_get_gain_cur(self):
+        return self._uvc_get_gain(uvclite.libuvc.uvc_req_code.UVC_GET_DEF)
+    
+    
+    @QtCore.pyqtProperty(int, notify=AnalogGainChanged)
+    def AnalogGain(self):
+        g = self._uvc_get_gain_cur()
+        return g
+
+    @AnalogGain.setter
+    def AnalogGain(self, gain):
+        if gain == self._uvc_get_gain_cur():
+            return
+        result = uvclite.libuvc.uvc_set_gain(self.device._handle_p, gain)
+        return self._uvc_get_gain_cur()
+ 
+
     def __del__(self):
         self.device.free_device_descriptor()
         print("Freed descriptor")
