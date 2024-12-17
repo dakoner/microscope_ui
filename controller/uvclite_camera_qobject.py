@@ -8,6 +8,7 @@ import cv2
 
 class Worker(QtCore.QThread):
     imageChanged = QtCore.pyqtSignal(np.ndarray, int, int, int)
+    #yuvImageChanged = QtCore.pyqtSignal(np.ndarray, int, int, int)
 
     def __init__(self, device):
         super().__init__()
@@ -33,9 +34,12 @@ class Worker(QtCore.QThread):
             print("bad frame")
             return
         raw_data = np.frombuffer(frame.data, dtype=np.uint8, count=WIDTH*HEIGHT*2)
+        self.yuvImageChanged.emit(
+            raw_data,
+            WIDTH, HEIGHT, WIDTH
+        )
         im = raw_data.reshape(HEIGHT, WIDTH, 2)
-        im = cv2.cvtColor(im, cv2.COLOR_YUV2BGR_YUYV)
-        im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+        im = cv2.cvtColor(im, cv2.COLOR_YUV2RGB_YUYV)
         self.imageChanged.emit(
             im,
             WIDTH, HEIGHT, WIDTH
@@ -52,6 +56,7 @@ class UVCLiteCamera(QtCore.QObject):
     AeStateChanged = QtCore.pyqtSignal(float)
     AnalogGainChanged = QtCore.pyqtSignal(float)
     imageChanged = QtCore.pyqtSignal(np.ndarray, int, int, int)
+    #yuvImageChanged = QtCore.pyqtSignal(np.ndarray, int, int, int)
     snapshotCompleted = QtCore.pyqtSignal(np.ndarray)
 
     def __init__(self, parent=None):
@@ -121,7 +126,7 @@ class UVCLiteCamera(QtCore.QObject):
     def AeState(self, state):
         if state == self._uvc_get_ae_mode(uvclite.libuvc.uvc_req_code.UVC_GET_CUR):
             return
-        result = uvclite.libuvc.uvc_set_ae_mode(self.device._handle_p, state)
+        result = uvclite.libuvc.uvc_set_ae_mode(self.device._handle_p, not state)
         return self._uvc_get_ae_mode(uvclite.libuvc.uvc_req_code.UVC_GET_CUR)
     
     
@@ -179,6 +184,9 @@ class UVCLiteCamera(QtCore.QObject):
         self.currentFrame = d
         self.imageChanged.emit(d, w, h, s)
 
+    def yuvcallback(self, d, w, h, s):
+        self.yuvImageChanged.emit(d, w, h, s)
+        
     def snapshot(self):
         self.snapshotCompleted.emit(self.currentFrame)
 
@@ -196,6 +204,7 @@ class UVCLiteCamera(QtCore.QObject):
     def begin(self):
         self.worker = Worker(self.device)
         self.worker.imageChanged.connect(self.callback)#, QtCore.Qt.DirectConnection)
+        self.worker.imageChanged.connect(self.yuvcallback)#, QtCore.Qt.DirectConnection)
         self.worker.start()
 
     def end(self):

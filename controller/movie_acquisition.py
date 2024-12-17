@@ -57,15 +57,18 @@ class Acquisition:
         self.painter = QtGui.QPainter(self.image)
             
     def imageChanged(self, frame):
+        self.process.stdin.write(frame.tobytes())
+        #self.movie.write(frame.tobytes())
         #print("snapshot", time.time())
-        m_pos = self.app.main_window.m_pos
-        r = QtCore.QPointF(m_pos[0]/PIXEL_SCALE, m_pos[1]/PIXEL_SCALE)
-        d = r - self.startPos
-        image = qimage2ndarray.array2qimage(frame)#, normalize=True)
-        print(d)
-        self.painter.drawImage(d, image)
-        #self.process.stdin.write(frame.astype(np.uint8).tobytes())
+        # m_pos = self.app.main_window.m_pos
+        # r = QtCore.QPointF(m_pos[0]/PIXEL_SCALE, m_pos[1]/PIXEL_SCALE)
+        # d = r - self.startPos
+        # image = qimage2ndarray.array2qimage(frame)#, normalize=True)
+        # print(d)
+        # self.painter.drawImage(d, image)
 
+    
+        
     def generateGrid(self, from_, to):
         grid = []
         # self.zs = [-0.2,-0.1,0,0.1,0.2]
@@ -150,20 +153,21 @@ class Acquisition:
         self.time_0 = time.time()
         self.counter = 0
 
-        # self.process = (
-        #     ffmpeg.input(
-        #         "pipe:",
-        #         format="rawvideo",
-        #         pix_fmt="rgb24",
-        #         s="{}x{}".format(1280, 1024),
-        #         r=100,
-        #     )
-        #     .output(
-        #         "movie.mp4", pix_fmt="yuv420p", vcodec="libx264", r=100
-        #     )  # , preset="ultrafast", crf=50)
-        #     .overwrite_output()
-        #     .run_async(pipe_stdin=True)
-        # )
+        #self.movie = open("movie.raw", "wb")
+        self.process = (
+            ffmpeg.input(
+                "pipe:",
+                format="rawvideo",
+                pix_fmt="rgb24",
+                s="{}x{}".format(1280, 720),
+            )
+            .output(
+                "movie.mp4", pix_fmt="yuv420p", vcodec="libx264", crf=0
+                
+            )  
+            .overwrite_output()
+            .run_async(pipe_stdin=True)
+        )
         self.app.main_window.camera.imageChanged.connect(self.imageChanged)
         self.doCmd()
         # print("cmd=", cmd)
@@ -220,7 +224,8 @@ class Acquisition:
             self.app.main_window.tile_graphics_view.stopAcquisition()
             self.app.main_window.camera.imageChanged.disconnect(self.imageChanged)
             print("done")
-           
+            #self.movie.close()
+            self.process.stdin.close()
             self.painter.end()
             self.image.save("test.png")
         else:
