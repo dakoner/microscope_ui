@@ -57,21 +57,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.camera.startWorker()
         self.camera.begin()
         self.camera.camera_play()
-
-
-        # self.process = (
-        #     ffmpeg.input(
-        #         "pipe:",
-        #         format="rawvideo",
-        #         pix_fmt="rgb24",
-        #         s="{}x{}".format(1280, 1024),
-        #     ).filter('scale', 640, -1)
-        #     .output(
-        #         "movie.mp4", pix_fmt="yuv420p", vcodec="libx264", preset="ultrafast", crf=27)
-        #     .overwrite_output()
-        #     .run_async(pipe_stdin=True)
-        # )
-        #self.movie = open("movie.raw", "wb")
         self.state = "None"
         self.m_pos = [-1, -1, -1]
 
@@ -91,10 +76,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.scene = TileGraphicsScene()
         self.tile_graphics_view = TileGraphicsView(self.scene)
         self.tile_graphics_view.show()
-        #self.buttonGroup.buttonClicked.connect(self.triggerButtonGroupClicked)
-        # self.swToggleRadioButton.toggled.connect(self.enableSoftwareTrigger)
-        # self.swTogglePushButton.pressed.connect(self.softwareTrigger)
-        # self.hwToggleRadioButton.toggled.connect(self.enableHardwareTrigger)
+       
         self.radioButton_23.toggled.connect(self.enableAuto)
 
         self.prefix = os.path.join("photo", str(time.time()))
@@ -129,7 +111,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.enableAuto(False)
         #self.ExposureTimeChangedCallback(25)
 
- 
+        #self.buttonGroup.buttonClicked.connect(self.triggerButtonGroupClicked)
+        # self.swToggleRadioButton.toggled.connect(self.enableSoftwareTrigger)
+        # self.swTogglePushButton.pressed.connect(self.softwareTrigger)
+        # self.hwToggleRadioButton.toggled.connect(self.enableHardwareTrigger)
+        
     def imageChanged(self, img):
         #self.movie.write(img.astype(np.uint8).tobytes())
         #self.process.stdin.write(img.astype(np.uint8).tobytes())
@@ -137,17 +123,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.state == "Jog" or self.state == "Run":
             self.tile_graphics_view.addImageIfMissing(img, self.m_pos)
             # return
-
-        # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        # img = cv2.normalize(img, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-        # img = (255*img).astype(np.uint8)
-
-        # ima        image = QtGui.QImage(draw_data, s[1], s[0], format)
-        # image = image.mirrored(horizontal=True, vertical=False)
-        # pixmap = QtGui.QPixmap.fromImage(image)
-        # self.image_view.setFixedSize(1440//2, 1080//2)
-        # #self.image_view.setFixedSize(s[1], s[0])
-        # self.image_view.setPixmap(pixmap)
 
         s = img.shape
         if s[2] == 1:
