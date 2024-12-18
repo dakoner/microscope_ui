@@ -8,13 +8,14 @@ import cv2
 
 class Worker(QtCore.QThread):
     imageChanged = QtCore.pyqtSignal(np.ndarray, int, int, int)
-    #yuvImageChanged = QtCore.pyqtSignal(np.ndarray, int, int, int)
+    yuvImageChanged = QtCore.pyqtSignal(np.ndarray, int, int, int)
 
     def __init__(self, device):
         super().__init__()
         self.device = device
         self.paused = False
         self.device.start_streaming()
+        #self.f = open("test.raw", "wb")
 
     def pause(self):
         self.paused = True
@@ -34,6 +35,7 @@ class Worker(QtCore.QThread):
             print("bad frame")
             return
         raw_data = np.frombuffer(frame.data, dtype=np.uint8, count=WIDTH*HEIGHT*2)
+        #self.f.write(raw_data.tobytes())
         self.yuvImageChanged.emit(
             raw_data,
             WIDTH, HEIGHT, WIDTH
@@ -46,6 +48,7 @@ class Worker(QtCore.QThread):
         )
 
     def __del__(self):
+        #self.f.close()
         self.device.stop_streaming()
         self.device.close()
 
@@ -56,7 +59,7 @@ class UVCLiteCamera(QtCore.QObject):
     AeStateChanged = QtCore.pyqtSignal(float)
     AnalogGainChanged = QtCore.pyqtSignal(float)
     imageChanged = QtCore.pyqtSignal(np.ndarray, int, int, int)
-    #yuvImageChanged = QtCore.pyqtSignal(np.ndarray, int, int, int)
+    yuvImageChanged = QtCore.pyqtSignal(np.ndarray, int, int, int)
     snapshotCompleted = QtCore.pyqtSignal(np.ndarray)
 
     def __init__(self, parent=None):
@@ -204,7 +207,7 @@ class UVCLiteCamera(QtCore.QObject):
     def begin(self):
         self.worker = Worker(self.device)
         self.worker.imageChanged.connect(self.callback)#, QtCore.Qt.DirectConnection)
-        self.worker.imageChanged.connect(self.yuvcallback)#, QtCore.Qt.DirectConnection)
+        self.worker.yuvImageChanged.connect(self.yuvcallback)#, QtCore.Qt.DirectConnection)
         self.worker.start()
 
     def end(self):
