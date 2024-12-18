@@ -10,7 +10,7 @@ import serial_interface_qobject
 import gige_camera_qobject
 import uvc_camera_qobject
 import uvclite_camera_qobject
-from tile_graphics_view import TileGraphicsView
+from tile_graphics_view import TileGraphicsView, TileGraphicsScene
 
 # from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
 from config import PIXEL_SCALE, CAMERA, XY_FEED
@@ -88,7 +88,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.serial.stateChanged.connect(self.onStateChange)
         self.serial.messageChanged.connect(self.onMessageChanged)
 
-        self.tile_graphics_view = TileGraphicsView()
+        self.scene = TileGraphicsScene()
+        self.tile_graphics_view = TileGraphicsView(self.scene)
         self.tile_graphics_view.show()
         self.buttonGroup.buttonClicked.connect(self.triggerButtonGroupClicked)
         self.swToggleRadioButton.toggled.connect(self.enableSoftwareTrigger)

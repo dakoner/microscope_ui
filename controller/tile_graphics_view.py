@@ -59,19 +59,17 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
 
 
 class TileGraphicsView(QtWidgets.QGraphicsView):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, scene, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
+        self.setScene(scene)
         self.rubberBandChanged.connect(self.onRubberBandChanged)
         self.setDragMode(QtWidgets.QGraphicsView.DragMode.RubberBandDrag)
-        self.scene = TileGraphicsScene()
-        self.setScene(self.scene)
         self.addStageRect()
-        #print("Scene rect:", self.scene.sceneRect(), self.scene.itemsBoundingRect())
-        # self.fitInView(self.scene.itemsBoundingRect(), QtCore.Qt.KeepAspectRatio)
+        #print("Scene rect:", self.scene().sceneRect(), self.scene().itemsBoundingRect())
+        # self.fitInView(self.scene().itemsBoundingRect(), QtCore.Qt.KeepAspectRatio)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        # self.centerOn(self.scene.itemsBoundingRect().width()/2, self.scene.itemsBoundingRect().height()/2)
+        # self.centerOn(self.scene().itemsBoundingRect().width()/2, self.scene().itemsBoundingRect().height()/2)
         # self.setMouseTracking(True)
 
         self.currentRect = None
@@ -92,7 +90,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         pen.setWidth(0)
         brush = QtGui.QBrush(QtCore.Qt.GlobalColor.black)
         # print(0, 0, 45/PIXEL_SCALE, 45/PIXEL_SCALE)
-        self.stageRect = self.scene.addRect(
+        self.stageRect = self.scene().addRect(
             0,
             0,
             STAGE_X_SIZE / PIXEL_SCALE,
@@ -109,7 +107,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         brush = QtGui.QBrush(brush_color)
 
         #print("Adding rect", 0, 0, WIDTH, HEIGHT)
-        self.currentRect = self.scene.addRect(0, 0, WIDTH, HEIGHT, pen=pen, brush=brush)
+        self.currentRect = self.scene().addRect(0, 0, WIDTH, HEIGHT, pen=pen, brush=brush)
         self.currentRect.setZValue(2)
 
     def updateCurrentRect(self, x, y):
@@ -126,7 +124,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         self.acquisition = None
 
     def resizeEvent(self, *args):
-        self.fitInView(self.scene.sceneRect(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
+        self.fitInView(self.scene().sceneRect(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
         return super().resizeEvent(*args)
 
     def onRubberBandChanged(self, rect, from_, to):
@@ -137,7 +135,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
             color.setAlpha(0)
             brush = QtGui.QBrush(color)
 
-            rect = self.scene.addRect(
+            rect = self.scene().addRect(
                 self.lastRubberBand[0].x(),
                 self.lastRubberBand[0].y(),
                 self.lastRubberBand[1].x() - self.lastRubberBand[0].x(),
@@ -152,7 +150,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
             self.lastRubberBand = from_, to
 
     def reset(self):
-        self.scene.clear()
+        self.scene().clear()
         self.addStageRect()
         self.addCurrentRect()
 
@@ -189,7 +187,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         image = image.mirrored(horizontal=True, vertical=False)
         image = image.scaledToHeight(72)
         pixmap = QtGui.QPixmap.fromImage(image)
-        pm = self.scene.addPixmap(pixmap)
+        pm = self.scene().addPixmap(pixmap)
         pm.setPos(pos[0] / PIXEL_SCALE, pos[1] / PIXEL_SCALE)
         pm.setScale(10)
         pm.setZValue(1)
