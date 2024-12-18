@@ -53,7 +53,8 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         self.acquisition = None
 
     def resizeEvent(self, *args):
-        self.fitInView(self.scene().sceneRect(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
+        print("resize")
+        self.fitInView(self.scene().sceneRect())#, QtCore.Qt.AspectRatioMode.KeepAspectRatio)
         return super().resizeEvent(*args)
 
     def onRubberBandChanged(self, rect, from_, to):
