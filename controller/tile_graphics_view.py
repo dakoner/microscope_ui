@@ -6,8 +6,8 @@ import functools
 sys.path.append("..")
 from config import PIXEL_SCALE, WIDTH, HEIGHT, STAGE_X_SIZE, STAGE_Y_SIZE
 
-#from movie_acquisition import Acquisition
-from photo_acquisition import Acquisition
+from movie_acquisition import Acquisition
+#from photo_acquisition import Acquisition
 
 
 def calculate_area(qpolygon):
@@ -67,7 +67,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         self.scene = TileGraphicsScene()
         self.setScene(self.scene)
         self.addStageRect()
-        print("Scene rect:", self.scene.sceneRect(), self.scene.itemsBoundingRect())
+        #print("Scene rect:", self.scene.sceneRect(), self.scene.itemsBoundingRect())
         # self.fitInView(self.scene.itemsBoundingRect(), QtCore.Qt.KeepAspectRatio)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -108,6 +108,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         brush_color = QtGui.QColor(0,0,0,0)
         brush = QtGui.QBrush(brush_color)
 
+        #print("Adding rect", 0, 0, WIDTH, HEIGHT)
         self.currentRect = self.scene.addRect(0, 0, WIDTH, HEIGHT, pen=pen, brush=brush)
         self.currentRect.setZValue(2)
 
@@ -178,7 +179,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
             self.addImage(draw_data, pos)
 
     def addImage(self, draw_data, pos):
-        # print('addImage')
+        #print('addImage', draw_data.shape)
         image = QtGui.QImage(
             draw_data,
             draw_data.shape[1],
@@ -186,7 +187,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
             QtGui.QImage.Format.Format_RGB888,
         )
         image = image.mirrored(horizontal=True, vertical=False)
-        image = image.scaledToHeight(128)
+        image = image.scaledToHeight(72)
         pixmap = QtGui.QPixmap.fromImage(image)
         pm = self.scene.addPixmap(pixmap)
         pm.setPos(pos[0] / PIXEL_SCALE, pos[1] / PIXEL_SCALE)
