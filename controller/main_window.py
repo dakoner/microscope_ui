@@ -14,6 +14,8 @@ from tile_graphics_view import TileGraphicsView, TileGraphicsScene
 
 # from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
 from config import PIXEL_SCALE, CAMERA, XY_FEED
+from config import STAGE_X_SIZE, STAGE_Y_SIZE
+
 import event_filter
 import sys
 
@@ -116,12 +118,15 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.swTogglePushButton.pressed.connect(self.softwareTrigger)
         # self.hwToggleRadioButton.toggled.connect(self.enableHardwareTrigger)
         
+
+
+        
     def imageChanged(self, img):
         #self.movie.write(img.astype(np.uint8).tobytes())
         #self.process.stdin.write(img.astype(np.uint8).tobytes())
 
         if self.state == "Jog" or self.state == "Run":
-            self.tile_graphics_view.addImageIfMissing(img, self.m_pos)
+            self.scene.addImageIfMissing(img, self.m_pos)
             # return
 
         s = img.shape
@@ -155,7 +160,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.x_value.display(x)
         self.y_value.display(y)
         self.z_value.display(z)
-        self.tile_graphics_view.updateCurrentRect(x, y)
+        self.scene.updateCurrentRect(x, y)
 
     def onStateChange(self, state):
         self.state = state
