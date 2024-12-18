@@ -3,21 +3,20 @@ import os
 import numpy as np
 
 import time
-from PyQt6 import QtGui, QtCore, QtWidgets
+from PyQt6 import QtGui, QtWidgets
 from PyQt6.uic import loadUi
 import serial_interface_qobject
 
 import gige_camera_qobject
 import uvc_camera_qobject
 import uvclite_camera_qobject
-from tile_graphics_view import TileGraphicsView, TileGraphicsScene
+from tile_graphics_view import TileGraphicsView
+from tile_graphics_scene import TileGraphicsScene
 
 # from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
 from config import PIXEL_SCALE, CAMERA, XY_FEED
-from config import STAGE_X_SIZE, STAGE_Y_SIZE
 
 import event_filter
-import sys
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -56,7 +55,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.setContinuous()
         # self.setTrigger()
 
-        # self.camera.startWorker()
         self.camera.begin()
         self.camera.camera_play()
         self.state = "None"
