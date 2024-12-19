@@ -28,6 +28,11 @@ source_group("Source Files" FILES ${SOURCES})
 add_executable(${PROJECT} ${HEADERS} ${SOURCES} ${QT_RESOURCES})
 
 target_link_libraries(${PROJECT}
+    PRIVATE
     Qt5::Widgets
+    Qt5::Core
+    usb
+    uvc
+    jpeg
     )
 
