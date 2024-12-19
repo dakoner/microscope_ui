@@ -19,25 +19,12 @@
 #include <stdio.h>
 #include <unistd.h>
  
-#include "worker.h"
 #include "uvc_thread.h"
-
-Worker* create(bool start) {
-    auto worker = new Worker(new QThread);
-    if (start)
-        worker->thread()->start();
-
-    return worker;
-}
 
 int main(int argc, char *argv[]) {
     QCoreApplication app(argc, argv);
     UVCThread t;
     t.start();
-    auto worker = create(true);
-    if (worker->thread()->isRunning()) {
-        auto ev = new Event(static_cast<QEvent::Type>(Event::EventType1));
-        qApp->postEvent(worker, ev, Qt::HighEventPriority);
-    }
+    
     return app.exec();
 }
