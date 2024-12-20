@@ -4,7 +4,7 @@
 #include <QWidget>
 
 class QPushButton;
-class QTextBrowser;
+class QLabel;
 
 // This is the declaration of our MainWidget class
 // The definition/implementation is in mainwidget.cpp
@@ -15,10 +15,11 @@ class MainWidget : public QWidget
 public:
     explicit MainWidget(QWidget *parent = 0); //Constructor
     ~MainWidget(); // Destructor
-
+    void test(QPixmap);
 private:
    QPushButton* button_;
-   QTextBrowser* textBrowser_;
+   QLabel* label_;
+   void cb(int);
 };
 
 #endif // MAINWIDGET_H

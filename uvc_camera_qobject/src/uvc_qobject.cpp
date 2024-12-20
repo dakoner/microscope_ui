@@ -1,10 +1,12 @@
 #include "uvc_qobject.h"
+#include <QtGui/qimage.h>
+#include <QtGui/qpixmap.h>
 
-void UVCQObject::cb(uvc_frame_t *frame, void *ptr)
+void cb(uvc_frame *frame, void *ptr)
 {
     uvc_frame_t *bgr;
     uvc_error_t ret;
-    enum uvc_frame_format *frame_format = (enum uvc_frame_format *)ptr;
+    
 
     /* We'll convert the image from YUV/JPEG to BGR, so allocate space */
     bgr = uvc_allocate_frame(frame->width * frame->height * 3);
@@ -16,22 +18,22 @@ void UVCQObject::cb(uvc_frame_t *frame, void *ptr)
 
     printf("callback! frame_format = %d, width = %d, height = %d, length = %lu, ptr = %p\n",
            frame->frame_format, frame->width, frame->height, frame->data_bytes, ptr);
-
-    switch (frame->frame_format)
+    if (frame->frame_format == UVC_FRAME_FORMAT_H264)
     {
-    case UVC_FRAME_FORMAT_H264:
         /* use `ffplay H264_FILE` to play */
         /* fp = fopen(H264_FILE, "a");
          * fwrite(frame->data, 1, frame->data_bytes, fp);
          * fclose(fp); */
-        break;
-    case UVC_COLOR_FORMAT_MJPEG:
+    }
+    else if (frame->frame_format == UVC_COLOR_FORMAT_MJPEG)
+    {
         /* sprintf(filename, "%d%s", jpeg_count++, MJPEG_FILE);
          * fp = fopen(filename, "w");
          * fwrite(frame->data, 1, frame->data_bytes, fp);
          * fclose(fp); */
-        break;
-    case UVC_COLOR_FORMAT_YUYV:
+    }
+    else if (frame->frame_format == UVC_COLOR_FORMAT_YUYV)
+    {
         /* Do the BGR conversion */
         ret = uvc_any2bgr(frame, bgr);
         if (ret)
@@ -40,17 +42,19 @@ void UVCQObject::cb(uvc_frame_t *frame, void *ptr)
             uvc_free_frame(bgr);
             return;
         }
-        break;
-    default:
-        break;
+        QImage i((uchar *)bgr->data, frame->width, frame->height, QImage::Format::Format_RGB888);
+        QPixmap p = QPixmap::fromImage(i);
+        //printf("Emit\n");
+        MainWidget *q = (MainWidget*)ptr;
+        q->test(p);
     }
 }
 // Finish massaging this into a working qobject and make the mainwidget get events from it
 
-void UVCQObject::run()
+void UVCQObject::run(MainWidget *mw)
 {
     printf("Run\n");
-    res = uvc_start_streaming(devh, &ctrl, UVCQObject::cb, (void *)12345, 0);
+    res = uvc_start_streaming(devh, &ctrl, cb, mw, 0);
 
     if (res < 0)
     {
@@ -139,6 +143,7 @@ uvc_error UVCQObject::init()
     if (res < 0)
     {
         uvc_perror(res, "uvc_find_device"); /* no devices found */
+        return res;
     }
     else
     {
@@ -150,6 +155,7 @@ uvc_error UVCQObject::init()
         if (res < 0)
         {
             uvc_perror(res, "uvc_open"); /* unable to open device */
+            return res;
         }
         else
         {
@@ -157,23 +163,30 @@ uvc_error UVCQObject::init()
             uvc_print_diag(devh, stderr);
 
             const uvc_format_desc_t *format_desc = uvc_get_format_descs(devh);
-            const uvc_frame_desc_t *frame_desc = format_desc->frame_descs;
             enum uvc_frame_format frame_format;
-            int width = 1280;
-            int height = 720;
-            int fps = 120;
-
-            switch (format_desc->bDescriptorSubtype)
+            int width = 640;
+            int height = 480;
+            int fps = 30;
+                const uvc_frame_desc_t *frame_desc;
+            while (format_desc != NULL)
             {
-            case UVC_VS_FORMAT_MJPEG:
-                frame_format = UVC_COLOR_FORMAT_MJPEG;
-                break;
-            case UVC_VS_FORMAT_FRAME_BASED:
-                frame_format = UVC_FRAME_FORMAT_H264;
-                break;
-            default:
-                frame_format = UVC_FRAME_FORMAT_YUYV;
-                break;
+                frame_desc = format_desc->frame_descs;
+                switch (format_desc->bDescriptorSubtype)
+                {
+                case UVC_VS_FORMAT_MJPEG:
+                    frame_format = UVC_COLOR_FORMAT_MJPEG;
+                    break;
+                case UVC_VS_FORMAT_FRAME_BASED:
+                    frame_format = UVC_FRAME_FORMAT_H264;
+                    break;
+                default:
+                    frame_format = UVC_FRAME_FORMAT_YUYV;
+                    break;
+                }
+                if (frame_format == UVC_FRAME_FORMAT_YUYV)
+                    break;
+
+                format_desc = format_desc->next;
             }
 
             if (frame_desc)
