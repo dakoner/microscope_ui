@@ -1,33 +1,10 @@
-/*
- * This is a simple, safe and best-practice way to demonstrate how to use threads in Qt5.
- * Copyright (C) 2019 Iman Ahmadvand
- *
- * This is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * It is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- */
+#include "uvc_qobject.h"
 
-#include "uvc_thread.h"
-
-// /* This callback function runs once per frame. Use it to perform any
-//  * quick processing you need, or have it put the frame into your application's
-//  * input queue. If this function takes too long, you'll start losing frames. */
-void UVCThread::cb(uvc_frame_t *frame, void *ptr)
+void UVCQObject::cb(uvc_frame_t *frame, void *ptr)
 {
     uvc_frame_t *bgr;
     uvc_error_t ret;
     enum uvc_frame_format *frame_format = (enum uvc_frame_format *)ptr;
-    /* FILE *fp;
-     * static int jpeg_count = 0;
-     * static const char *H264_FILE = "iOSDevLog.h264";
-     * static const char *MJPEG_FILE = ".jpeg";
-     * char filename[16]; */
 
     /* We'll convert the image from YUV/JPEG to BGR, so allocate space */
     bgr = uvc_allocate_frame(frame->width * frame->height * 3);
@@ -68,11 +45,12 @@ void UVCThread::cb(uvc_frame_t *frame, void *ptr)
         break;
     }
 }
+// Finish massaging this into a working qobject and make the mainwidget get events from it
 
-void UVCThread::run()
+void UVCQObject::run()
 {
     printf("Run\n");
-    res = uvc_start_streaming(devh, &ctrl, UVCThread::cb, (void *)12345, 0);
+    res = uvc_start_streaming(devh, &ctrl, UVCQObject::cb, (void *)12345, 0);
 
     if (res < 0)
     {
@@ -110,29 +88,40 @@ void UVCThread::run()
         {
             uvc_perror(res, " ... uvc_set_ae_mode failed to enable auto exposure mode");
         }
-
-        sleep(10); /* stream for 10 seconds */
-
-        /* End the stream. Blocks until last callback is serviced */
-        uvc_stop_streaming(devh);
-        puts("Done streaming.");
     }
 }
 
-UVCThread::UVCThread()
+void UVCQObject::stop()
+{
+
+    /* End the stream. Blocks until last callback is serviced */
+    uvc_stop_streaming(devh);
+    puts("Done streaming.");
+
+    /* Release our handle on the device */
+    uvc_close(devh);
+    puts("Device closed");
+
+    /* Release the device descriptor */
+    uvc_unref_device(dev);
+
+    /* Close the UVC context. This closes and cleans up any existing device handles,
+     * and it closes the libusb context if one was not provided. */
+    uvc_exit(ctx);
+    puts("UVC exited");
+}
+
+UVCQObject::UVCQObject()
 {
     uvc_error res = init();
     if (res)
         throw("Failed to setup UVC thread");
 }
 
-uvc_error UVCThread::init()
+uvc_error UVCQObject::init()
 {
     uvc_error res;
 
-    /* Initialize a UVC service context. Libuvc will set up its own libusb
-     * context. Replace NULL with a libusb_context pointer to run libuvc
-     * from an existing libusb context. */
     res = uvc_init(&ctx, NULL);
 
     if (res < 0)
@@ -143,7 +132,6 @@ uvc_error UVCThread::init()
 
     puts("UVC initialized");
 
-    /* Locates the first attached UVC device, stores in dev */
     res = uvc_find_device(
         ctx, &dev,
         0, 0, NULL); /* filter devices: vendor_id, product_id, "serial_num" */
@@ -166,17 +154,14 @@ uvc_error UVCThread::init()
         else
         {
             puts("Device opened");
-
-            /* Print out a message containing all the information that libuvc
-             * knows about the device */
             uvc_print_diag(devh, stderr);
 
             const uvc_format_desc_t *format_desc = uvc_get_format_descs(devh);
             const uvc_frame_desc_t *frame_desc = format_desc->frame_descs;
             enum uvc_frame_format frame_format;
-            int width = 640;
-            int height = 480;
-            int fps = 30;
+            int width = 1280;
+            int height = 720;
+            int fps = 120;
 
             switch (format_desc->bDescriptorSubtype)
             {
@@ -214,26 +199,12 @@ uvc_error UVCThread::init()
     return UVC_SUCCESS;
 }
 
-    //     if (res < 0)
-    //     {
-    //         uvc_perror(res, "get_mode"); /* device doesn't provide a matching stream */
-    //     }
-    //     else
-    //     {
-    //         /* Start the video stream. The library will call user function cb:
-    //          *   cb(frame, (void *) 12345)
-    //          */
-
-    //         /* Release our handle on the device */
-    //         uvc_close(devh);
-    //         puts("Device closed");
-    //     }
-
-    //     /* Release the device descriptor */
-    //     uvc_unref_device(dev);
-    // }
-
-    // /* Close the UVC context. This closes and cleans up any existing device handles,
-    //  * and it closes the libusb context if one was not provided. */
-    // uvc_exit(ctx);
-    // puts("UVC exited");
+//     if (res < 0)
+//     {
+//         uvc_perror(res, "get_mode"); /* device doesn't provide a matching stream */
+//     }
+//     else
+//     {
+//         /* Start the video stream. The library will call user function cb:
+//          *   cb(frame, (void *) 12345)
+//          */

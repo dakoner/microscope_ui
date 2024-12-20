@@ -9,9 +9,8 @@ int main(int argc, char *argv[])
 {
     // Creates an instance of QApplication
     QApplication a(argc, argv);
-    
-    UVCThread t;
-    t.start();
+    UVCQObject uvc_qobject;
+    uvc_qobject.run();
 
     // This is our MainWidget class containing our GUI and functionality
     MainWidget w;
