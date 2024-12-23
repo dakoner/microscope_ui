@@ -18,8 +18,9 @@ def calculate_area(qpolygon):
 
 
 class TileGraphicsScene(QtWidgets.QGraphicsScene):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, main_window, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.main_window = main_window
         self.setObjectName("TileGraphicsScene")
         self.addStageRect()
         self.addCurrentRect()
@@ -50,8 +51,6 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
         self.currentRect.setZValue(2)
 
     def updateCurrentRect(self, x, y):
-        if not self.currentRect:
-            self.addCurrentRect()
         self.currentRect.setPos(x / PIXEL_SCALE, y / PIXEL_SCALE)
         # self.centerOn(self.currentRect)
     
@@ -86,19 +85,18 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
             QtGui.QImage.Format.Format_RGB888,
         )
         image = image.mirrored(horizontal=True, vertical=False)
-        image = image.scaledToHeight(72)
+        #image = image.scaledToHeight(72)
         pixmap = QtGui.QPixmap.fromImage(image)
         pm = self.addPixmap(pixmap)
         pm.setPos(pos[0] / PIXEL_SCALE, pos[1] / PIXEL_SCALE)
-        pm.setScale(10)
+        #pm.setScale(10)
         pm.setZValue(1)
         
     def mouseMoveEvent(self, event):
-        app = QtWidgets.QApplication.instance()
         pos = event.scenePos()
         message = f"Canvas: {pos.x():.3f}, {pos.y():.3f}, Stage: {pos.x()*PIXEL_SCALE:.3f}, {pos.y()*PIXEL_SCALE:.3f}"
         #print(message)
-        app.main_window.statusbar.showMessage(message)
+        self.main_window.statusbar.showMessage(message)
         return super().mouseMoveEvent(event)
 
     # def mousePressEvent(self, event):
@@ -117,10 +115,10 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
             == 0.0
         ):
             app = QtWidgets.QApplication.instance()
-            if app.main_window.state_value.text() == "Jog":
+            if self.main_window.state_value.text() == "Jog":
                 print("cancel jog")
-                app.main_window.cancel()
+                self.main_window.cancel()
             x = event.scenePos().x() - (WIDTH)
             y = event.scenePos().y() - (HEIGHT)
-            app.main_window.moveTo(event.scenePos())
+            self.main_window.moveTo(event.scenePos())
         return super().mouseMoveEvent(event)

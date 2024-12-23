@@ -11,6 +11,7 @@ import gige_camera_qobject
 import uvc_camera_qobject
 import uvclite_camera_qobject
 from tile_graphics_view import TileGraphicsView
+from zoom_graphics_view import ZoomGraphicsView
 from tile_graphics_scene import TileGraphicsScene
 
 # from microscope_esp32_controller_serial import serial_interface_qobject as microscope_serial_qobject
@@ -73,10 +74,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.serial.stateChanged.connect(self.onStateChange)
         self.serial.messageChanged.connect(self.onMessageChanged)
 
-        self.scene = TileGraphicsScene()
+        self.scene = TileGraphicsScene(self)
         self.tile_graphics_view = TileGraphicsView(self.scene)
         self.tile_graphics_view.show()
        
+       
+        self.zoom_graphics_view = ZoomGraphicsView(self.scene)
+        self.zoom_graphics_view.show()
+        
         self.radioButton_23.toggled.connect(self.enableAuto)
 
         self.prefix = os.path.join("photo", str(time.time()))
