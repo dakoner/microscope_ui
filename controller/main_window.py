@@ -74,6 +74,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.serial.stateChanged.connect(self.onStateChange)
         self.serial.messageChanged.connect(self.onMessageChanged)
 
+        self.serial.write("$Report/Interval=50\n")
+
         self.scene = TileGraphicsScene(self)
         self.tile_graphics_view = TileGraphicsView(self.scene)
         self.tile_graphics_view.show()
