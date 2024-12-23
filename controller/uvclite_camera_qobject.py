@@ -66,7 +66,7 @@ class UVCLiteCamera(QtCore.QObject):
         super().__init__(parent)
         self.context = uvclite.UVCContext()
         self.device = self.context.find_device() # finds first device
-        print(dir(self.device))
+        print(self.context.get_device_list())
         self.device.open()
         self.device.print_diagnostics()
         devdesc = self.device.get_device_descriptor()
@@ -79,7 +79,7 @@ class UVCLiteCamera(QtCore.QObject):
         # print(uvclite.libuvc.uvc_get_format_descs)
         # format_desc = uvclite.libuvc.uvc_get_format_descs(device._handle_p)
         # print(format_desc)
-        self.device.set_stream_format(uvclite.UVCFrameFormat.UVC_FRAME_FORMAT_YUYV, width=WIDTH, height=HEIGHT)  # sets default format (MJPEG, 640x480, 30fps)
+        self.device.set_stream_format(uvclite.UVCFrameFormat.UVC_FRAME_FORMAT_YUYV, width=WIDTH, height=HEIGHT, frame_rate=120)  # sets default format (MJPEG, 640x480, 30fps)
         self.worker = None 
 
     def _uvc_get_exposure_abs(self, flag):
@@ -180,6 +180,7 @@ class UVCLiteCamera(QtCore.QObject):
  
 
     def __del__(self):
+        self.device.close()
         self.device.free_device_descriptor()
         print("Freed descriptor")
 
