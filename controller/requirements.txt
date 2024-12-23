@@ -1,0 +1,9 @@
+numpy
+PyQt6
+PyQt6-sip
+tifffile
+ffmpeg
+pyserial
+opencv-python
+pillow
+qimage2ndarray
