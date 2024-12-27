@@ -55,7 +55,7 @@ class SerialInterface(QtCore.QObject):
         self.m_state = None
         self.m_pos = None
         self.startReadThread()
-        self.startStatusThread()
+        #self.startStatusThread()
 
     @QtCore.pyqtProperty(str, notify=stateChanged)
     def state(self):
