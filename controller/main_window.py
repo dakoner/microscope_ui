@@ -10,6 +10,7 @@ import serial_interface_qobject
 import gige_camera_qobject
 import uvc_camera_qobject
 import uvclite_camera_qobject
+import quvcobject_camera
 from tile_graphics_view import TileGraphicsView
 from zoom_graphics_view import ZoomGraphicsView
 from tile_graphics_scene import TileGraphicsScene
@@ -48,6 +49,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.camera = uvc_camera_qobject.UVCCamera(3)
         elif CAMERA == "uvclite":
             self.camera = uvclite_camera_qobject.UVCLiteCamera()
+        elif CAMERA == "quvcobject":
+            self.camera = quvcobject_camera.QUVCObjectCamera()
         elif CAMERA == "gige":
             self.camera = gige_camera_qobject.GigECamera()
         else:
@@ -69,7 +72,7 @@ class MainWindow(QtWidgets.QMainWindow):
         loadUi("microscope_controller.ui", self)
         self.camera.imageChanged.connect(self.imageChanged)
 
-        self.serial = serial_interface_qobject.SerialInterface("/dev/ttyUSB1", "dektop")
+        self.serial = serial_interface_qobject.SerialInterface("/dev/ttyUSB0", "dektop")
         self.serial.posChanged.connect(self.onPosChange)
         self.serial.stateChanged.connect(self.onStateChange)
         self.serial.messageChanged.connect(self.onMessageChanged)
@@ -96,26 +99,26 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.AeTargetSlider.setMaximum(self.camera.cap.sExposeDesc.uiTargetMax)
         # self.camera.AeTargetChanged.connect(self.AeTargetChangedCallback)
 
-        self.exposureTimeLabel.setText(str(self.camera.ExposureTime))
-        # needs to be camera-independent
-        #self.exposureTimeSlider.setMinimum(self.camera.cap.sExposeDesc.uiExposeTimeMin)
-        #self.exposureTimeSlider.setMaximum(self.camera.cap.sExposeDesc.uiExposeTimeMax)
-        self.exposureTimeSlider.setMinimum(self.camera._uvc_get_exposure_abs_min())
-        self.exposureTimeSlider.setMaximum(self.camera._uvc_get_exposure_abs_max())
-        self.exposureTimeSlider.setValue(self.camera._uvc_get_exposure_abs_cur())
-        self.exposureTimeSlider.valueChanged.connect(self.ExposureTimeChanged)
-        self.camera.ExposureTimeChanged.connect(self.ExposureTimeChangedCallback)
+        # self.exposureTimeLabel.setText(str(self.camera.ExposureTime))
+        # # needs to be camera-independent
+        # #self.exposureTimeSlider.setMinimum(self.camera.cap.sExposeDesc.uiExposeTimeMin)
+        # #self.exposureTimeSlider.setMaximum(self.camera.cap.sExposeDesc.uiExposeTimeMax)
+        # self.exposureTimeSlider.setMinimum(self.camera._uvc_get_exposure_abs_min())
+        # self.exposureTimeSlider.setMaximum(self.camera._uvc_get_exposure_abs_max())
+        # self.exposureTimeSlider.setValue(self.camera._uvc_get_exposure_abs_cur())
+        # self.exposureTimeSlider.valueChanged.connect(self.ExposureTimeChanged)
+        # self.camera.ExposureTimeChanged.connect(self.ExposureTimeChangedCallback)
         
         
-        self.analogGainLabel.setText(str(self.camera.AnalogGain))
-        self.analogGainSlider.setMinimum(self.camera._uvc_get_gain_min())
-        self.analogGainSlider.setMaximum(self.camera._uvc_get_gain_max())
-        self.analogGainSlider.valueChanged.connect(self.AnalogGainChanged)
-        self.camera.AnalogGainChanged.connect(self.AnalogGainChangedCallback)
+        # self.analogGainLabel.setText(str(self.camera.AnalogGain))
+        # self.analogGainSlider.setMinimum(self.camera._uvc_get_gain_min())
+        # self.analogGainSlider.setMaximum(self.camera._uvc_get_gain_max())
+        # self.analogGainSlider.valueChanged.connect(self.AnalogGainChanged)
+        # self.camera.AnalogGainChanged.connect(self.AnalogGainChangedCallback)
 
 
         self.radioButton_23.toggle()
-        self.enableAuto(False)
+        #self.enableAuto(False)
         #self.ExposureTimeChangedCallback(25)
 
         #self.buttonGroup.buttonClicked.connect(self.triggerButtonGroupClicked)
@@ -213,7 +216,7 @@ class MainWindow(QtWidgets.QMainWindow):
         print("enableAuto", value)
         self.groupBox_6.setEnabled(value)
         self.groupBox_5.setEnabled(not value)
-        self.camera.AeState = value
+        # self.camera.AeState = value
 
     def AeTargetChanged(self, target):
         print("AeTargetChanged", target)
