@@ -1,7 +1,6 @@
 import time
 from PyQt6 import QtCore, QtGui
 from config import PIXEL_SCALE, MQTT_HOST, XY_FEED, XY_STEP_SIZE, Z_FEED, Z_STEP_SIZE
-print(dir(QtCore.QEvent))
 
 class EventFilter(QtCore.QObject):
     def __init__(self, main_window, *args, **kwargs):
@@ -13,10 +12,13 @@ class EventFilter(QtCore.QObject):
             key = event.key()
 
             state = self.main_window.state
-            tile_graphics_view = self.main_window.tile_graphics_view
 
             if key == QtCore.Qt.Key.Key_C:
                 self.main_window.cancel()
+
+            elif key == QtCore.Qt.Key.Key_Q:
+                app = QtGui.QApplication.instance()
+                app.quit()
             elif key == QtCore.Qt.Key.Key_H:
                 self.main_window.cancel()
                 self.main_window.home()
@@ -31,7 +33,7 @@ class EventFilter(QtCore.QObject):
             #     print(r)
             elif key == QtCore.Qt.Key.Key_S:
                 self.main_window.cancel()
-                tile_graphics_view.stopAcquisition()
+                self.tile_graphics_view.stopAcquisition()
             elif key == QtCore.Qt.Key.Key_P:
                 fname = f"image_{int(time.time())}.png"
                 time.sleep(1)
@@ -39,8 +41,8 @@ class EventFilter(QtCore.QObject):
                 print("Saved", fname)
             elif key == QtCore.Qt.Key.Key_R:
                 print("Reset")
-                tile_graphics_view.reset()
-                tile_graphics_view.addCurrentRect()
+                self.tile_graphics_view.reset()
+                self.tile_graphics_view.addCurrentRect()
                 # self.main_window.serial.reset()
             elif key == QtCore.Qt.Key.Key_Left:
                 if state == "Idle":
