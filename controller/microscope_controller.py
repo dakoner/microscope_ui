@@ -13,8 +13,10 @@ class QApplication(QtWidgets.QApplication):
         self.main_window = MainWindow()
         self.main_window.show()  # showMaximized()
 
+    def stop(self, *args):
+        self.quit()
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
     app = QApplication(sys.argv)
+    signal.signal(signal.SIGINT, app.stop)
     app.exec()
