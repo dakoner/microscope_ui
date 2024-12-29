@@ -7,10 +7,6 @@ from PyQt6 import QtGui, QtWidgets
 from PyQt6.uic import loadUi
 import serial_interface_qobject
 
-import gige_camera_qobject
-import uvc_camera_qobject
-import uvclite_camera_qobject
-import quvcobject_camera
 from tile_graphics_view import TileGraphicsView
 from zoom_graphics_view import ZoomGraphicsView
 from tile_graphics_scene import TileGraphicsScene
@@ -24,6 +20,7 @@ import event_filter
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        loadUi("microscope_controller.ui", self)
 
         # self.zoom_view = QtWidgets.QLabel(parent=None)
         # self.zoom_view.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
@@ -45,13 +42,13 @@ class MainWindow(QtWidgets.QMainWindow):
         if CAMERA == "spin":
             import pyspin_camera_qobject
             self.camera = pyspin_camera_qobject.PySpinCamera()
-        elif CAMERA == "uvc":
-            self.camera = uvc_camera_qobject.UVCCamera(3)
-        elif CAMERA == "uvclite":
-            self.camera = uvclite_camera_qobject.UVCLiteCamera()
+        # elif CAMERA == "uvclite":
+        #     self.camera = uvclite_camera_qobject.UVCLiteCamera()
         elif CAMERA == "quvcobject":
+            import quvcobject_camera
             self.camera = quvcobject_camera.QUVCObjectCamera()
         elif CAMERA == "gige":
+            import gige_camera_qobject
             self.camera = gige_camera_qobject.GigECamera()
         else:
             print("Unsupported camera type", CAMERA)
@@ -69,7 +66,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.event_filter = event_filter.EventFilter(self)
         self.installEventFilter(self.event_filter)  # keyboard control
 
-        loadUi("microscope_controller.ui", self)
         self.camera.imageChanged.connect(self.imageChanged)
 
         self.serial = serial_interface_qobject.SerialInterface("/dev/ttyUSB0", "dektop")
@@ -77,15 +73,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.serial.stateChanged.connect(self.onStateChange)
         self.serial.messageChanged.connect(self.onMessageChanged)
 
-        self.serial.write("$Report/Interval=50\n")
 
         self.scene = TileGraphicsScene(self)
         self.tile_graphics_view = TileGraphicsView(self.scene)
         self.tile_graphics_view.show()
        
        
-        self.zoom_graphics_view = ZoomGraphicsView(self.scene)
-        self.zoom_graphics_view.show()
+        # self.zoom_graphics_view = ZoomGraphicsView(self.scene)
+        # self.zoom_graphics_view.show()
         
         self.radioButton_23.toggled.connect(self.enableAuto)
 
@@ -127,8 +122,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.hwToggleRadioButton.toggled.connect(self.enableHardwareTrigger)
         
 
+        self.serial.write("$Report/Interval=50\n")
+        self.serial.write("?")
 
-        
     def imageChanged(self, img):
         #self.movie.write(img.astype(np.uint8).tobytes())
         #self.process.stdin.write(img.astype(np.uint8).tobytes())
