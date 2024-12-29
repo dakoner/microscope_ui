@@ -72,13 +72,8 @@ class QUVCObjectCamera(QtCore.QObject):
         result = uvclite.libuvc.uvc_set_gain(self.device._handle_p, gain)
         return self._uvc_get_gain_cur()
  
-
-    def __del__(self):
-        self.device.close()
-        self.device.free_device_descriptor()
-        print("Freed descriptor")
-
     def callback(self, qimage):
+        #print("callback")
         i = qimage.convertToFormat(QtGui.QImage.Format.Format_ARGB32)
         d = qimage2ndarray.rgb_view(i).copy()
         self.imageChanged.emit(d, d.shape[1], d.shape[0], d.shape[1])
