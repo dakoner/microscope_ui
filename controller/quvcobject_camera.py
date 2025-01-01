@@ -3,7 +3,6 @@ from PyQt6 import QtCore, QtGui
 from config import WIDTH, HEIGHT, FPS
 import numpy as np
 import QUVCObject
-import qimage2ndarray
 
 
 class QUVCObjectCamera(QtCore.QObject):
@@ -13,7 +12,7 @@ class QUVCObjectCamera(QtCore.QObject):
     AnalogGainChanged = QtCore.pyqtSignal(float)
     imageChanged = QtCore.pyqtSignal(QtGui.QImage)
     yuvImageChanged = QtCore.pyqtSignal(np.ndarray, int, int, int)
-    snapshotCompleted = QtCore.pyqtSignal(np.ndarray)
+    snapshotCompleted = QtCore.pyqtSignal(QtGui.QImage)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -72,12 +71,12 @@ class QUVCObjectCamera(QtCore.QObject):
         result = uvclite.libuvc.uvc_set_gain(self.device._handle_p, gain)
         return self._uvc_get_gain_cur()
  
-    def callback(self, qimage):
+    def callback(self, image):
         #print("callback")
-        i = qimage.convertToFormat(QtGui.QImage.Format.Format_ARGB32)
+        #image = qimage.convertToFormat(QtGui.QImage.Format.Format_ARGB32)
         # d = qimage2ndarray.rgb_view(i).copy()
-        # self.currentFrame = d
-        self.imageChanged.emit(i)#d, d.shape[1], d.shape[0], d.shape[1])
+        self.currentFrame = image
+        self.imageChanged.emit(image)#d, d.shape[1], d.shape[0], d.shape[1])
         
     def snapshot(self):
         self.snapshotCompleted.emit(self.currentFrame)

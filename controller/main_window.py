@@ -190,13 +190,13 @@ class MainWindow(QtWidgets.QMainWindow):
         cmd = f"$J=G90 G21 F{XY_FEED:.3f} X{x:.3f} Y{y:.3f}\n"
         self.serial.write(cmd)
         
-    def snapshotCompleted(self, frame):
-        format = QtGui.QImage.Format_RGB888
-        s = frame.shape
-        image = QtGui.QImage(frame, s[1], s[0], format)
-        t = str(time.time())
-        filename = f"{self.prefix}/test.{t}.png"
-        image.save(filename)
+    # def snapshotCompleted(self, frame):
+    #     format = QtGui.QImage.Format_RGB888
+    #     s = frame.shape
+    #     image = QtGui.QImage(frame, s[1], s[0], format)
+    #     t = str(time.time())
+    #     filename = f"{self.prefix}/test.{t}.png"
+    #     image.save(filename)
 
 
     def AnalogGainChanged(self, analog_gain):

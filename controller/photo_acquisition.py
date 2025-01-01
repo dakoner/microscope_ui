@@ -120,13 +120,14 @@ class Acquisition:
         self.fname = None
         self.vs = []
 
-    def snapshotCompleted(self, frame):
+    def snapshotCompleted(self, image):
+        pos = self.app.main_window.m_pos
         self.app.main_window.tile_graphics_view.scene().addImage(
-            frame, self.app.main_window.m_pos
+            image, pos
         )
-        format = QtGui.QImage.Format.Format_RGB888
-        s = frame.shape
-        image = QtGui.QImage(frame, s[1], s[0], format)
+        # format = QtGui.QImage.Format.Format_RGB888
+        # s = frame.shape
+        # image = QtGui.QImage(frame, s[1], s[0], format)
         image = image.mirrored(horizontal=True, vertical=False)
         t = str(time.time())
         filename = f"{self.prefix}/test.{t}.png"
@@ -147,6 +148,9 @@ class Acquisition:
                 "x": self.x,
                 "y": self.y,
                 "z": self.z,
+                "stage_x": pos[0],
+                "stage_y": pos[1],
+                "stage_z": pos[2],
             },
             self.tile_config,
         )
@@ -196,7 +200,7 @@ class Acquisition:
                 #     print(xs)
                     grid.append(
                         [
-                            ["MOVE_TO", (float(gx), float(gy), curr_z), (k, j, 0), 1000],
+                            ["MOVE_TO", (float(gx), float(gy), curr_z), (k, j, 0), 50],
                             ["WAIT"],
                             ["PHOTO"],
                         ]
