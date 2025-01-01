@@ -54,7 +54,7 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
         self.currentRect.setPos(x / PIXEL_SCALE, y / PIXEL_SCALE)
         # self.centerOn(self.currentRect)
     
-    def addImageIfMissing(self, draw_data, pos):
+    def addImageIfMissing(self, image, pos):
         # if self.acquisition:
         #     print("Not adding image during acquisition")
         #     return
@@ -74,22 +74,14 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
         a = calculate_area(p)
         if a > 500000:
             # print("Adding")
-            self.addImage(draw_data, pos)
+            self.addImage(image, pos)
 
-    def addImage(self, draw_data, pos):
+    def addImage(self, image, pos):
         #print('addImage', draw_data.shape)
-        image = QtGui.QImage(
-            draw_data,
-            draw_data.shape[1],
-            draw_data.shape[0],
-            QtGui.QImage.Format.Format_RGB888,
-        )
         image = image.mirrored(horizontal=True, vertical=False)
-        #image = image.scaledToHeight(72)
         pixmap = QtGui.QPixmap.fromImage(image)
         pm = self.addPixmap(pixmap)
         pm.setPos(pos[0] / PIXEL_SCALE, pos[1] / PIXEL_SCALE)
-        #pm.setScale(10)
         pm.setZValue(1)
         
     def mouseMoveEvent(self, event):

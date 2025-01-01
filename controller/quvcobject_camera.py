@@ -11,7 +11,7 @@ class QUVCObjectCamera(QtCore.QObject):
     ExposureTimeChanged = QtCore.pyqtSignal(float)
     AeStateChanged = QtCore.pyqtSignal(float)
     AnalogGainChanged = QtCore.pyqtSignal(float)
-    imageChanged = QtCore.pyqtSignal(np.ndarray, int, int, int)
+    imageChanged = QtCore.pyqtSignal(QtGui.QImage)
     yuvImageChanged = QtCore.pyqtSignal(np.ndarray, int, int, int)
     snapshotCompleted = QtCore.pyqtSignal(np.ndarray)
 
@@ -75,9 +75,9 @@ class QUVCObjectCamera(QtCore.QObject):
     def callback(self, qimage):
         #print("callback")
         i = qimage.convertToFormat(QtGui.QImage.Format.Format_ARGB32)
-        d = qimage2ndarray.rgb_view(i).copy()
-        self.currentFrame = d
-        self.imageChanged.emit(d, d.shape[1], d.shape[0], d.shape[1])
+        # d = qimage2ndarray.rgb_view(i).copy()
+        # self.currentFrame = d
+        self.imageChanged.emit(i)#d, d.shape[1], d.shape[0], d.shape[1])
         
     def snapshot(self):
         self.snapshotCompleted.emit(self.currentFrame)

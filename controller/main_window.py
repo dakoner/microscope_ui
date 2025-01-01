@@ -125,20 +125,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.serial.write("$Report/Interval=1\n")
         self.serial.write("?")
 
-    def imageChanged(self, img):
+    def imageChanged(self, image):
         #self.movie.write(img.astype(np.uint8).tobytes())
         #self.process.stdin.write(img.astype(np.uint8).tobytes())
 
         if self.state == "Jog" or self.state == "Run":
-            self.scene.addImageIfMissing(img, self.m_pos)
+            self.scene.addImageIfMissing(image, self.m_pos)
             # return
 
-        s = img.shape
-        if s[2] == 1:
-            format = QtGui.QImage.Format.Format_Grayscale8
-        elif s[2] == 3:
-            format = QtGui.QImage.Format.Format_RGB888
-        image = QtGui.QImage(img, s[1], s[0], format)
+        # s = img.shape
+        # if s[2] == 1:
+        #     format = QtGui.QImage.Format.Format_Grayscale8
+        # elif s[2] == 3:
+        #     format = QtGui.QImage.Format.Format_RGB888
+        # image = QtGui.QImage(img, s[1], s[0], format)
         # image = image.mirrored(horizontal=False, vertical=False)
         self.curr_image = image
         # w = self.image_view.mapFromGlobal(QtGui.QCursor.pos())
