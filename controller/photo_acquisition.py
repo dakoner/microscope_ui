@@ -121,7 +121,7 @@ class Acquisition:
         self.vs = []
 
     def snapshotCompleted(self, frame):
-        self.app.main_window.tile_graphics_view.addImage(
+        self.app.main_window.tile_graphics_view.scene().addImage(
             frame, self.app.main_window.m_pos
         )
         format = QtGui.QImage.Format.Format_RGB888
