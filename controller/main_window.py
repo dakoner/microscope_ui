@@ -122,7 +122,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.hwToggleRadioButton.toggled.connect(self.enableHardwareTrigger)
         
 
-        self.serial.write("$Report/Interval=50\n")
+        self.serial.write("$Report/Interval=1\n")
         self.serial.write("?")
 
     def imageChanged(self, img):
