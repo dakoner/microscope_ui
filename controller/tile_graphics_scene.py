@@ -79,9 +79,11 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
     def addImage(self, image, pos):
         #print('addImage', draw_data.shape)
         image = image.mirrored(horizontal=True, vertical=False)
+        image = image.scaledToHeight(image.height()//10)
         pixmap = QtGui.QPixmap.fromImage(image)
         pm = self.addPixmap(pixmap)
         pm.setPos(pos[0] / PIXEL_SCALE, pos[1] / PIXEL_SCALE)
+        pm.setScale(10)
         pm.setZValue(1)
         
     def mouseMoveEvent(self, event):
