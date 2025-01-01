@@ -6,8 +6,8 @@ import functools
 sys.path.append("..")
 from config import PIXEL_SCALE, WIDTH, HEIGHT, STAGE_X_SIZE, STAGE_Y_SIZE
 
-from movie_acquisition import Acquisition
-#from photo_acquisition import Acquisition
+#from movie_acquisition import Acquisition
+from photo_acquisition import Acquisition
 
 
 def calculate_area(qpolygon):
