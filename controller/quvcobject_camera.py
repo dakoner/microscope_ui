@@ -76,6 +76,7 @@ class QUVCObjectCamera(QtCore.QObject):
         #print("callback")
         i = qimage.convertToFormat(QtGui.QImage.Format.Format_ARGB32)
         d = qimage2ndarray.rgb_view(i).copy()
+        self.currentFrame = d
         self.imageChanged.emit(d, d.shape[1], d.shape[0], d.shape[1])
         
     def snapshot(self):
