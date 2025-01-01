@@ -110,12 +110,10 @@ class SerialInterface(QtCore.QObject):
             rest = message[1:-3].split("|")
             new_state = rest[0]
             if new_state != self.state:
-                print("New state", new_state)
                 self.state = new_state
             for item in rest:
                 if item.startswith("MPos"):
                     new_pos = [float(field) for field in item[5:].split(",")]
-                    print("New pos", new_pos)
 
                     self.pos = new_pos
         else:
