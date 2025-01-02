@@ -200,7 +200,7 @@ class Acquisition:
                 #     print(xs)
                     grid.append(
                         [
-                            ["MOVE_TO", (float(gx), float(gy), curr_z), (k, j, 0), 50],
+                            ["MOVE_TO", (float(gx), float(gy), curr_z), (k, j, 0), XY_FEED],
                             ["WAIT"],
                             ["PHOTO"],
                         ]
