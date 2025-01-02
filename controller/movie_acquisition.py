@@ -1,12 +1,8 @@
-import ffmpeg
-import tifffile
-import json
-import os
+
 import time
 import numpy as np
 import sys
-from PIL import Image
-import qimage2ndarray
+from PyQt6 import QtWidgets, QtGui, QtCore
 
 sys.path.append("..")
 from config import (
@@ -21,7 +17,6 @@ from config import (
     XY_FEED,
     Z_FEED,
 )
-from PyQt6 import QtWidgets, QtGui, QtCore
 
 VIDEO_SPEED=25
 
@@ -56,21 +51,15 @@ class Acquisition:
         self.image = QtGui.QImage(s, QtGui.QImage.Format.Format_RGB32)
         self.painter = QtGui.QPainter(self.image)
             
-    def imageChanged(self, frame):
-        pass
-        #self.process.stdin.write(frame.tobytes())
-        #self.movie.write(frame.tobytes())
-        #print("snapshot", time.time())
+    def imageChanged(self, image):
+
         m_pos = self.app.main_window.m_pos
         r = QtCore.QPointF(m_pos[0]/PIXEL_SCALE, m_pos[1]/PIXEL_SCALE)
         d = r - self.startPos
-        image = qimage2ndarray.array2qimage(frame)#, normalize=True)
         #image = image.mirrored(horizontal=True)
         self.painter.drawImage(d, image)
 
         
-    def yuvImageChanged(self, frame):
-        self.process.stdin.write(frame.tobytes())
         
     def generateGrid(self, from_, to):
         grid = []
@@ -91,7 +80,7 @@ class Acquisition:
         self.xs = np.arange(self.x_min, self.x_max, FOV_X)
         num_x = len(self.xs)
 
-        grid.append([["MOVE_TO", (self.xs[0], self.ys[0], z), (0, 0, 0), 1000]])
+        grid.append([["MOVE_TO", (self.xs[0], self.ys[0], z), (0, 0, 0), XY_FEED]])
         grid.append([["WAIT"]])
         #grid.append([
         #   ["START_MOVIE"] ])
@@ -156,22 +145,9 @@ class Acquisition:
         self.time_0 = time.time()
         self.counter = 0
 
-        # ffmpeg -f rawvideo -pix_fmt yuyv422 -s 1280x720 -i test.raw  -vcodec libx264 -pix_fmt yuv420p  movie.mp4 -y
-        self.process = (
-            ffmpeg.input(
-                "pipe:",
-                format="rawvideo",
-                pix_fmt="yuyv422",
-                s="{}x{}".format(1280, 720),
-            )
-            .output(
-                "movie.mp4", pix_fmt="yuv420p", vcodec="libx264"
-            )  
-            .overwrite_output()
-            .run_async(pipe_stdin=True)
-        )
-        self.app.main_window.camera.imageChanged.connect(self.imageChanged)
-        self.app.main_window.camera.yuvImageChanged.connect(self.yuvImageChanged)
+        self.app.main_window.camera.startRecording("test.mkv")
+
+        #self.app.main_window.camera.imageChanged.connect(self.imageChanged)
         self.doCmd()
         # print("cmd=", cmd)
         # self.app.main_window.label_counter.setText(str(self.counter))
@@ -225,9 +201,10 @@ class Acquisition:
             self.app.main_window.serial.write("G4 P1\n")
         elif subcmd[0] == "DONE":
             self.app.main_window.tile_graphics_view.stopAcquisition()
-            self.app.main_window.camera.imageChanged.disconnect(self.imageChanged)
+            self.app.main_window.camera.stopRecording()
+            #self.app.main_window.camera.imageChanged.disconnect(self.imageChanged)
             print("done")
-            self.process.stdin.close()
+            self.app.main_window.camera.stopRecording()
             self.painter.end()
             self.image.save("test.png")
         else:
