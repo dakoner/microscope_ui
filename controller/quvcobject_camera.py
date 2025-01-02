@@ -3,7 +3,7 @@ from PyQt6 import QtCore, QtGui
 from config import WIDTH, HEIGHT, FPS
 import numpy as np
 import QUVCObject
-
+import ffmpeg
 
 class QUVCObjectCamera(QtCore.QObject):
 
@@ -22,29 +22,44 @@ class QUVCObjectCamera(QtCore.QObject):
         self.dh = QUVCObject.UVCDeviceHandle()
         self.q.open_device(self.d, self.dh)
         self.q.frameChanged.connect(self.callback)
+        self.q.yuvFrameChanged.connect(self.yuv_callback)
+        self.process = None
 
+    def get_exposure_abs_cur(self):
+        return self.q.get_exposure_abs(self.dh, bytearray.fromhex('81'))
+ 
+    def get_exposure_abs_min(self):
+        return self.q.get_exposure_abs(self.dh, bytearray.fromhex('82'))
+ 
+    def get_exposure_abs_max(self):
+        return self.q.get_exposure_abs(self.dh, bytearray.fromhex('83'))
+
+        
     @QtCore.pyqtProperty(float, notify=ExposureTimeChanged)
     def ExposureTime(self):
-        return self._uvc_get_exposure_abs_cur()
+        return self.get_exposure_abs_cur()
                                                     
     @ExposureTime.setter
     def ExposureTime(self, exposure):
-        if exposure == self._uvc_get_exposure_abs_cur():
+        if exposure == self.get_exposure_abs_cur():
             return
-        result = uvclite.libuvc.uvc_set_exposure_abs(self.device._handle_p, exposure)
-        return self._uvc_get_exposure_abs_cur()
+        result = self.q.set_exposure_abs(self.dh, exposure)
+        return self.get_exposure_abs_cur()
+ 
+    def get_ae_mode(self):
+        return self.q.get_ae_mode(self.dh, bytearray.fromhex('81'))
  
     
     @QtCore.pyqtProperty(int, notify=AeStateChanged)
     def AeState(self):
-        return self._uvc_get_ae_mode(uvclite.libuvc.uvc_req_code.UVC_GET_CUR)
+        return self.get_ae_mode_cur()
 
     @AeState.setter
     def AeState(self, state):
-        if state == self._uvc_get_ae_mode(uvclite.libuvc.uvc_req_code.UVC_GET_CUR):
+        if state == self.get_ae_mode_cur():
             return
-        result = uvclite.libuvc.uvc_set_ae_mode(self.device._handle_p, not state)
-        return self._uvc_get_ae_mode(uvclite.libuvc.uvc_req_code.UVC_GET_CUR)
+        result = self.q.set_ae_mode(self.dh, state)
+        return self.get_ae_mode_cur()
     
     
     # @QtCore.pyqtProperty(float, notify=AeTargetChanged)
@@ -71,6 +86,14 @@ class QUVCObjectCamera(QtCore.QObject):
         result = uvclite.libuvc.uvc_set_gain(self.device._handle_p, gain)
         return self._uvc_get_gain_cur()
  
+    def yuv_callback(self, frame, width, height, data_bytes):
+    
+        if self.process:
+            frame.setsize(data_bytes*2)
+            assert (data_bytes * 2 == width*height*2)
+            self.process.stdin.write(frame.asstring())
+        
+
     def callback(self, image):
         #print("callback")
         #image = qimage.convertToFormat(QtGui.QImage.Format.Format_ARGB32)
@@ -92,6 +115,30 @@ class QUVCObjectCamera(QtCore.QObject):
         print("disableCallback")
         # self.worker.pause()
 
+    def startRecording(self, fname):
+        if self.process:
+            print("Already recording")
+            return
+        # ffmpeg -f rawvideo -pix_fmt yuyv422 -s 1280x720 -i test.raw  -vcodec libx264 -pix_fmt yuv420p  movie.mp4 -y
+        self.process = (
+            ffmpeg.input(
+                "pipe:",
+                format="rawvideo",
+                pix_fmt="yuyv422",
+                s="{}x{}".format(1280, 720),
+            )
+            .output(
+                fname, pix_fmt="yuv422", vcodec="libx264"
+            )  
+            .overwrite_output()
+            .run_async(pipe_stdin=True)
+        )
+
+    def stopRecording(self):
+        if self.process:
+            self.process.stdin.close()
+            self.process = None
+        
     def begin(self):
         format = 3
         print(self.dh)
