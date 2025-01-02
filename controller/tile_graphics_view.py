@@ -6,8 +6,8 @@ import functools
 sys.path.append("..")
 from config import PIXEL_SCALE, WIDTH, HEIGHT, STAGE_X_SIZE, STAGE_Y_SIZE
 
-#from movie_acquisition import Acquisition
-from photo_acquisition import Acquisition
+from movie_acquisition import Acquisition as MovieAcquisition
+from photo_acquisition import Acquisition as PhotoAcquisition
 
 
 def calculate_area(qpolygon):
@@ -35,13 +35,13 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         self.acquisition = None
 
     def keyPressEvent(self, event):
-        event.ignore()
+        #event.ignore()
 
-    #     key = event.key()
-    #     if key == QtCore.Qt.Key_Plus:
-    #         self.scale(1.1, 1.1)
-    #     elif key == QtCore.Qt.Key_Minus:
-    #         self.scale(0.9, 0.9)
+        key = event.key()
+        if key == QtCore.Qt.Key.Key_Plus:
+            self.scale(1.1, 1.1)
+        elif key == QtCore.Qt.Key.Key_Minus:
+            self.scale(0.9, 0.9)
 
 
 
@@ -74,7 +74,12 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
                 brush=brush,
             )
             rect.setZValue(3)
-            self.acquisition = Acquisition(self.scene, rect.rect(), self.lastRubberBand)
+            modifiers = QtWidgets.QApplication.keyboardModifiers()
+            if modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
+                self.acquisition = MovieAcquisition(self.scene, rect.rect(), self.lastRubberBand)
+            else:
+                self.acquisition = PhotoAcquisition(self.scene, rect.rect(), self.lastRubberBand)
+
             self.acquisition.startAcquisition()
         else:
             self.lastRubberBand = from_, to
