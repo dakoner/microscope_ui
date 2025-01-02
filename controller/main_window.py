@@ -39,25 +39,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.microscope_esp32_controller_serial.write("L1\n")
         # self.microscope_esp32_controller_serial.messageChanged.connect(self.onMessage2Changed)
 
-        if CAMERA == "spin":
-            import pyspin_camera_qobject
-            self.camera = pyspin_camera_qobject.PySpinCamera()
-        # elif CAMERA == "uvclite":
-        #     self.camera = uvclite_camera_qobject.UVCLiteCamera()
-        elif CAMERA == "quvcobject":
-            import quvcobject_camera
-            self.camera = quvcobject_camera.QUVCObjectCamera()
-        elif CAMERA == "gige":
-            import gige_camera_qobject
-            self.camera = gige_camera_qobject.GigECamera()
-        else:
-            print("Unsupported camera type", CAMERA)
-            raise
-        # self.setContinuous()
-        # self.setTrigger()
-
-        self.camera.begin()
-        self.camera.camera_play()
         self.state = "None"
         self.m_pos = [-1, -1, -1]
 
@@ -66,7 +47,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.event_filter = event_filter.EventFilter(self)
         self.installEventFilter(self.event_filter)  # keyboard control
 
-        self.camera.imageChanged.connect(self.imageChanged)
 
         self.serial = serial_interface_qobject.SerialInterface("/dev/ttyUSB0", "dektop")
         self.serial.posChanged.connect(self.onPosChange)
@@ -86,6 +66,29 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.prefix = os.path.join("photo", str(time.time()))
         os.makedirs(self.prefix)
+
+
+
+        if CAMERA == "spin":
+            import pyspin_camera_qobject
+            self.camera = pyspin_camera_qobject.PySpinCamera()
+        # elif CAMERA == "uvclite":
+        #     self.camera = uvclite_camera_qobject.UVCLiteCamera()
+        elif CAMERA == "quvcobject":
+            import quvcobject_camera
+            self.camera = quvcobject_camera.QUVCObjectCamera()
+        elif CAMERA == "gige":
+            import gige_camera_qobject
+            self.camera = gige_camera_qobject.GigECamera()
+        else:
+            print("Unsupported camera type", CAMERA)
+            raise
+        # self.setContinuous()
+        # self.setTrigger()
+
+        self.camera.begin()
+        self.camera.imageChanged.connect(self.imageChanged)
+        self.camera.camera_play()
         # self.camera.snapshotCompleted.connect(self.snapshotCompleted)
 
         # self.AeTargetSlider.valueChanged.connect(self.AeTargetChanged)
@@ -95,14 +98,12 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.camera.AeTargetChanged.connect(self.AeTargetChangedCallback)
 
         # self.exposureTimeLabel.setText(str(self.camera.ExposureTime))
-        # # needs to be camera-independent
-        # #self.exposureTimeSlider.setMinimum(self.camera.cap.sExposeDesc.uiExposeTimeMin)
-        # #self.exposureTimeSlider.setMaximum(self.camera.cap.sExposeDesc.uiExposeTimeMax)
-        # self.exposureTimeSlider.setMinimum(self.camera._uvc_get_exposure_abs_min())
-        # self.exposureTimeSlider.setMaximum(self.camera._uvc_get_exposure_abs_max())
-        # self.exposureTimeSlider.setValue(self.camera._uvc_get_exposure_abs_cur())
-        # self.exposureTimeSlider.valueChanged.connect(self.ExposureTimeChanged)
-        # self.camera.ExposureTimeChanged.connect(self.ExposureTimeChangedCallback)
+ 
+        self.exposureTimeSlider.setMinimum(self.camera.get_exposure_abs_min())
+        self.exposureTimeSlider.setMaximum(self.camera.get_exposure_abs_max())
+        self.exposureTimeSlider.setValue(self.camera.get_exposure_abs_cur())
+        self.exposureTimeSlider.valueChanged.connect(self.ExposureTimeChanged)
+        self.camera.ExposureTimeChanged.connect(self.ExposureTimeChangedCallback)
         
         
         # self.analogGainLabel.setText(str(self.camera.AnalogGain))
