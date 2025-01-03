@@ -48,7 +48,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.installEventFilter(self.event_filter)  # keyboard control
 
 
-        self.serial = serial_interface_qobject.SerialInterface("/dev/ttyUSB0", "dektop")
+        self.serial = serial_interface_qobject.SerialInterface("/dev/ttyUSB1", "dektop")
         self.serial.posChanged.connect(self.onPosChange)
         self.serial.stateChanged.connect(self.onStateChange)
         self.serial.messageChanged.connect(self.onMessageChanged)
@@ -99,11 +99,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # self.exposureTimeLabel.setText(str(self.camera.ExposureTime))
  
-        self.exposureTimeSlider.setMinimum(self.camera.get_exposure_abs_min())
-        self.exposureTimeSlider.setMaximum(self.camera.get_exposure_abs_max())
-        self.exposureTimeSlider.setValue(self.camera.get_exposure_abs_cur())
-        self.exposureTimeSlider.valueChanged.connect(self.ExposureTimeChanged)
-        self.camera.ExposureTimeChanged.connect(self.ExposureTimeChangedCallback)
+        # self.exposureTimeSlider.setMinimum(self.camera.get_exposure_abs_min())
+        # self.exposureTimeSlider.setMaximum(self.camera.get_exposure_abs_max())
+        # self.exposureTimeSlider.setValue(self.camera.get_exposure_abs_cur())
+        # self.exposureTimeSlider.valueChanged.connect(self.ExposureTimeChanged)
+        # self.camera.ExposureTimeChanged.connect(self.ExposureTimeChangedCallback)
         
         
         # self.analogGainLabel.setText(str(self.camera.AnalogGain))
@@ -113,7 +113,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.camera.AnalogGainChanged.connect(self.AnalogGainChangedCallback)
 
 
-        self.radioButton_23.toggle()
+        #self.radioButton_23.toggle()
         #self.enableAuto(False)
         #self.ExposureTimeChangedCallback(25)
 
@@ -126,6 +126,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.serial.write("$Report/Interval=1\n")
         self.serial.write("?")
 
+                                                  
     def imageChanged(self, image):
         #self.movie.write(img.astype(np.uint8).tobytes())
         #self.process.stdin.write(img.astype(np.uint8).tobytes())
