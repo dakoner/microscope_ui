@@ -25,6 +25,12 @@ class QUVCObjectCamera(QtCore.QObject):
         self.q.yuvFrameChanged.connect(self.yuv_callback)
         self.process = None
 
+
+        self.q.set_ae_mode(self.dh, bytearray.fromhex('00'))
+        self.q.set_exposure_abs(self.dh, 5)
+        self.q.set_white_balance_temperature_auto(self.dh, bytearray.fromhex('00'))
+        self.q.set_white_balance_temperature(self.dh, 5000)
+        
     def get_exposure_abs_cur(self):
         return self.q.get_exposure_abs(self.dh, bytearray.fromhex('81'))
  
@@ -87,11 +93,14 @@ class QUVCObjectCamera(QtCore.QObject):
         return self._uvc_get_gain_cur()
  
     def yuv_callback(self, frame, width, height, data_bytes):
-    
-        if self.process:
-            frame.setsize(data_bytes*2)
-            assert (data_bytes * 2 == width*height*2)
-            self.process.stdin.write(frame.asstring())
+        if data_bytes != width*height*2:
+            print("Bad frame")
+        elif self.process:
+            frame.setsize(data_bytes)
+            s = frame.asstring()
+            self.process.stdin.write(s)
+            #self.process.stdin.flush()
+            #del s
         
 
     def callback(self, image):
@@ -128,7 +137,7 @@ class QUVCObjectCamera(QtCore.QObject):
                 s="{}x{}".format(1280, 720),
             )
             .output(
-                fname, pix_fmt="yuv422", vcodec="libx264"
+                fname, pix_fmt="yuv420p", vcodec="libx264", preset="veryfast", 
             )  
             .overwrite_output()
             .run_async(pipe_stdin=True)
