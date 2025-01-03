@@ -18,7 +18,7 @@ from config import (
     Z_FEED,
 )
 
-VIDEO_SPEED=100
+VIDEO_SPEED=200
 
 class Acquisition:
     def __init__(self, scene, rect, lastRubberBand):
