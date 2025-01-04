@@ -1,17 +1,15 @@
 import numpy as np
-from PyQt6 import QtCore, QtGui
+from PyQt6 import QtCore, QtGui, sip
 from config import WIDTH, HEIGHT, FPS
 import numpy as np
 import QUVCObject
-import ffmpeg
-
 class QUVCObjectCamera(QtCore.QObject):
 
     ExposureTimeChanged = QtCore.pyqtSignal(float)
     AeStateChanged = QtCore.pyqtSignal(float)
     AnalogGainChanged = QtCore.pyqtSignal(float)
     imageChanged = QtCore.pyqtSignal(QtGui.QImage)
-    yuvImageChanged = QtCore.pyqtSignal(np.ndarray, int, int, int)
+    yuvFrameChanged = QtCore.pyqtSignal(sip.voidptr, int, int, int, int, int, int, int)
     snapshotCompleted = QtCore.pyqtSignal(QtGui.QImage)
 
     def __init__(self, parent=None):
@@ -23,7 +21,6 @@ class QUVCObjectCamera(QtCore.QObject):
         self.q.open_device(self.d, self.dh)
         self.q.frameChanged.connect(self.callback)
         self.q.yuvFrameChanged.connect(self.yuv_callback)
-        self.process = None
 
 
         self.q.set_ae_mode(self.dh, bytearray.fromhex('00'))
@@ -95,18 +92,16 @@ class QUVCObjectCamera(QtCore.QObject):
     def yuv_callback(self, frame, width, height, data_bytes, step, sequence, tv_sec, tv_nsec):
         if data_bytes != width*height*2:
             print("Bad frame")
-        elif self.process:
-            frame.setsize(data_bytes)
-            s = frame.asstring()
-            self.process.stdin.write(s)
+        else:
+            self.yuvFrameChanged.emit(frame, width, height, data_bytes, step, sequence, tv_sec, tv_nsec)
         
 
     def callback(self, image):
-        self.currentFrame = image
+        # self.currentFrame = image
         self.imageChanged.emit(image)#d, d.shape[1], d.shape[0], d.shape[1])
         
-    def snapshot(self):
-        self.snapshotCompleted.emit(self.currentFrame)
+    # def snapshot(self):
+    #     self.snapshotCompleted.emit(self.currentFrame)
 
     def camera_play(self):
         pass
@@ -120,28 +115,10 @@ class QUVCObjectCamera(QtCore.QObject):
         # self.worker.pause()
 
     def startRecording(self, fname):
-        if self.process:
-            print("Already recording")
-            return
-        # ffmpeg -f rawvideo -pix_fmt yuyv422 -s 1280x720 -i test.raw  -vcodec libx264 -pix_fmt yuv420p  movie.mp4 -y
-        self.process = (
-            ffmpeg.input(
-                "pipe:",
-                format="rawvideo",
-                pix_fmt="yuyv422",
-                s="{}x{}".format(1280, 720),
-            )
-            .output(
-                fname, pix_fmt="yuv420p", vcodec="libx264", preset="veryfast", 
-            )  
-            .overwrite_output()
-            .run_async(pipe_stdin=True)
-        )
+        pass
 
     def stopRecording(self):
-        if self.process:
-            self.process.stdin.close()
-            self.process = None
+        pass
         
     def begin(self):
         format = 3

@@ -1,3 +1,4 @@
+import ffmpeg
 import os
 import json
 import time
@@ -48,15 +49,8 @@ class Acquisition:
         s = QtCore.QSize(w, h)
         #self.image = QtGui.QImage(s, QtGui.QImage.Format.Format_RGB32)
         #self.painter = QtGui.QPainter(self.image)
-            
-    # def imageChanged(self, image):
-    #     m_pos = self.app.main_window.m_pos
-    #     r = QtCore.QPointF(m_pos[0]/PIXEL_SCALE, m_pos[1]/PIXEL_SCALE)
-    #     d = r - self.startPos
-    #     #image = image.mirrored(horizontal=True)
-    #     self.painter.drawImage(d, image)
+        self.process = None
 
-        
         
     def generateGrid(self, from_, to):
         grid = []
@@ -91,7 +85,7 @@ class Acquisition:
                 grid.append(
                     [
                         ["MOVE_TO", (gx, self.ys[0], curr_z), (k, 0, 0), VIDEO_SPEED],
-                        ["START_MOVIE_STRIP", self.prefix + "/test.%d.mkv" % k],
+                        ["START_MOVIE_STRIP", self.prefix, k],
                         [
                             "MOVE_TO",
                             (gx, self.ys[-1], curr_z),
@@ -133,11 +127,13 @@ class Acquisition:
         self.app.main_window.serial.messageChanged.connect(self.output)
         self.app.main_window.serial.posChanged.connect(self.pos)
         #self.m_pos_ts = []
+        self.m_pos = [-1,-1,-1]
         self.time_0 = time.time()
         self.counter = 0
 
-        self.tile_config = open(os.path.join(self.prefix, "tile_config.json"), "w")
-        #self.app.main_window.camera.imageChanged.connect(self.imageChanged)
+        # ffmpeg -f rawvideo -pix_fmt yuyv422 -s 1280x720 -i test.raw  -vcodec libx264 -pix_fmt yuv420p  movie.mp4 -y
+        self.app.main_window.camera.yuvFrameChanged.connect(self.yuvFrameChanged)
+        
         self.doCmd()
         # print("cmd=", cmd)
         # self.app.main_window.label_counter.setText(str(self.counter))
@@ -148,21 +144,6 @@ class Acquisition:
         self.m_pos_t = t
         #self.m_pos_ts.append((self.m_pos, t))
 
-        json.dump(
-            {
-                #"counter": counter,
-                #"camera_timestamp": camera_timestamp - camera_time_0,
-                #"timestamp": self.parent.m_pos_t - time_0,
-                #"counter": self.counter,
-                # "i": self.i,
-                # "j": self.j,
-                # "k": self.k,
-                "x": x,
-                "y": y,
-                "z": z,
-            },
-            self.tile_config)
-        self.tile_config.write("\n")
 
     def doCmd(self):
         print("doCmd block:", self.block)
@@ -184,11 +165,32 @@ class Acquisition:
             g = f"$HY\n"
             self.app.main_window.serial.write(g)
         elif subcmd[0] == "START_MOVIE_STRIP":
-            self.app.main_window.camera.startRecording(subcmd[1])
-            QtCore.QTimer.singleShot(10, self.doCmd)
+            prefix = subcmd[1]
+            k = subcmd[2]
+            fname = prefix + "/test.%d.mkv" % k
+            self.process = (
+            ffmpeg.
+            input(
+                "pipe:",
+                format="rawvideo",
+                pix_fmt="yuyv422",
+                s="{}x{}".format(1280, 720),
+                threads=8
+            )
+            .output(
+                fname, pix_fmt="yuv422p", vcodec="libx264", crf=13 
+            )  
+            .overwrite_output()
+            .global_args("-threads", "8")
+            .run_async(pipe_stdin=True)
+            )
+            self.tile_config = open(os.path.join(self.prefix, "tile_config.%d.json" % k), "w")
+            QtCore.QTimer.singleShot(0, self.doCmd)
         elif subcmd[0] == "STOP_MOVIE_STRIP":
-            self.app.main_window.camera.stopRecording()
-            QtCore.QTimer.singleShot(10, self.doCmd)
+            self.process.stdin.close()
+            self.process = None
+            self.tile_config.close()
+            QtCore.QTimer.singleShot(0, self.doCmd)
         elif subcmd[0] == "MOVE_TO":
             #print("MOVE_TO")
             self.x, self.y, self.z = subcmd[1]
@@ -214,11 +216,11 @@ class Acquisition:
             self.app.main_window.serial.write("G4 P1\n")
         elif subcmd[0] == "DONE":
             self.app.main_window.tile_graphics_view.stopAcquisition()
-            self.tile_config.close()
-            self.app.main_window.serial.stateChanged.connect(self.acq)
-            self.app.main_window.serial.messageChanged.connect(self.output)
-            self.app.main_window.serial.posChanged.connect(self.pos)
-            #self.app.main_window.camera.imageChanged.disconnect(self.imageChanged)
+            self.app.main_window.serial.stateChanged.disconnect(self.acq)
+            self.app.main_window.serial.messageChanged.disconnect(self.output)
+            self.app.main_window.serial.posChanged.disconnect(self.pos)
+            self.app.main_window.camera.yuvFrameChanged.disconnect(self.yuvFrameChanged)
+
             print("done")
             #self.painter.end()
             #self.image.save("test.png")
@@ -237,6 +239,42 @@ class Acquisition:
             print("go to next")
             self.doCmd()
 
+
+    def yuvFrameChanged(self, frame, width, height, data_bytes, step, sequence, tv_sec, tv_nsec):
+        #m_pos = self.app.main_window.m_pos
+        #r = QtCore.QPointF(m_pos[0]/PIXEL_SCALE, m_pos[1]/PIXEL_SCALE)
+        #d = r - self.startPos
+        #image = image.mirrored(horizontal=True)
+        #self.painter.drawImage(d, image)
+
+        if self.process:
+
+
+            json.dump(
+                {
+                    #"counter": counter,
+                    #"camera_timestamp": camera_timestamp - camera_time_0,
+                    #"timestamp": self.parent.m_pos_t - time_0,
+                    #"counter": self.counter,
+                    # "i": self.i,
+                    # "j": self.j,
+                    # "k": self.k,
+                    "fname": "images/test.%05d.png" % (sequence),
+                    "sequence": sequence,
+                    "tv_sec": tv_sec,
+                    "tv_nsec": tv_nsec,
+                    "x": self.m_pos[0],
+                    "y": self.m_pos[1],
+                    "z": self.m_pos[2],
+                },
+                self.tile_config)
+            self.tile_config.write("\n")
+
+
+            frame.setsize(data_bytes)
+            s = frame.asstring()
+            self.process.stdin.write(s)    
+        
     # def startTrigger(self, i, j, k):
     #     #self.app.main_window.camera.stopWorker()
     #     self.app.main_window.setTrigger()
