@@ -28,8 +28,8 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         self.setDragMode(QtWidgets.QGraphicsView.DragMode.RubberBandDrag)
         #print("Scene rect:", self.scene().sceneRect(), self.scene().itemsBoundingRect())
         # self.fitInView(self.scene().itemsBoundingRect(), QtCore.Qt.KeepAspectRatio)
-        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        #self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        #self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         # self.centerOn(self.scene().itemsBoundingRect().width()/2, self.scene().itemsBoundingRect().height()/2)
         # self.setMouseTracking(True)
         self.acquisition = None
@@ -43,17 +43,10 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
         elif key == QtCore.Qt.Key.Key_Minus:
             self.scale(0.9, 0.9)
 
-
-
-    # def doAcquisition(self):
-    #     if self.acquisition:
-    #         self.acquisition.doAcquisition()
-
     def stopAcquisition(self):
         self.acquisition = None
 
     def resizeEvent(self, *args):
-        print("resize")
         self.fitInView(self.scene().sceneRect())#, QtCore.Qt.AspectRatioMode.KeepAspectRatio)
         return super().resizeEvent(*args)
 
