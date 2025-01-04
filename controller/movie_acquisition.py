@@ -18,7 +18,7 @@ from config import (
     Z_FEED,
 )
 
-VIDEO_SPEED=1000
+VIDEO_SPEED=500
 
 class Acquisition:
     def __init__(self, scene, rect, lastRubberBand):
@@ -80,38 +80,32 @@ class Acquisition:
         self.xs = np.arange(self.x_min, self.x_max, FOV_X)
         num_x = len(self.xs)
 
-        grid.append([["MOVE_TO", (self.xs[0], self.ys[0], z), (0, 0, 0), XY_FEED]])
+        grid.append([["HOME"]])
         grid.append([["WAIT"]])
-        grid.append([
-          ["START_MOVIE"] ])
+        
         for i, deltaz in enumerate(self.zs):
             curr_z = z + deltaz
                 # for j, gy in enumerate(self.ys):
             for k, gx in enumerate(self.xs):
-                if k % 2:
-                    grid.append(
+                grid.append([["MOVE_TO", (gx, 0, curr_z), (k, 0, 0), VIDEO_SPEED]])
+                grid.append([["HOME_Y"]])
+                grid.append([["WAIT"]])
+                
+                grid.append(
+                    [
+                        ["MOVE_TO", (gx, self.ys[0], curr_z), (k, 0, 0), VIDEO_SPEED],
+                        ["START_MOVIE_STRIP", "test.%d.mkv" % k],
                         [
-                            ["MOVE_TO", (gx, self.ys[0], curr_z), (k, 0, 0), VIDEO_SPEED],
-                            [
-                                "MOVE_TO",
-                                (gx, self.ys[-1], curr_z),
-                                (k, len(self.ys), 0),
-                                VIDEO_SPEED,
-                            ],
-                        ]
-                    )
-                else:
-                    grid.append(
-                        [
-                            [
-                                "MOVE_TO",
-                                (gx, self.ys[-1], curr_z),
-                                (k, len(self.ys), 0),
-                                VIDEO_SPEED,
-                            ],
-                            ["MOVE_TO", (gx, self.ys[0], curr_z), (k, 0, 0), VIDEO_SPEED],
-                        ]
-                    )
+                            "MOVE_TO",
+                            (gx, self.ys[-1], curr_z),
+                            (k, len(self.ys), 0),
+                            VIDEO_SPEED,
+                        ],
+                        ["WAIT"]
+                    ]
+                )
+                grid.append([
+                    ["STOP_MOVIE_STRIP"]])
         grid.append([["WAIT"]])
         grid.append([["DONE"]])
 
@@ -166,15 +160,21 @@ class Acquisition:
 
         self.cur = subcmd
         print("Subcmd", subcmd)
-        if subcmd[0] == "HOME_X":
+        if subcmd[0] == "HOME":
+            g = f"$H\n"
+            self.app.main_window.serial.write(g)
+        elif subcmd[0] == "HOME_X":
             g = f"$HX\n"
             self.app.main_window.serial.write(g)
         elif subcmd[0] == "HOME_Y":
             g = f"$HY\n"
             self.app.main_window.serial.write(g)
-        elif subcmd[0] == "START_MOVIE":
+        elif subcmd[0] == "START_MOVIE_STRIP":
+            self.app.main_window.camera.startRecording(subcmd[1])
             QtCore.QTimer.singleShot(10, self.doCmd)
-            self.app.main_window.camera.startRecording("test.mkv")
+        elif subcmd[0] == "STOP_MOVIE_STRIP":
+            self.app.main_window.camera.stopRecording()
+            QtCore.QTimer.singleShot(10, self.doCmd)
         elif subcmd[0] == "MOVE_TO":
             #print("MOVE_TO")
             self.x, self.y, self.z = subcmd[1]
@@ -200,7 +200,6 @@ class Acquisition:
             self.app.main_window.serial.write("G4 P1\n")
         elif subcmd[0] == "DONE":
             self.app.main_window.tile_graphics_view.stopAcquisition()
-            self.app.main_window.camera.stopRecording()
             #self.app.main_window.camera.imageChanged.disconnect(self.imageChanged)
             print("done")
             self.painter.end()
@@ -215,8 +214,8 @@ class Acquisition:
             self.doCmd()
 
     def acq(self, state):
-        print("acq", state)
-        if state == "Idle" and self.cur[0] == "MOVE_TO":
+        print("acq", state, self.cur[0])
+        if state == "Idle" and self.cur[0] in ("MOVE_TO", "HOME", "HOME_X", "HOME_Y"):
             print("go to next")
             self.doCmd()
 
