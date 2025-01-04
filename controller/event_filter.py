@@ -33,7 +33,7 @@ class EventFilter(QtCore.QObject):
             #     print(r)
             elif key == QtCore.Qt.Key.Key_S:
                 self.main_window.cancel()
-                self.tile_graphics_view.stopAcquisition()
+                self.main_window.tile_graphics_view.stopAcquisition()
             elif key == QtCore.Qt.Key.Key_P:
                 fname = f"image_{int(time.time())}.png"
                 time.sleep(1)
@@ -41,8 +41,8 @@ class EventFilter(QtCore.QObject):
                 print("Saved", fname)
             elif key == QtCore.Qt.Key.Key_R:
                 print("Reset")
-                self.tile_graphics_view.reset()
-                self.tile_graphics_view.addCurrentRect()
+                self.main_window.tile_graphics_view.reset()
+                self.main_window.tile_graphics_view.addCurrentRect()
                 # self.main_window.serial.reset()
             elif key == QtCore.Qt.Key.Key_Left:
                 if state == "Idle":
