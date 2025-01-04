@@ -18,7 +18,7 @@ from config import (
     Z_FEED,
 )
 
-VIDEO_SPEED=200
+VIDEO_SPEED=1000
 
 class Acquisition:
     def __init__(self, scene, rect, lastRubberBand):
@@ -82,8 +82,8 @@ class Acquisition:
 
         grid.append([["MOVE_TO", (self.xs[0], self.ys[0], z), (0, 0, 0), XY_FEED]])
         grid.append([["WAIT"]])
-        #grid.append([
-        #   ["START_MOVIE"] ])
+        grid.append([
+          ["START_MOVIE"] ])
         for i, deltaz in enumerate(self.zs):
             curr_z = z + deltaz
                 # for j, gy in enumerate(self.ys):
@@ -141,11 +141,9 @@ class Acquisition:
         self.app.main_window.serial.stateChanged.connect(self.acq)
         self.app.main_window.serial.messageChanged.connect(self.output)
         self.m_pos_ts = []
-        self.app.main_window.serial.posChanged.connect(self.pos)
+        #self.app.main_window.serial.posChanged.connect(self.pos)
         self.time_0 = time.time()
         self.counter = 0
-
-        self.app.main_window.camera.startRecording("test.mkv")
 
         #self.app.main_window.camera.imageChanged.connect(self.imageChanged)
         self.doCmd()
@@ -159,7 +157,7 @@ class Acquisition:
         self.m_pos_ts.append((self.m_pos, t))
 
     def doCmd(self):
-        #print("block:", self.block)
+        print("doCmd block:", self.block)
         if self.block is None or self.block == []:
             self.block = self.grid.pop(0)
         #print("self.block: ", self.block)
@@ -175,7 +173,8 @@ class Acquisition:
             g = f"$HY\n"
             self.app.main_window.serial.write(g)
         elif subcmd[0] == "START_MOVIE":
-            self.movie_started = True
+            QtCore.QTimer.singleShot(10, self.doCmd)
+            self.app.main_window.camera.startRecording("test.mkv")
         elif subcmd[0] == "MOVE_TO":
             #print("MOVE_TO")
             self.x, self.y, self.z = subcmd[1]
@@ -204,7 +203,6 @@ class Acquisition:
             self.app.main_window.camera.stopRecording()
             #self.app.main_window.camera.imageChanged.disconnect(self.imageChanged)
             print("done")
-            self.app.main_window.camera.stopRecording()
             self.painter.end()
             self.image.save("test.png")
         else:
