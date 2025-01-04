@@ -138,7 +138,7 @@ class QApplication(QtWidgets.QApplication):
                 image = futures[future]
                 img = future.result()
                 img = qimage2ndarray.array2qimage(img)
-                #img.convertTo(QtGui.QImage.Format.Format_ARGB32_Premultiplied)
+                img.convertTo(QtGui.QImage.Format.Format_ARGB32)
                 #img = img.mirrored(horizontal=True, vertical=True)
                 x0 = image.x
                 y0 = image.y

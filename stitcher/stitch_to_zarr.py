@@ -55,7 +55,6 @@ def main(prefix):
         shape=(c.bounds[2], c.bounds[3], 3),
         chunks=(CHUNK_SIZE, CHUNK_SIZE, 3),
         dtype=np.uint16,
-        synchronizer=zarr.ThreadSynchronizer()
     )
     counter = zarr.open(
         "counter.zarr",
@@ -63,11 +62,9 @@ def main(prefix):
         shape=(c.bounds[2], c.bounds[3], 3),
         chunks=(CHUNK_SIZE, CHUNK_SIZE, 3),
         dtype=np.uint8,
-    
-        synchronizer=zarr.ThreadSynchronizer()
     )
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=128) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
         futures = []
         for image in tc.images:
             futures.append(executor.submit(fn, prefix, image))
@@ -86,23 +83,10 @@ def main(prefix):
          
             t.update(1)
             
-    # for image in tc.images:
-    #     print(image)
-    #     filename, img, x, y, width, height = fn(prefix, image)
-    #     print(filename, x, y, width, height)
-    #     z[x : x + width, y : y + height] += img
-    #     counter[x : x + width, y : y + height] += 1
-    #     #r = future.result()
-    # #         futures.append(executor.submit(fn, prefix, image, z, counter))
-    #     #t.close()
     z = dask.array.from_array(z, chunks=(CHUNK_SIZE, CHUNK_SIZE, 3))
     counter = dask.array.from_array(counter, chunks=(CHUNK_SIZE, CHUNK_SIZE, 3))
     z = z // counter
-
-
-
     z = z.astype(dask.array.uint8)
-    print(z)
     dask.array.to_zarr(dask.array.moveaxis(z, 2, 0), "test-2.zarr")
 
 

@@ -1,6 +1,7 @@
 import sys
 
 sys.path.insert(0, "controller")
+import tifffile
 import shapely.geometry, shapely.strtree
 from tile_configuration import TileConfiguration
 import networkx as nx
@@ -125,7 +126,19 @@ class ScannedImage(QtWidgets.QGraphicsView):
             self.scale(2, 2)
         elif key == QtCore.Qt.Key.Key_Down:
             self.scale(0.5, 0.5)
-            
+        elif key == QtCore.Qt.Key.Key_S:
+            r = self.scene.itemsBoundingRect()
+            width = round(r.width())
+            height = round(r.height())
+            image = QtGui.QImage(width, height, QtGui.QImage.Format.Format_ARGB32_Premultiplied)
+            p = QtGui.QPainter(image)
+            self.scene.render(p)
+            p.end()
+            fname = "image.png"
+            image.save(fname)
+            #image = qimage2ndarray.byte_view(image)  # , normalize=True)
+            #image.save()
+            #tifffile.imwrite(fname, image)
     # def resizeEvent(self, event):
     #     # fitInView interferes with scale()
     #     self.fitInView(self.scene.sceneRect(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
@@ -155,8 +168,8 @@ class QApplication(QtWidgets.QApplication):
 
         self.prefix = prefix
         self.tc = TileConfiguration()
-        #self.tc.load(f"{prefix}/images.origin.txt")
-        self.tc.load(f"{prefix}/TileConfiguration.registered.registered.txt")
+        self.tc.load(f"{prefix}/images.origin.txt")
+        #self.tc.load(f"{prefix}/TileConfiguration.registered.registered.txt")
         
         self.tc.move_to_origin()
         self.create_graph()
