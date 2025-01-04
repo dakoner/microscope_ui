@@ -58,8 +58,8 @@ class TileConfiguration:
 
 
 def tile_config_to_tileconfiguration(prefix):
-    r = pd.read_json(f"{prefix}/tile_config.json", lines=True)
-    r.set_index(["i", "j", "k"])
+    r = pd.read_json(f"{prefix}/tile_config.0.json", lines=True)
+    r.set_index(["sequence"])
     tc = TileConfiguration()
     for row in r.itertuples():
         tc.addImage(filename=row.fname, x=row.x, y=row.y)
