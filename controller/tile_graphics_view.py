@@ -1,13 +1,13 @@
 import time
-from PyQt5 import QtGui, QtCore, QtWidgets
+from PyQt6 import QtGui, QtCore, QtWidgets
 import sys
 import functools
 
 sys.path.append("..")
 from config import PIXEL_SCALE, WIDTH, HEIGHT, STAGE_X_SIZE, STAGE_Y_SIZE
 
-# from movie_acquisition import Acquisition
-from photo_acquisition import Acquisition
+from movie_acquisition import Acquisition as MovieAcquisition
+from photo_acquisition import Acquisition as PhotoAcquisition
 
 
 def calculate_area(qpolygon):
@@ -20,124 +20,46 @@ def calculate_area(qpolygon):
     return abs(area) / 2
 
 
-class TileGraphicsScene(QtWidgets.QGraphicsScene):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.setObjectName("TileGraphicsScene")
-
-    def mouseMoveEvent(self, event):
-        print("tile scene moved")
-        app = QtWidgets.QApplication.instance()
-        pos = event.scenePos()
-        message = f"Canvas: {pos.x():.3f}, {pos.y():.3f}, Stage: {pos.x()*PIXEL_SCALE:.3f}, {pos.y()*PIXEL_SCALE:.3f}"
-        print(message)
-        app.main_window.statusbar.showMessage(message)
-        return super().mouseMoveEvent(event)
-
-    # def mousePressEvent(self, event):
-    #     #print("tile scene pressed")
-    #     app = QtWidgets.QApplication.instance()
-    #     #self.press = QtCore.QPointF(event.pos())
-
-    def mouseReleaseEvent(self, event):
-        if (
-            abs(
-                (
-                    event.scenePos()
-                    - event.buttonDownScenePos(QtCore.Qt.MouseButton.LeftButton)
-                ).manhattanLength()
-            )
-            == 0.0
-        ):
-            app = QtWidgets.QApplication.instance()
-            if app.main_window.state_value.text() == "Jog":
-                print("cancel jog")
-                app.main_window.cancel()
-            x = event.scenePos().x() - (WIDTH)
-            y = event.scenePos().y() - (HEIGHT)
-            app.main_window.moveTo(event.scenePos())
-        return super().mouseMoveEvent(event)
-
-
 class TileGraphicsView(QtWidgets.QGraphicsView):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, scene, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
+        self.setScene(scene)
         self.rubberBandChanged.connect(self.onRubberBandChanged)
-        self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
-        self.scene = TileGraphicsScene()
-        self.setScene(self.scene)
-        self.addStageRect()
-        print("Scene rect:", self.scene.sceneRect(), self.scene.itemsBoundingRect())
-        # self.fitInView(self.scene.itemsBoundingRect(), QtCore.Qt.KeepAspectRatio)
-        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        # self.centerOn(self.scene.itemsBoundingRect().width()/2, self.scene.itemsBoundingRect().height()/2)
+        self.setDragMode(QtWidgets.QGraphicsView.DragMode.RubberBandDrag)
+        #print("Scene rect:", self.scene().sceneRect(), self.scene().itemsBoundingRect())
+        # self.fitInView(self.scene().itemsBoundingRect(), QtCore.Qt.KeepAspectRatio)
+        #self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        #self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        # self.centerOn(self.scene().itemsBoundingRect().width()/2, self.scene().itemsBoundingRect().height()/2)
         # self.setMouseTracking(True)
-
-        self.currentRect = None
         self.acquisition = None
 
     def keyPressEvent(self, event):
-        event.ignore()
+        #event.ignore()
 
-    #     key = event.key()
-    #     if key == QtCore.Qt.Key_Plus:
-    #         self.scale(1.1, 1.1)
-    #     elif key == QtCore.Qt.Key_Minus:
-    #         self.scale(0.9, 0.9)
-
-    def addStageRect(self):
-        self.setSceneRect(0, 0, STAGE_X_SIZE / PIXEL_SCALE, STAGE_Y_SIZE / PIXEL_SCALE)
-        pen = QtGui.QPen(QtCore.Qt.white)
-        pen.setWidth(0)
-        brush = QtGui.QBrush(QtCore.Qt.black)
-        # print(0, 0, 45/PIXEL_SCALE, 45/PIXEL_SCALE)
-        self.stageRect = self.scene.addRect(
-            0,
-            0,
-            STAGE_X_SIZE / PIXEL_SCALE,
-            STAGE_Y_SIZE / PIXEL_SCALE,
-            pen=pen,
-            brush=brush,
-        )
-        self.stageRect.setZValue(0)
-
-    def addCurrentRect(self):
-        pen = QtGui.QPen(QtCore.Qt.green)
-        pen.setWidth(0)
-        brush_color = QtGui.QColor(0,0,0,0)
-        brush = QtGui.QBrush(brush_color)
-
-        self.currentRect = self.scene.addRect(0, 0, WIDTH, HEIGHT, pen=pen, brush=brush)
-        self.currentRect.setZValue(2)
-
-    def updateCurrentRect(self, x, y):
-        if not self.currentRect:
-            self.addCurrentRect()
-        self.currentRect.setPos(x / PIXEL_SCALE, y / PIXEL_SCALE)
-        # self.centerOn(self.currentRect)
-
-    # def doAcquisition(self):
-    #     if self.acquisition:
-    #         self.acquisition.doAcquisition()
+        key = event.key()
+        if key == QtCore.Qt.Key.Key_Plus:
+            self.scale(1.1, 1.1)
+        elif key == QtCore.Qt.Key.Key_Minus:
+            self.scale(0.9, 0.9)
 
     def stopAcquisition(self):
         self.acquisition = None
 
     def resizeEvent(self, *args):
-        self.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
+        self.fitInView(self.scene().sceneRect())#, QtCore.Qt.AspectRatioMode.KeepAspectRatio)
         return super().resizeEvent(*args)
 
     def onRubberBandChanged(self, rect, from_, to):
         if from_.isNull() and to.isNull():
-            pen = QtGui.QPen(QtCore.Qt.red)
+            pen = QtGui.QPen(QtCore.Qt.GlobalColor.red)
             pen.setWidth(0)
-            color = QtGui.QColor(QtCore.Qt.black)
+            color = QtGui.QColor(QtCore.Qt.GlobalColor.black)
             color.setAlpha(0)
             brush = QtGui.QBrush(color)
+            #self.scene().clear()
 
-            rect = self.scene.addRect(
+            rect = self.scene().addRect(
                 self.lastRubberBand[0].x(),
                 self.lastRubberBand[0].y(),
                 self.lastRubberBand[1].x() - self.lastRubberBand[0].x(),
@@ -146,50 +68,18 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
                 brush=brush,
             )
             rect.setZValue(3)
-            self.acquisition = Acquisition(self.lastRubberBand)
+            modifiers = QtWidgets.QApplication.keyboardModifiers()
+            if modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
+                self.acquisition = MovieAcquisition(self.scene, rect.rect(), self.lastRubberBand)
+            else:
+                self.acquisition = PhotoAcquisition(self.scene, rect.rect(), self.lastRubberBand)
+
             self.acquisition.startAcquisition()
         else:
             self.lastRubberBand = from_, to
 
     def reset(self):
-        self.scene.clear()
-        self.addStageRect()
-        self.addCurrentRect()
+        self.scene().clear()
+        self.scene().addStageRect()
+        self.scene().addCurrentRect()
 
-    def addImageIfMissing(self, draw_data, pos):
-        # if self.acquisition:
-        #     print("Not adding image during acquisition")
-        #     return
-        # if not self.acquisition or len(self.acquisition.grid) == 0:
-        #    return
-        ci = self.currentRect.collidingItems()
-        # Get the qpainterpath corresponding to the current image location, minus any overlapping images
-        qp = QtGui.QPainterPath()
-        qp.addRect(self.currentRect.sceneBoundingRect())
-        qp2 = QtGui.QPainterPath()
-        for item in ci:
-            if isinstance(item, QtWidgets.QGraphicsPixmapItem):
-                qp2.addRect(item.sceneBoundingRect())
-
-        qp3 = qp.subtracted(qp2)
-        p = qp3.toFillPolygon()
-        a = calculate_area(p)
-        if a > 500000:
-            # print("Adding")
-            self.addImage(draw_data, pos)
-
-    def addImage(self, draw_data, pos):
-        # print('addImage')
-        image = QtGui.QImage(
-            draw_data,
-            draw_data.shape[1],
-            draw_data.shape[0],
-            QtGui.QImage.Format_RGB888,
-        )
-        image = image.mirrored(horizontal=True, vertical=False)
-        image = image.scaledToHeight(128)
-        pixmap = QtGui.QPixmap.fromImage(image)
-        pm = self.scene.addPixmap(pixmap)
-        pm.setPos(pos[0] / PIXEL_SCALE, pos[1] / PIXEL_SCALE)
-        pm.setScale(10)
-        pm.setZValue(1)

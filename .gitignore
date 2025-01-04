@@ -10,3 +10,5 @@ chimerax/
 stitched/
 out/
 photo/
+controller/photo/
+controller/Camera/

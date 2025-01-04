@@ -3,7 +3,7 @@ import signal
 import sys
 import numpy as np
 import pdb
-from PyQt5 import QtCore
+from PyQt6 import QtCore
 import mvsdk
 
 
@@ -222,10 +222,8 @@ class GigECamera(QtCore.QObject):
         print("etj", mvsdk.CameraGetExtTrigJitterTime(self.hCamera))
         print("tc", mvsdk.CameraGetTriggerCount(self.hCamera))
 
-        self.ExposureTime = 10000
         print("ex", mvsdk.CameraGetExposureTime(self.hCamera))
         print("extrig", mvsdk.CameraGetExtTrigSignalType(self.hCamera))
-        # self.ExposureTime = 0
         self.Gamma = mvsdk.CameraGetGamma(self.hCamera)
         self.Contrast = mvsdk.CameraGetContrast(self.hCamera)
         self.Sharpness = mvsdk.CameraGetSharpness(self.hCamera)
@@ -234,8 +232,6 @@ class GigECamera(QtCore.QObject):
         self.VMirror = mvsdk.CameraGetMirror(self.hCamera, 1)
         self.HMirror = mvsdk.CameraGetMirror(self.hCamera, 0)
         self.TriggerMode = mvsdk.CameraGetTriggerMode(self.hCamera)
-        # self.AeState = mvsdk.CameraGetAeState(self.hCamera)
-        self.AeState = 1
         self.AeTarget = mvsdk.CameraGetAeTarget(self.hCamera)
         self.enableCallback()
 

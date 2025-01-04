@@ -21,7 +21,7 @@ from config import (
     XY_FEED,
     Z_FEED,
 )
-from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt6 import QtWidgets, QtGui, QtCore
 
 
 class ImageThread(QtCore.QThread):
@@ -89,9 +89,10 @@ class ImageThread(QtCore.QThread):
 
 
 class Acquisition:
-    def __init__(self, lastRubberBand):
+    def __init__(self, scene, rect, lastRubberBand):
         self.app = QtWidgets.QApplication.instance()
-
+        self.scene = scene
+        self.rect = rect
         self.lastRubberBand = lastRubberBand
         self.startPos = QtCore.QPointF(
             self.lastRubberBand[0].x(), self.lastRubberBand[0].y()
@@ -119,13 +120,14 @@ class Acquisition:
         self.fname = None
         self.vs = []
 
-    def snapshotCompleted(self, frame):
-        self.app.main_window.tile_graphics_view.addImage(
-            frame, self.app.main_window.m_pos
+    def snapshotCompleted(self, image):
+        pos = self.app.main_window.m_pos
+        self.app.main_window.tile_graphics_view.scene().addImage(
+            image, pos
         )
-        format = QtGui.QImage.Format_RGB888
-        s = frame.shape
-        image = QtGui.QImage(frame, s[1], s[0], format)
+        # format = QtGui.QImage.Format.Format_RGB888
+        # s = frame.shape
+        # image = QtGui.QImage(frame, s[1], s[0], format)
         image = image.mirrored(horizontal=True, vertical=False)
         t = str(time.time())
         filename = f"{self.prefix}/test.{t}.png"
@@ -146,6 +148,9 @@ class Acquisition:
                 "x": self.x,
                 "y": self.y,
                 "z": self.z,
+                "stage_x": pos[0],
+                "stage_y": pos[1],
+                "stage_z": pos[2],
             },
             self.tile_config,
         )
@@ -183,20 +188,19 @@ class Acquisition:
         # print(self.ys)
         for i, deltaz in enumerate(self.zs):
             curr_z = z + deltaz
-            for j, gy in enumerate(self.ys):
-                # grid.append([["MOVE_TO", (self.xs[0],gy,curr_z), (0,j,0), 1000], ["HOME_X"], ["WAIT"]])
+
+            for k, gx in enumerate(self.xs):
+                for j, gy in enumerate(self.ys):
                 # if j % 2 == 0:
-                xs = enumerate(self.xs)
+                #xs = enumerate(self.xs)
                 # else:
                 #     print(xs)
 
                 #     xs = enumerate(reversed(self.xs))
                 #     print(xs)
-                for k, gx in enumerate(xs):
-                    print(k, gx, float(gx[1]))
                     grid.append(
                         [
-                            ["MOVE_TO", (float(gx[1]), gy, curr_z), (k, j, 0), 1000],
+                            ["MOVE_TO", (float(gx), float(gy), curr_z), (k, j, 0), XY_FEED],
                             ["WAIT"],
                             ["PHOTO"],
                         ]

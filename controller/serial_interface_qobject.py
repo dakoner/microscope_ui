@@ -1,9 +1,10 @@
+import prctl
 import numpy as np
 import sys
 import serial
 import time
 import threading
-from PyQt5 import QtCore
+from PyQt6 import QtCore
 
 STATUS_TIMEOUT = 0.01
 
@@ -55,7 +56,9 @@ class SerialInterface(QtCore.QObject):
         self.m_state = None
         self.m_pos = None
         self.startReadThread()
-        self.startStatusThread()
+        #self.startStatusThread()
+    def __del__(self):
+        print("serial interface__del__")
 
     @QtCore.pyqtProperty(str, notify=stateChanged)
     def state(self):
@@ -81,13 +84,16 @@ class SerialInterface(QtCore.QObject):
 
     def startStatusThread(self):
         self.status_thread = threading.Thread(target=self.get_status)
+        self.status_thread.daemon = True
         self.status_thread.start()
 
     def startReadThread(self):
         self.read_thread = threading.Thread(target=self.read)
+        self.read_thread.daemon = True
         self.read_thread.start()
 
     def read(self):
+        prctl.set_name("serial read")
         while True:
             self.readline()
 
@@ -108,8 +114,10 @@ class SerialInterface(QtCore.QObject):
             for item in rest:
                 if item.startswith("MPos"):
                     new_pos = [float(field) for field in item[5:].split(",")]
+
                     self.pos = new_pos
         else:
+            print("message:", message)
             self.messageChanged.emit(message)
 
     def get_status(self):
@@ -132,5 +140,6 @@ class SerialInterface(QtCore.QObject):
         self.serialport.dtr = True
 
     def write(self, data):
+        print("write", bytes(data, "utf-8"))
         self.serialport.write(bytes(data, "utf-8"))
         self.serialport.flush()
