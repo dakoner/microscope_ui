@@ -1,4 +1,5 @@
-
+import os
+import json
 import time
 import numpy as np
 import sys
@@ -33,10 +34,8 @@ class Acquisition:
         self.grid = []
         self.counter = 0
         self.start_time = time.time()
-        # self.prefix = os.path.join("movie", str(self.start_time))
-        # os.makedirs(self.prefix)
-        # self.prefix = os.path.join("photo", str(self.start_time))
-        # os.makedirs(self.prefix)
+        self.prefix = os.path.join("movie", str(self.start_time))
+        os.makedirs(self.prefix)
         self.orig_grid = self.generateGrid(*self.lastRubberBand)
         self.inner_counter = 0
         self.block = None
@@ -47,17 +46,15 @@ class Acquisition:
         w = int(self.rect.width())
         h = int(self.rect.height())
         s = QtCore.QSize(w, h)
-        self.movie_started=False
-        self.image = QtGui.QImage(s, QtGui.QImage.Format.Format_RGB32)
-        self.painter = QtGui.QPainter(self.image)
+        #self.image = QtGui.QImage(s, QtGui.QImage.Format.Format_RGB32)
+        #self.painter = QtGui.QPainter(self.image)
             
-    def imageChanged(self, image):
-
-        m_pos = self.app.main_window.m_pos
-        r = QtCore.QPointF(m_pos[0]/PIXEL_SCALE, m_pos[1]/PIXEL_SCALE)
-        d = r - self.startPos
-        #image = image.mirrored(horizontal=True)
-        self.painter.drawImage(d, image)
+    # def imageChanged(self, image):
+    #     m_pos = self.app.main_window.m_pos
+    #     r = QtCore.QPointF(m_pos[0]/PIXEL_SCALE, m_pos[1]/PIXEL_SCALE)
+    #     d = r - self.startPos
+    #     #image = image.mirrored(horizontal=True)
+    #     self.painter.drawImage(d, image)
 
         
         
@@ -94,7 +91,7 @@ class Acquisition:
                 grid.append(
                     [
                         ["MOVE_TO", (gx, self.ys[0], curr_z), (k, 0, 0), VIDEO_SPEED],
-                        ["START_MOVIE_STRIP", "test.%d.mkv" % k],
+                        ["START_MOVIE_STRIP", self.prefix + "/test.%d.mkv" % k],
                         [
                             "MOVE_TO",
                             (gx, self.ys[-1], curr_z),
@@ -109,24 +106,24 @@ class Acquisition:
         grid.append([["WAIT"]])
         grid.append([["DONE"]])
 
-        # with open(os.path.join(self.prefix, "scan_config.json"), "w") as scan_config:
-        #     json.dump(
-        #         {
-        #             "i_dim": len(self.zs),
-        #             "j_dim": len(self.ys),
-        #             "k_dim": len(self.xs),
-        #             "x_min": self.x_min,
-        #             "y_min": self.y_min,
-        #             "z_min": self.z_min,
-        #             "x_max": self.x_max,
-        #             "y_max": self.y_max,
-        #             "z_max": self.z_max,
-        #             "pixel_scale": PIXEL_SCALE,
-        #             "fov_x_pixels": FOV_X_PIXELS,
-        #             "fov_y_pixels": FOV_Y_PIXELS,
-        #         },
-        #         scan_config,
-        #     )
+        with open(os.path.join(self.prefix, "scan_config.json"), "w") as scan_config:
+            json.dump(
+                {
+                    "i_dim": len(self.zs),
+                    "j_dim": len(self.ys),
+                    "k_dim": len(self.xs),
+                    "x_min": self.x_min,
+                    "y_min": self.y_min,
+                    "z_min": self.z_min,
+                    "x_max": self.x_max,
+                    "y_max": self.y_max,
+                    "z_max": self.z_max,
+                    "pixel_scale": PIXEL_SCALE,
+                    "fov_x_pixels": FOV_X_PIXELS,
+                    "fov_y_pixels": FOV_Y_PIXELS,
+                },
+                scan_config,
+            )
         print("grid:", grid)
         return grid
 
@@ -134,11 +131,12 @@ class Acquisition:
         self.grid = self.orig_grid[:]
         self.app.main_window.serial.stateChanged.connect(self.acq)
         self.app.main_window.serial.messageChanged.connect(self.output)
-        self.m_pos_ts = []
-        #self.app.main_window.serial.posChanged.connect(self.pos)
+        self.app.main_window.serial.posChanged.connect(self.pos)
+        #self.m_pos_ts = []
         self.time_0 = time.time()
         self.counter = 0
 
+        self.tile_config = open(os.path.join(self.prefix, "tile_config.json"), "w")
         #self.app.main_window.camera.imageChanged.connect(self.imageChanged)
         self.doCmd()
         # print("cmd=", cmd)
@@ -148,7 +146,23 @@ class Acquisition:
         # print("x, y, z, t", x, y, z, t)
         self.m_pos = x, y, z
         self.m_pos_t = t
-        self.m_pos_ts.append((self.m_pos, t))
+        #self.m_pos_ts.append((self.m_pos, t))
+
+        json.dump(
+            {
+                #"counter": counter,
+                #"camera_timestamp": camera_timestamp - camera_time_0,
+                #"timestamp": self.parent.m_pos_t - time_0,
+                #"counter": self.counter,
+                # "i": self.i,
+                # "j": self.j,
+                # "k": self.k,
+                "x": x,
+                "y": y,
+                "z": z,
+            },
+            self.tile_config)
+        self.tile_config.write("\n")
 
     def doCmd(self):
         print("doCmd block:", self.block)
@@ -200,10 +214,14 @@ class Acquisition:
             self.app.main_window.serial.write("G4 P1\n")
         elif subcmd[0] == "DONE":
             self.app.main_window.tile_graphics_view.stopAcquisition()
+            self.tile_config.close()
+            self.app.main_window.serial.stateChanged.connect(self.acq)
+            self.app.main_window.serial.messageChanged.connect(self.output)
+            self.app.main_window.serial.posChanged.connect(self.pos)
             #self.app.main_window.camera.imageChanged.disconnect(self.imageChanged)
             print("done")
-            self.painter.end()
-            self.image.save("test.png")
+            #self.painter.end()
+            #self.image.save("test.png")
         else:
             print("Unknown subcmd", subcmd)
 

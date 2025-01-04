@@ -57,6 +57,7 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
             color = QtGui.QColor(QtCore.Qt.GlobalColor.black)
             color.setAlpha(0)
             brush = QtGui.QBrush(color)
+            #self.scene().clear()
 
             rect = self.scene().addRect(
                 self.lastRubberBand[0].x(),
@@ -79,6 +80,6 @@ class TileGraphicsView(QtWidgets.QGraphicsView):
 
     def reset(self):
         self.scene().clear()
-        self.addStageRect()
-        self.addCurrentRect()
+        self.scene().addStageRect()
+        self.scene().addCurrentRect()
 

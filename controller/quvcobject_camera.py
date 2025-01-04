@@ -30,7 +30,7 @@ class QUVCObjectCamera(QtCore.QObject):
         self.q.set_exposure_abs(self.dh, 5)
         self.q.set_white_balance_temperature_auto(self.dh, bytearray.fromhex('00'))
         self.q.set_white_balance_temperature(self.dh, 5000)
-        
+
     def get_exposure_abs_cur(self):
         return self.q.get_exposure_abs(self.dh, bytearray.fromhex('81'))
  
@@ -80,33 +80,28 @@ class QUVCObjectCamera(QtCore.QObject):
     #     self.AeTargetChanged.emit(mvsdk.CameraGetAeTarget(self.hCamera))
 
 
-    @QtCore.pyqtProperty(int, notify=AnalogGainChanged)
-    def AnalogGain(self):
-        g = self._uvc_get_gain_cur()
-        return g
+    # @QtCore.pyqtProperty(int, notify=AnalogGainChanged)
+    # def AnalogGain(self):
+    #     g = self._uvc_get_gain_cur()
+    #     return g
 
-    @AnalogGain.setter
-    def AnalogGain(self, gain):
-        if gain == self._uvc_get_gain_cur():
-            return
-        result = uvclite.libuvc.uvc_set_gain(self.device._handle_p, gain)
-        return self._uvc_get_gain_cur()
+    # @AnalogGain.setter
+    # def AnalogGain(self, gain):
+    #     if gain == self._uvc_get_gain_cur():
+    #         return
+    #     result = uvclite.libuvc.uvc_set_gain(self.device._handle_p, gain)
+    #     return self._uvc_get_gain_cur()
  
-    def yuv_callback(self, frame, width, height, data_bytes):
+    def yuv_callback(self, frame, width, height, data_bytes, step, sequence, tv_sec, tv_nsec):
         if data_bytes != width*height*2:
             print("Bad frame")
         elif self.process:
             frame.setsize(data_bytes)
             s = frame.asstring()
             self.process.stdin.write(s)
-            #self.process.stdin.flush()
-            #del s
         
 
     def callback(self, image):
-        #print("callback")
-        #image = qimage.convertToFormat(QtGui.QImage.Format.Format_ARGB32)
-        # d = qimage2ndarray.rgb_view(i).copy()
         self.currentFrame = image
         self.imageChanged.emit(image)#d, d.shape[1], d.shape[0], d.shape[1])
         
