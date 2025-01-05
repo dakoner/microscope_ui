@@ -128,7 +128,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
                                                   
     def imageChanged(self, image):
-        if self.state == "Jog" or self.state == "Run":
+        if self.state == "Jog" or self.state == "Run" and self.tile_graphics_view.acquisition == None:
             self.scene.addImageIfMissing(image, self.m_pos)
             # return
 
@@ -140,7 +140,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.zoom_view.setFixedSize(1024, 1024)
         # self.zoom_view.setPixmap(QtGui.QPixmap.fromImage(zoom_image))
         # self.image_view.setFixedSize(s[1], s[0])
-        pixmap = QtGui.QPixmap.fromImage(image)
+        pixmap = QtGui.QPixmap.fromImage(image.mirrored(horizontal=False, vertical=True))
 
         self.image_view.setPixmap(pixmap)
 

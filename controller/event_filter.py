@@ -42,7 +42,7 @@ class EventFilter(QtCore.QObject):
             elif key == QtCore.Qt.Key.Key_R:
                 print("Reset")
                 self.main_window.tile_graphics_view.reset()
-                self.main_window.tile_graphics_view.addCurrentRect()
+                #self.main_window.tile_graphics_view.addCurrentRect()
                 # self.main_window.serial.reset()
             elif key == QtCore.Qt.Key.Key_Left:
                 if state == "Idle":

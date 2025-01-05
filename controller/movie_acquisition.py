@@ -92,11 +92,10 @@ class Acquisition:
                             (k, len(self.ys), 0),
                             VIDEO_SPEED,
                         ],
-                        ["WAIT"]
+                        ["WAIT"],
+                        ["STOP_MOVIE_STRIP"]
                     ]
                 )
-                grid.append([
-                    ["STOP_MOVIE_STRIP"]])
         grid.append([["WAIT"]])
         grid.append([["DONE"]])
 
@@ -133,6 +132,7 @@ class Acquisition:
 
         # ffmpeg -f rawvideo -pix_fmt yuyv422 -s 1280x720 -i test.raw  -vcodec libx264 -pix_fmt yuv420p  movie.mp4 -y
         self.app.main_window.camera.yuvFrameChanged.connect(self.yuvFrameChanged)
+        self.app.main_window.camera.imageChanged.connect(self.frameChanged)
         
         self.doCmd()
         # print("cmd=", cmd)
@@ -167,7 +167,7 @@ class Acquisition:
         elif subcmd[0] == "START_MOVIE_STRIP":
             prefix = subcmd[1]
             k = subcmd[2]
-            fname = prefix + "/test.%d.mkv" % k
+            fname = prefix + "/test.%d.yuv" % k
             self.process = (
             ffmpeg.
             input(
@@ -178,7 +178,8 @@ class Acquisition:
                 threads=8
             )
             .output(
-                fname, pix_fmt="yuv422p", vcodec="libx264", crf=13 
+                #fname, pix_fmt="yuv422p", vcodec="libx264", crf=13 
+                fname, pix_fmt="yuyv422", vcodec="rawvideo"
             )  
             .overwrite_output()
             .global_args("-threads", "8")
@@ -220,6 +221,7 @@ class Acquisition:
             self.app.main_window.serial.messageChanged.disconnect(self.output)
             self.app.main_window.serial.posChanged.disconnect(self.pos)
             self.app.main_window.camera.yuvFrameChanged.disconnect(self.yuvFrameChanged)
+            self.app.main_window.camera.imageChanged.disconnect(self.frameChanged)
 
             print("done")
             #self.painter.end()
@@ -239,6 +241,9 @@ class Acquisition:
             print("go to next")
             self.doCmd()
 
+    def frameChanged(self, image):
+        if self.process:
+            self.app.main_window.scene.addImage(image, self.m_pos)
 
     def yuvFrameChanged(self, frame, width, height, data_bytes, step, sequence, tv_sec, tv_nsec):
         #m_pos = self.app.main_window.m_pos
@@ -259,7 +264,7 @@ class Acquisition:
                     # "i": self.i,
                     # "j": self.j,
                     # "k": self.k,
-                    "fname": "images/test.%05d.png" % (sequence),
+                    "fname": "images/test.%05d.tif" % (sequence),
                     "sequence": sequence,
                     "tv_sec": tv_sec,
                     "tv_nsec": tv_nsec,
