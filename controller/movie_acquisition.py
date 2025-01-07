@@ -184,7 +184,7 @@ class Acquisition:
             .global_args("-threads", "8")
             .run_async(pipe_stdin=True)
             )
-            self.tile_config = open(os.path.join(self.prefix, "tile_config.%d.json" % k), "w")
+            self.tile_config = open(os.path.join(self.prefix, "tile_config.json"), "w")
             QtCore.QTimer.singleShot(0, self.doCmd)
         elif subcmd[0] == "STOP_MOVIE_STRIP":
             self.process.stdin.close()
