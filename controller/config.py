@@ -20,7 +20,8 @@ STAGE_Y_SIZE=120
 
 # inspection scope with zoom lens, set to minimum zoom, 1280x720 image
 #PIXEL_SCALE=.009865
-CAMERA='quvcobject'
+#CAMERA='quvcobject'
+CAMERA='gige'
 WIDTH=1280
 HEIGHT=720
 FPS=120

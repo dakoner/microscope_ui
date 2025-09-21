@@ -1,3 +1,4 @@
+import qimage2ndarray
 import time
 from PyQt6 import QtGui, QtCore, QtWidgets
 import sys
@@ -78,6 +79,7 @@ class TileGraphicsScene(QtWidgets.QGraphicsScene):
 
     def addImage(self, image, pos):
         #print('addImage', draw_data.shape)
+        image = qimage2ndarray.array2qimage(image)
         image = image.mirrored(horizontal=True, vertical=False)
         image = image.scaledToHeight(image.height()//10)
         pixmap = QtGui.QPixmap.fromImage(image)

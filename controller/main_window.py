@@ -1,3 +1,4 @@
+import qimage2ndarray
 import ffmpeg
 import os
 import numpy as np
@@ -48,7 +49,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.installEventFilter(self.event_filter)  # keyboard control
 
 
-        self.serial = serial_interface_qobject.SerialInterface("/dev/ttyUSB1", "dektop")
+        self.serial = serial_interface_qobject.SerialInterface("/dev/ttyUSB0", "dektop")
         self.serial.posChanged.connect(self.onPosChange)
         self.serial.stateChanged.connect(self.onStateChange)
         self.serial.messageChanged.connect(self.onMessageChanged)
@@ -140,7 +141,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.zoom_view.setFixedSize(1024, 1024)
         # self.zoom_view.setPixmap(QtGui.QPixmap.fromImage(zoom_image))
         # self.image_view.setFixedSize(s[1], s[0])
-        pixmap = QtGui.QPixmap.fromImage(image.mirrored(horizontal=False, vertical=True))
+        #pixmap = QtGui.QPixmap.fromImage(image.mirrored(horizontal=False, vertical=True))
+        image = qimage2ndarray.array2qimage(image)
+        pixmap = QtGui.QPixmap.fromImage(image)
 
         self.image_view.setPixmap(pixmap)
 
