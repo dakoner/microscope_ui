@@ -167,7 +167,9 @@ class Acquisition:
         elif subcmd[0] == "START_MOVIE_STRIP":
             prefix = subcmd[1]
             k = subcmd[2]
-            fname = prefix + "/test.%d.yuv" % k
+            outdir = prefix + "/" + str(k)
+            os.makedirs(outdir)
+            fname = outdir + "/test.mkv"
             self.process = (
             ffmpeg.
             input(
@@ -175,17 +177,20 @@ class Acquisition:
                 format="rawvideo",
                 pix_fmt="yuyv422",
                 s="{}x{}".format(1280, 720),
-                threads=8
+                r=120
             )
             .output(
-                #fname, pix_fmt="yuv422p", vcodec="libx264", crf=13 
-                fname, pix_fmt="yuyv422", vcodec="rawvideo"
+                #fname, vcodec="libx264", qp=0, crf=0, r=120, preset="superfast", threads=8
+                #fname, vcodec="ffv1", threads=4, level=3, coder=1, context=1, g=1, slices=30
+                #fname, vcodec="rawvideo"
+                # fast and 50% smaller than rawvideo
+                fname, vcodec="huffyuv", r=120
             )  
             .overwrite_output()
             .global_args("-threads", "8")
             .run_async(pipe_stdin=True)
             )
-            self.tile_config = open(os.path.join(self.prefix, "tile_config.%d.json" % k), "w")
+            self.tile_config = open(os.path.join(outdir, "tile_config.json", "w"))
             QtCore.QTimer.singleShot(0, self.doCmd)
         elif subcmd[0] == "STOP_MOVIE_STRIP":
             self.process.stdin.close()
